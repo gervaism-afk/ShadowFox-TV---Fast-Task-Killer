@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - "ShadowFoxTV-FastTaskKiller-Project-v4.zip"
+      - "ShadowFoxTV-FastTaskKiller-Project-v3.0.1.zip"
       - ".github/workflows/build-from-zip.yml"
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
       - name: Extract Android project
         run: |
           mkdir extracted
-          unzip -q ShadowFoxTV-FastTaskKiller-Project-v4.zip -d extracted
+          unzip -q ShadowFoxTV-FastTaskKiller-Project-v3.0.1.zip -d extracted
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
