@@ -25,11 +25,13 @@ public class MainActivity extends Activity {
     private final Set<String> protectedPackages = new HashSet<>();
 
     private TextView summaryText;
+    private TextView detectedAppsText;
     private TextView appsCleanedText;
     private TextView ramRecoveredText;
     private TextView storageRecoveredText;
     private View resultCard;
     private Button cleanButton;
+    private Button rescanButton;
     private boolean cleaning = false;
 
     @Override
@@ -38,12 +40,13 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         summaryText = findViewById(R.id.summaryText);
+        detectedAppsText = findViewById(R.id.detectedAppsText);
         appsCleanedText = findViewById(R.id.appsCleanedText);
         ramRecoveredText = findViewById(R.id.ramRecoveredText);
         storageRecoveredText = findViewById(R.id.storageRecoveredText);
         resultCard = findViewById(R.id.resultCard);
         cleanButton = findViewById(R.id.cleanButton);
-        Button rescanButton = findViewById(R.id.rescanButton);
+        rescanButton = findViewById(R.id.rescanButton);
 
         protectedPackages.add(getPackageName());
         protectedPackages.add("com.android.systemui");
@@ -53,10 +56,10 @@ public class MainActivity extends Activity {
         protectedPackages.add("com.android.settings");
 
         cleanButton.setOnClickListener(v -> cleanNow());
-        rescanButton.setOnClickListener(v -> {
-            resultCard.setVisibility(View.GONE);
-            scanApps();
-        });
+        rescanButton.setOnClickListener(v -> scanApps());
+
+        addTvFocusEffect(cleanButton);
+        addTvFocusEffect(rescanButton);
 
         scanApps();
         cleanButton.requestFocus();
@@ -70,7 +73,22 @@ public class MainActivity extends Activity {
         status.startAnimation(AnimationUtils.loadAnimation(this, R.anim.fade_scale_in));
     }
 
+    private void addTvFocusEffect(View view) {
+        view.setOnFocusChangeListener((v, hasFocus) -> {
+            float scale = hasFocus ? 1.035f : 1.0f;
+            v.animate().scaleX(scale).scaleY(scale).setDuration(120).start();
+            v.setElevation(hasFocus ? 18f : 2f);
+        });
+    }
+
     private void scanApps() {
+        if (!cleaning) {
+            summaryText.setText(R.string.scanning);
+            if (detectedAppsText != null) {
+                detectedAppsText.setText(R.string.scanning_apps);
+            }
+        }
+
         executor.execute(() -> {
             PackageManager pm = getPackageManager();
             List<ApplicationInfo> installed = pm.getInstalledApplications(0);
@@ -89,7 +107,12 @@ public class MainActivity extends Activity {
                 userPackages.clear();
                 userPackages.addAll(found);
                 if (!cleaning) {
-                    summaryText.setText("READY TO CLEAN  •  " + userPackages.size() + " APPS FOUND");
+                    if (detectedAppsText != null) {
+                        summaryText.setText(R.string.ready);
+                        detectedAppsText.setText(userPackages.size() + " BACKGROUND APPS DETECTED");
+                    } else {
+                        summaryText.setText("READY  •  " + userPackages.size() + " BACKGROUND APPS");
+                    }
                 }
             });
         });
@@ -100,9 +123,14 @@ public class MainActivity extends Activity {
 
         cleaning = true;
         cleanButton.setEnabled(false);
-        cleanButton.setText("CLEANING…");
-        resultCard.setVisibility(View.GONE);
-        summaryText.setText("CLEANING BACKGROUND APPS…");
+        rescanButton.setEnabled(false);
+        cleanButton.setText(R.string.cleaning_button);
+        summaryText.setText(R.string.cleaning_status);
+        if (detectedAppsText != null) {
+            detectedAppsText.setText(R.string.cleaning_detail);
+            appsCleanedText.setText("—");
+            ramRecoveredText.setText("—");
+        }
 
         final List<String> targets = new ArrayList<>(userPackages);
         final long ramBefore = getAvailableRamBytes();
@@ -134,10 +162,14 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> {
                 cleaning = false;
                 cleanButton.setEnabled(true);
+                rescanButton.setEnabled(true);
                 cleanButton.setText(R.string.clean_now);
                 cleanButton.startAnimation(AnimationUtils.loadAnimation(this, R.anim.button_pop));
 
                 summaryText.setText(R.string.cleanup_complete);
+                if (detectedAppsText != null) {
+                    detectedAppsText.setText(cleanedCount + " APPS PROCESSED");
+                }
                 appsCleanedText.setText(String.valueOf(cleanedCount));
                 ramRecoveredText.setText(formatMb(ramRecovered));
                 storageRecoveredText.setText(R.string.storage_restricted);
@@ -145,7 +177,6 @@ public class MainActivity extends Activity {
                 resultCard.setVisibility(View.VISIBLE);
                 resultCard.startAnimation(AnimationUtils.loadAnimation(this, R.anim.fade_scale_in));
 
-                scanApps();
                 cleanButton.requestFocus();
             });
         });
