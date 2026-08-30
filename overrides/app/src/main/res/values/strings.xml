@@ -7,12 +7,11 @@
     <string name="rescan">RESCAN APPS</string>
     <string name="ready">READY TO CLEAN</string>
     <string name="website">www.shadowfoxtv.ca</string>
-    <string name="protected_note">One-click background cleanup • system apps protected</string>
-    <string name="one_click_mode">ONE-CLICK MODE</string>
+    <string name="protected_note">Background cleanup • system apps protected</string>
     <string name="cleanup_complete">CLEANUP COMPLETE</string>
     <string name="apps_closed">APPS CLOSED</string>
     <string name="ram_recovered">RAM RECOVERED</string>
     <string name="storage_status">STORAGE</string>
     <string name="storage_restricted">ANDROID PROTECTED</string>
-    <string name="version_label">ShadowFox TV - Task Killer • v3.1.0</string>
+    <string name="version_label">ShadowFox TV - Task Killer • v3.1.1</string>
 </resources>

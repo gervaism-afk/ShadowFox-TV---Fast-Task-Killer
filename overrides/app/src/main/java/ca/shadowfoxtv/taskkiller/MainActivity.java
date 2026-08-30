@@ -5,7 +5,6 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.view.animation.Animation;
@@ -26,7 +25,6 @@ public class MainActivity extends Activity {
     private final Set<String> protectedPackages = new HashSet<>();
 
     private TextView summaryText;
-    private TextView modeText;
     private TextView appsCleanedText;
     private TextView ramRecoveredText;
     private TextView storageRecoveredText;
@@ -40,7 +38,6 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         summaryText = findViewById(R.id.summaryText);
-        modeText = findViewById(R.id.modeText);
         appsCleanedText = findViewById(R.id.appsCleanedText);
         ramRecoveredText = findViewById(R.id.ramRecoveredText);
         storageRecoveredText = findViewById(R.id.storageRecoveredText);
@@ -60,9 +57,6 @@ public class MainActivity extends Activity {
             resultCard.setVisibility(View.GONE);
             scanApps();
         });
-
-        modeText.setText(R.string.one_click_mode);
-        modeText.setTextColor(Color.rgb(54, 226, 122));
 
         scanApps();
         cleanButton.requestFocus();
@@ -142,9 +136,6 @@ public class MainActivity extends Activity {
                 cleanButton.setEnabled(true);
                 cleanButton.setText(R.string.clean_now);
                 cleanButton.startAnimation(AnimationUtils.loadAnimation(this, R.anim.button_pop));
-
-                modeText.setText(R.string.one_click_mode);
-                modeText.setTextColor(Color.rgb(54, 226, 122));
 
                 summaryText.setText(R.string.cleanup_complete);
                 appsCleanedText.setText(String.valueOf(cleanedCount));
