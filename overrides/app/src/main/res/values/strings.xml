@@ -4,14 +4,24 @@
     <string name="title">ShadowFox TV</string>
     <string name="subtitle">TASK KILLER</string>
     <string name="clean_now">CLEAN NOW</string>
+    <string name="cleaning_button">CLEANING…</string>
     <string name="rescan">RESCAN APPS</string>
-    <string name="ready">READY TO CLEAN</string>
+    <string name="ready">READY</string>
+    <string name="scanning">SCANNING</string>
+    <string name="scanning_apps">CHECKING BACKGROUND APPS…</string>
     <string name="website">www.shadowfoxtv.ca</string>
     <string name="protected_note">Background cleanup • system apps protected</string>
+    <string name="system_status">SYSTEM STATUS</string>
+    <string name="cleanup_heading">BACKGROUND CLEANUP</string>
+    <string name="clean_hint">Press OK / Select to close safe background apps</string>
+    <string name="cleaning_status">CLEANING</string>
+    <string name="cleaning_detail">CLOSING SAFE BACKGROUND PROCESSES…</string>
     <string name="cleanup_complete">CLEANUP COMPLETE</string>
     <string name="apps_closed">APPS CLOSED</string>
     <string name="ram_recovered">RAM RECOVERED</string>
     <string name="storage_status">STORAGE</string>
     <string name="storage_restricted">ANDROID PROTECTED</string>
-    <string name="version_label">ShadowFox TV - Task Killer • v3.1.1</string>
+    <string name="footer_note">Optimized for Android TV • Fire TV • Tablets</string>
+    <string name="version_short">v3.2.0</string>
+    <string name="version_label">ShadowFox TV - Task Killer • v3.2.0</string>
 </resources>
