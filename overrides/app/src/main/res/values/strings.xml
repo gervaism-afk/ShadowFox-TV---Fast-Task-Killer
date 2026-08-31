@@ -13,15 +13,16 @@
     <string name="protected_note">Background cleanup • system apps protected</string>
     <string name="system_status">SYSTEM STATUS</string>
     <string name="cleanup_heading">BACKGROUND CLEANUP</string>
-    <string name="clean_hint">Press OK / Select to close safe background apps</string>
+    <string name="clean_hint">Press OK / Select to process safe background apps</string>
     <string name="cleaning_status">CLEANING</string>
-    <string name="cleaning_detail">CLOSING SAFE BACKGROUND PROCESSES…</string>
+    <string name="cleaning_detail">PROCESSING SAFE BACKGROUND APPS…</string>
     <string name="cleanup_complete">CLEANUP COMPLETE</string>
-    <string name="apps_closed">APPS CLOSED</string>
+    <string name="apps_closed">APPS PROCESSED</string>
+    <string name="apps_processed">APPS PROCESSED</string>
     <string name="ram_recovered">RAM RECOVERED</string>
     <string name="storage_status">STORAGE</string>
     <string name="storage_restricted">ANDROID PROTECTED</string>
     <string name="footer_note">Optimized for Android TV • Fire TV • Tablets</string>
-    <string name="version_short">v3.2.1</string>
-    <string name="version_label">ShadowFox TV - Task Killer • v3.2.1</string>
+    <string name="version_short">v3.2.2</string>
+    <string name="version_label">ShadowFox TV - Task Killer • v3.2.2</string>
 </resources>
