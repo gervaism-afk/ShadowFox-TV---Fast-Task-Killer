@@ -23,7 +23,7 @@ jobs:
           mkdir extracted
           unzip -q ShadowFoxTV-FastTaskKiller-Project-v3.0.4-NON-ROOT.zip -d extracted
 
-      - name: Apply ShadowFox v3.2.0 landscape dashboard updates
+      - name: Apply ShadowFox v3.2.1 UI polish updates
         run: |
           cp -R overrides/. extracted/.
 
@@ -45,5 +45,5 @@ jobs:
       - name: Upload finished APK
         uses: actions/upload-artifact@v4
         with:
-          name: ShadowFox-TV-Task-Killer-v3.2.0-APK
+          name: ShadowFox-TV-Task-Killer-v3.2.1-APK
           path: extracted/app/build/outputs/apk/debug/app-debug.apk
