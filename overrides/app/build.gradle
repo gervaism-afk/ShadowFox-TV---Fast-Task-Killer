@@ -17,6 +17,10 @@ android {
         versionName "3.3.0"
     }
 
+    buildFeatures {
+        buildConfig true
+    }
+
     signingConfigs {
         if (keystorePath && signingPassword) {
             release {
