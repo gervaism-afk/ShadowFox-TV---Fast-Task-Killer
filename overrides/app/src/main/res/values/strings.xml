@@ -23,6 +23,6 @@
     <string name="storage_status">STORAGE</string>
     <string name="storage_restricted">ANDROID PROTECTED</string>
     <string name="footer_note">Optimized for Android TV • Fire TV • Tablets</string>
-    <string name="version_short">v3.2.2</string>
-    <string name="version_label">ShadowFox TV - Task Killer • v3.2.2</string>
+    <string name="version_short">v3.3.0</string>
+    <string name="version_label">ShadowFox TV - Task Killer • v3.3.0</string>
 </resources>

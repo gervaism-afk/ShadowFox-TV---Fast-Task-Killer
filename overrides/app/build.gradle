@@ -2,6 +2,9 @@ plugins {
     id 'com.android.application'
 }
 
+def keystorePath = System.getenv("SHADOWFOX_KEYSTORE_PATH")
+def signingPassword = System.getenv("SHADOWFOX_SIGNING_PASSWORD")
+
 android {
     namespace 'ca.shadowfoxtv.taskkiller'
     compileSdk 35
@@ -10,8 +13,29 @@ android {
         applicationId "ca.shadowfoxtv.taskkiller"
         minSdk 23
         targetSdk 35
-        versionCode 12
-        versionName "3.2.2"
+        versionCode 13
+        versionName "3.3.0"
+    }
+
+    signingConfigs {
+        if (keystorePath && signingPassword) {
+            release {
+                storeFile file(keystorePath)
+                storePassword signingPassword
+                keyAlias "shadowfox"
+                keyPassword signingPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            def releaseSigning = signingConfigs.findByName("release")
+            if (releaseSigning != null) {
+                signingConfig releaseSigning
+            }
+        }
     }
 
     compileOptions {
