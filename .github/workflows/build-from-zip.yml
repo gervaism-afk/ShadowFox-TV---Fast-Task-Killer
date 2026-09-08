@@ -32,18 +32,23 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p=Path('extracted/app/src/main/AndroidManifest.xml'); t=p.read_text()
-          entries=[
-            '<uses-permission android:name="android.permission.INTERNET" />',
-            '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />',
-            '<uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />',
-            '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />',
-            '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
-            '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
-            '<uses-feature android:name="android.software.leanback" android:required="true" />',
-            '<uses-feature android:name="android.hardware.touchscreen" android:required="false" />']
-          missing='\n'.join(x for x in entries if x not in t)
-          if missing:t=t.replace('<application',missing+'\n\n    <application',1)
+          permissions=[
+            'android.permission.INTERNET',
+            'android.permission.ACCESS_NETWORK_STATE',
+            'android.permission.KILL_BACKGROUND_PROCESSES',
+            'android.permission.REQUEST_INSTALL_PACKAGES',
+            'android.permission.RECEIVE_BOOT_COMPLETED',
+            'android.permission.POST_NOTIFICATIONS']
+          for name in permissions:
+            if f'android:name="{name}"' not in t:
+              t=t.replace('<application',f'<uses-permission android:name="{name}" />\n\n    <application',1)
+          # Normalize TV features so each is declared exactly once with the required value.
+          t=re.sub(r'\s*<uses-feature\s+android:name="android\.software\.leanback"[^>]*/>','',t)
+          t=re.sub(r'\s*<uses-feature\s+android:name="android\.hardware\.touchscreen"[^>]*/>','',t)
+          features='\n    <uses-feature android:name="android.software.leanback" android:required="true" />\n    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />\n\n    '
+          t=t.replace('<application',features+'<application',1)
           if 'android:name=".ShadowFoxApp"' not in t:t=t.replace('<application','<application android:name=".ShadowFoxApp"',1)
           if 'android:name=".V4DashboardActivity"' not in t:t=t.replace('</application>','<activity android:name=".V4DashboardActivity" android:exported="false" />\n</application>',1)
           p.write_text(t)
