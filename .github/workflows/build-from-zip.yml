@@ -30,9 +30,14 @@ jobs:
           mkdir extracted
           unzip -q ShadowFoxTV-FastTaskKiller-Project-v3.0.4-NON-ROOT.zip -d extracted
 
-      - name: Apply ShadowFox v3.3.0 updater files
+      - name: Apply ShadowFox overrides
         run: |
           cp -R overrides/. extracted/.
+
+      - name: Read app version
+        run: |
+          VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
+          echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Add updater permissions to Android manifest
         run: |
@@ -69,7 +74,7 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: ShadowFox-TV-Task-Killer-v3.3.0-debug
+          name: ShadowFox-TV-Task-Killer-v${{ env.APP_VERSION }}-debug
           path: extracted/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Prepare permanent release signing key
@@ -89,7 +94,7 @@ jobs:
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: ShadowFox-TV-Task-Killer-v3.3.0-signed
+          name: ShadowFox-TV-Task-Killer-v${{ env.APP_VERSION }}-signed
           path: extracted/app/build/outputs/apk/release/app-release.apk
 
       - name: Publish GitHub Release for auto-update
@@ -97,7 +102,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
+          VERSION="$APP_VERSION"
           TAG="v${VERSION}"
           ASSET="ShadowFox-TV-Task-Killer-v${VERSION}.apk"
           cp extracted/app/build/outputs/apk/release/app-release.apk "$ASSET"
