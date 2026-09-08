@@ -74,7 +74,13 @@ import kotlin.math.sin
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { ShadowFoxTheme { ShadowFoxDashboard(applicationContext) } }
+        setContent {
+            ShadowFoxTheme {
+                ShadowFoxUpdateGate(applicationContext) {
+                    ShadowFoxDashboard(applicationContext)
+                }
+            }
+        }
     }
 }
 
