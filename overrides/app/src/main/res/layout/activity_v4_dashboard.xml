@@ -4,191 +4,109 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center_vertical"
-    android:background="@drawable/screen_bg"
-    android:paddingStart="34dp"
-    android:paddingEnd="34dp"
-    android:paddingTop="18dp"
-    android:paddingBottom="18dp">
+    android:background="#121212"
+    android:paddingStart="36dp"
+    android:paddingEnd="36dp"
+    android:paddingTop="24dp"
+    android:paddingBottom="24dp">
 
-    <!-- HERO HEADER -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="112dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:layout_height="92dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="150dp"
+            android:layout_height="88dp"
+            android:src="@drawable/shadowfox_logo"
+            android:scaleType="fitCenter"
+            android:adjustViewBounds="true"
+            android:contentDescription="ShadowFox TV" />
 
         <LinearLayout
-            android:layout_width="250dp"
+            android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:gravity="center">
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:paddingStart="20dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ShadowFox TV" android:textColor="#FFFFFF" android:textSize="30sp" android:textStyle="bold" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="www.shadowfoxtv.ca" android:textColor="#00E5FF" android:textSize="15sp" android:textStyle="bold" />
+        </LinearLayout>
 
-            <ImageView
-                android:layout_width="148dp"
-                android:layout_height="108dp"
-                android:adjustViewBounds="true"
-                android:scaleType="fitCenter"
-                android:contentDescription="@string/app_name"
-                android:src="@drawable/shadowfox_logo" />
+        <TextView
+            android:id="@+id/networkTextV4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="NETWORK READY"
+            android:textColor="#00E5FF"
+            android:textStyle="bold"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <LinearLayout
+            android:id="@+id/bufferCard"
+            android:layout_width="230dp"
+            android:layout_height="260dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:background="@drawable/optimizer_panel"
+            android:padding="18dp"
+            android:focusable="true">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="BUFFER STATUS" android:textColor="#FFFFFF" android:textSize="18sp" android:textStyle="bold" />
+            <ProgressBar android:id="@+id/bufferProgress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="28dp" android:layout_marginTop="30dp" android:max="100" android:progress="0" android:progressTint="#00E5FF" android:progressBackgroundTint="#263238" />
+            <TextView android:id="@+id/bufferText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="ANALYZING" android:textColor="#FFFFFF" android:textSize="14sp" android:textStyle="bold" />
+            <Button android:id="@+id/bufferButtonV4" android:layout_width="match_parent" android:layout_height="58dp" android:layout_marginTop="28dp" android:background="@drawable/optimizer_button" android:focusable="true" android:text="OPTIMIZE BUFFER" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="100dp"
+            android:layout_height="match_parent"
             android:layout_weight="1"
+            android:gravity="center"
             android:orientation="vertical"
-            android:gravity="center_vertical"
-            android:background="@drawable/tech_panel"
-            android:paddingStart="22dp"
-            android:paddingEnd="22dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="SHADOWFOX COMMAND CENTER"
-                android:textColor="@color/blue2"
-                android:textStyle="bold"
-                android:textSize="13sp"
-                android:letterSpacing="0.12" />
-
-            <TextView
-                android:id="@+id/deviceTextV4"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:text="ANDROID TV"
-                android:textColor="@color/white"
-                android:textSize="26sp"
-                android:textStyle="bold" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/rootTextV4"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="STANDARD MODE"
-                    android:textColor="@color/white"
-                    android:textStyle="bold"
-                    android:textSize="12sp" />
-
-                <TextView
-                    android:id="@+id/networkTextV4"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ONLINE"
-                    android:textColor="@color/blue2"
-                    android:textStyle="bold"
-                    android:textSize="12sp" />
-            </LinearLayout>
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp">
+            <ca.shadowfoxtv.taskkiller.SpeedGaugeView
+                android:id="@+id/speedGauge"
+                android:layout_width="430dp"
+                android:layout_height="300dp" />
+            <TextView android:id="@+id/speedText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center" android:text="LIVE NETWORK\n— Mbps\nDOWNLOAD / UPLOAD\nPING: — ms" android:textColor="#FFFFFF" android:textSize="17sp" android:textStyle="bold" />
         </LinearLayout>
-    </LinearLayout>
-
-    <!-- LIVE SYSTEM STATS -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="112dp"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
-
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginEnd="5dp" android:gravity="center" android:orientation="vertical" android:background="@drawable/tech_stat_tile">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="DEVICE HEALTH" android:textColor="@color/blue2" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.06" />
-            <TextView android:id="@+id/healthScoreText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="100" android:textColor="@color/white" android:textSize="40sp" android:textStyle="bold" />
-            <TextView android:id="@+id/healthStateText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="EXCELLENT" android:textColor="@color/blue2" android:textSize="10sp" android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.45" android:layout_marginStart="5dp" android:layout_marginEnd="5dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/tech_stat_tile">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="RAM LOAD" android:textColor="@color/blue2" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.06" />
-            <TextView android:id="@+id/ramTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="—" android:textColor="@color/white" android:textSize="18sp" android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.45" android:layout_marginStart="5dp" android:layout_marginEnd="5dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/tech_stat_tile">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="STORAGE" android:textColor="@color/blue2" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.06" />
-            <TextView android:id="@+id/storageTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="—" android:textColor="@color/white" android:textSize="18sp" android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.82" android:layout_marginStart="5dp" android:layout_marginEnd="5dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/tech_stat_tile">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="APPS" android:textColor="@color/blue2" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.06" />
-            <TextView android:id="@+id/appsTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="0" android:textColor="@color/white" android:textSize="33sp" android:textStyle="bold" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="DETECTED" android:textColor="@color/blue2" android:textSize="9sp" android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="5dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/tech_stat_tile">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="UPTIME" android:textColor="@color/blue2" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.06" />
-            <TextView android:id="@+id/uptimeTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="—" android:textColor="@color/white" android:textSize="18sp" android:textStyle="bold" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- PRIMARY ACTION -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="94dp"
-        android:layout_marginTop="10dp"
-        android:orientation="vertical"
-        android:gravity="center">
-
-        <Button
-            android:id="@+id/optimizeButtonV4"
-            android:layout_width="600dp"
-            android:layout_height="58dp"
-            android:background="@drawable/button_primary_tv"
-            android:focusable="true"
-            android:text="OPTIMIZE NOW"
-            android:textColor="@color/white"
-            android:textSize="22sp"
-            android:textStyle="bold" />
 
         <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-            <TextView android:id="@+id/resultTitleV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SYSTEM READY" android:textColor="@color/white" android:textStyle="bold" android:textSize="13sp" />
-            <TextView android:id="@+id/resultDetailV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="Smart analysis • protected system apps • root-aware engine" android:textColor="@color/blue2" android:textStyle="bold" android:textSize="10sp" />
+            android:layout_width="270dp"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical">
+            <LinearLayout
+                android:id="@+id/latencyCard"
+                android:layout_width="match_parent"
+                android:layout_height="220dp"
+                android:orientation="vertical"
+                android:background="@drawable/optimizer_panel"
+                android:padding="18dp"
+                android:focusable="true">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LATENCY (PING)" android:textColor="#FFFFFF" android:textSize="18sp" android:textStyle="bold" />
+                <ca.shadowfoxtv.taskkiller.LatencyGraphView android:id="@+id/latencyGraph" android:layout_width="match_parent" android:layout_height="100dp" android:layout_marginTop="8dp" />
+                <Switch android:id="@+id/fixPingSwitch" android:layout_width="match_parent" android:layout_height="52dp" android:text="FIX PING" android:textColor="#FFFFFF" android:textStyle="bold" android:focusable="true" android:buttonTint="#00E5FF" />
+            </LinearLayout>
+            <Button android:id="@+id/optimizeButtonV4" android:layout_width="match_parent" android:layout_height="76dp" android:layout_marginTop="22dp" android:background="@drawable/optimizer_button" android:focusable="true" android:text="RUN FULL OPTIMIZATION" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="17sp" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- TOOLKIT -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="20dp"
-        android:text="PREMIUM TOOLKIT"
-        android:textColor="@color/blue2"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:gravity="center_vertical"
-        android:letterSpacing="0.14" />
-
-    <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="5dp" android:orientation="horizontal">
-        <Button android:id="@+id/appsButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginEnd="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="APP MANAGER" android:textColor="@color/white" android:textStyle="bold" android:textSize="13sp" />
-        <Button android:id="@+id/storageButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="4dp" android:layout_marginEnd="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="STORAGE TOOLS" android:textColor="@color/white" android:textStyle="bold" android:textSize="13sp" />
-        <Button android:id="@+id/networkButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="4dp" android:layout_marginEnd="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="NETWORK TOOLS" android:textColor="@color/white" android:textStyle="bold" android:textSize="13sp" />
-        <Button android:id="@+id/rootButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="ROOT MODE" android:textColor="@color/white" android:textStyle="bold" android:textSize="13sp" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="40dp" android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:id="@+id/resultTitleV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SYSTEM READY" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" />
+        <TextView android:id="@+id/resultDetailV4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="14dp" android:text="Network diagnostics and background process optimizer ready" android:textColor="#00E5FF" android:textSize="11sp" />
+        <TextView android:id="@+id/versionTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="v5.0.0" android:textColor="#FF6D00" android:textStyle="bold" android:textSize="11sp" />
     </LinearLayout>
-
-    <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="8dp" android:orientation="horizontal">
-        <Button android:id="@+id/reportButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginEnd="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="HEALTH REPORT" android:textColor="@color/white" android:textStyle="bold" android:textSize="13sp" />
-        <Button android:id="@+id/updateButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="4dp" android:layout_marginEnd="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="UPDATE CENTER" android:textColor="@color/white" android:textStyle="bold" android:textSize="13sp" />
-        <Button android:id="@+id/settingsButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="4dp" android:layout_marginEnd="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="SYSTEM SETTINGS" android:textColor="@color/white" android:textStyle="bold" android:textSize="13sp" />
-        <Button android:id="@+id/aboutButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="ABOUT" android:textColor="@color/white" android:textStyle="bold" android:textSize="13sp" />
-    </LinearLayout>
-
-    <!-- FOOTER -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="26dp"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="www.shadowfoxtv.ca" android:textColor="@color/white" android:textStyle="bold" android:textSize="11sp" />
-        <TextView android:id="@+id/versionTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="v4.2.0 • SYSTEM OPTIMIZER EDITION" android:textColor="@color/blue2" android:textStyle="bold" android:textSize="10sp" />
-    </LinearLayout>
-
 </LinearLayout>
