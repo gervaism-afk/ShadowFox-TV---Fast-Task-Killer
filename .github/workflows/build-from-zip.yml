@@ -50,8 +50,6 @@ jobs:
                   if candidate != destination and candidate.exists():
                       candidate.unlink()
               print(f'Using original ShadowFox logo: {source} ({len(data)} bytes) -> {destination}')
-          else:
-              print('No raster shadowfox_logo asset found; leaving existing drawable unchanged.')
           PY
 
       - name: Read app version
@@ -59,7 +57,7 @@ jobs:
           VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
           echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
 
-      - name: Add updater and v4 manifest entries
+      - name: Add updater and premium dashboard manifest entries
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -78,8 +76,7 @@ jobs:
           if 'android:name=".ShadowFoxApp"' not in text:
               text = text.replace('<application', '<application android:name=".ShadowFoxApp"', 1)
           if 'android:name=".V4DashboardActivity"' not in text:
-              activity = '\n        <activity android:name=".V4DashboardActivity" android:exported="false" />\n'
-              text = text.replace('</application>', activity + '    </application>', 1)
+              text = text.replace('</application>', '\n        <activity android:name=".V4DashboardActivity" android:exported="false" />\n    </application>', 1)
           receivers = ('\n        <receiver android:name=".UpdateCheckReceiver" android:enabled="true" android:exported="false" />\n'
                        '        <receiver android:name=".UpdateBootReceiver" android:enabled="true" android:exported="true">\n'
                        '            <intent-filter>\n'
@@ -92,38 +89,34 @@ jobs:
           p.write_text(text)
           PY
 
-      - name: Route launcher to v4 dashboard and repair update center
+      - name: Force launcher to premium dashboard and repair update center
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           main = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java')
           text = main.read_text()
           marker = 'super.onCreate(savedInstanceState);'
-          route = 'super.onCreate(savedInstanceState);\n        if (!getIntent().getBooleanExtra("shadowfox_update_center", false)) {\n            startActivity(new Intent(this, V4DashboardActivity.class));\n            finish();\n            return;\n        }'
-          if 'shadowfox_update_center' not in text:
+          route = '''super.onCreate(savedInstanceState);
+        if (!getIntent().getBooleanExtra("shadowfox_update_center", false)) {
+            startActivity(new Intent(this, V4DashboardActivity.class));
+            finish();
+            return;
+        }'''
+          # Always repair/replace the launcher routing block, even when the updater token already exists elsewhere.
+          pattern = re.compile(r'super\.onCreate\(savedInstanceState\);\s*if \(!getIntent\(\)\.getBooleanExtra\("shadowfox_update_center", false\)\) \{.*?return;\s*\}', re.S)
+          if pattern.search(text):
+              text = pattern.sub(route, text, count=1)
+          else:
               text = text.replace(marker, route, 1)
 
           start = text.find('    private void checkForUpdates() {')
           end = text.find('    private int compareVersions(', start)
           if start >= 0 and end > start:
               block = text[start:end]
-              block = block.replace(
-                  'if (connection.getResponseCode() != 200) return;',
-                  'int responseCode = connection.getResponseCode();\n                if (responseCode != 200) {\n                    runOnUiThread(() -> Toast.makeText(this, "Update check failed • GitHub returned " + responseCode, Toast.LENGTH_LONG).show());\n                    return;\n                }',
-                  1)
-              block = block.replace(
-                  'if (latestVersion.isEmpty() || compareVersions(latestVersion, BuildConfig.VERSION_NAME) <= 0) return;',
-                  'if (latestVersion.isEmpty()) {\n                    runOnUiThread(() -> Toast.makeText(this, "Update check failed • invalid release information", Toast.LENGTH_LONG).show());\n                    return;\n                }\n                if (compareVersions(latestVersion, BuildConfig.VERSION_NAME) <= 0) {\n                    runOnUiThread(() -> Toast.makeText(this, "ShadowFox is up to date • v" + BuildConfig.VERSION_NAME, Toast.LENGTH_LONG).show());\n                    return;\n                }',
-                  1)
-              block = block.replace(
-                  'if (apkUrl != null) {\n                    final String finalUrl = apkUrl;\n                    runOnUiThread(() -> startUpdateDownload(finalUrl, latestVersion));\n                }',
-                  'if (apkUrl != null) {\n                    final String finalUrl = apkUrl;\n                    runOnUiThread(() -> {\n                        Toast.makeText(this, "Update available • v" + latestVersion, Toast.LENGTH_LONG).show();\n                        startUpdateDownload(finalUrl, latestVersion);\n                    });\n                } else {\n                    runOnUiThread(() -> Toast.makeText(this, "Update found but APK package is missing.", Toast.LENGTH_LONG).show());\n                }',
-                  1)
-              block = block.replace(
-                  '} catch (Exception ignored) {\n            } finally {\n                if (connection != null) connection.disconnect();',
-                  '} catch (Exception e) {\n                runOnUiThread(() -> Toast.makeText(this, "Update check failed • check internet connection", Toast.LENGTH_LONG).show());\n            } finally {\n                updateCheckStarted = false;\n                if (connection != null) connection.disconnect();',
-                  1)
+              block = block.replace('if (connection.getResponseCode() != 200) return;', 'int responseCode = connection.getResponseCode();\n                if (responseCode != 200) {\n                    runOnUiThread(() -> Toast.makeText(this, "Update check failed • GitHub returned " + responseCode, Toast.LENGTH_LONG).show());\n                    return;\n                }', 1)
+              block = block.replace('if (latestVersion.isEmpty() || compareVersions(latestVersion, BuildConfig.VERSION_NAME) <= 0) return;', 'if (latestVersion.isEmpty()) {\n                    runOnUiThread(() -> Toast.makeText(this, "Update check failed • invalid release information", Toast.LENGTH_LONG).show());\n                    return;\n                }\n                if (compareVersions(latestVersion, BuildConfig.VERSION_NAME) <= 0) {\n                    runOnUiThread(() -> Toast.makeText(this, "ShadowFox is up to date • v" + BuildConfig.VERSION_NAME, Toast.LENGTH_LONG).show());\n                    return;\n                }', 1)
               text = text[:start] + block + text[end:]
           main.write_text(text)
 
