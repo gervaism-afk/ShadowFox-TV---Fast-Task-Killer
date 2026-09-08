@@ -41,11 +41,8 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
-
           p = Path('extracted/app/src/main/AndroidManifest.xml')
           text = p.read_text()
-
           permissions = [
               '<uses-permission android:name="android.permission.INTERNET" />',
               '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />',
@@ -56,37 +53,11 @@ jobs:
           additions = '\n'.join(x for x in permissions if x not in text)
           if additions:
               text = text.replace('<application', additions + '\n\n    <application', 1)
-
           if 'android:name=".ShadowFoxApp"' not in text:
               text = text.replace('<application', '<application android:name=".ShadowFoxApp"', 1)
-
-          # MainActivity remains installed as the legacy update/install center,
-          # but v4 becomes the launcher screen.
-          activity_pattern = re.compile(r'(<activity\b[^>]*android:name="[^"]*MainActivity"[^>]*>)(.*?)(</activity>)', re.S)
-          def strip_main_launcher(match):
-              body = match.group(2)
-              filters = re.findall(r'<intent-filter\b.*?</intent-filter>', body, flags=re.S)
-              for f in filters:
-                  if 'android.intent.action.MAIN' in f:
-                      body = body.replace(f, '')
-              return match.group(1) + body + match.group(3)
-          text = activity_pattern.sub(strip_main_launcher, text, count=1)
-
-          v4_activity = '''
-        <activity
-            android:name=".V4DashboardActivity"
-            android:exported="true"
-            android:screenOrientation="unspecified">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-            </intent-filter>
-        </activity>
-'''
           if 'android:name=".V4DashboardActivity"' not in text:
-              text = text.replace('</application>', v4_activity + '    </application>', 1)
-
+              activity = '\n        <activity android:name=".V4DashboardActivity" android:exported="false" />\n'
+              text = text.replace('</application>', activity + '    </application>', 1)
           receivers = ('\n        <receiver android:name=".UpdateCheckReceiver" android:enabled="true" android:exported="false" />\n'
                        '        <receiver android:name=".UpdateBootReceiver" android:enabled="true" android:exported="true">\n'
                        '            <intent-filter>\n'
@@ -96,7 +67,24 @@ jobs:
                        '        </receiver>\n')
           if 'android:name=".UpdateBootReceiver"' not in text:
               text = text.replace('</application>', receivers + '    </application>', 1)
+          p.write_text(text)
+          PY
 
+      - name: Route launcher to v4 dashboard
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java')
+          text = p.read_text()
+          marker = 'super.onCreate(savedInstanceState);'
+          route = '''super.onCreate(savedInstanceState);
+        if (!getIntent().getBooleanExtra("shadowfox_update_center", false)) {
+            startActivity(new Intent(this, V4DashboardActivity.class));
+            finish();
+            return;
+        }'''
+          if 'shadowfox_update_center' not in text:
+              text = text.replace(marker, route, 1)
           p.write_text(text)
           PY
 
