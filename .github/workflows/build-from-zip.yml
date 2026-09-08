@@ -1,188 +1,89 @@
-name: Build & Release ShadowFox TV - Task Killer
-
+name: Build & Release ShadowFox TV Optimizer
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-    paths:
-      - "ShadowFoxTV-FastTaskKiller-Project-v3.0.4-NON-ROOT.zip"
-      - "overrides/**"
-      - "signing/**"
-      - ".github/workflows/build-from-zip.yml"
-
+    branches: [main]
+    paths: ["overrides/**", "signing/**", ".github/workflows/build-from-zip.yml"]
 permissions:
   contents: write
-
 env:
   SHADOWFOX_SIGNING_PASSWORD: ${{ secrets.SHADOWFOX_SIGNING_PASSWORD }}
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Extract working Android project
-        run: |
-          mkdir extracted
-          unzip -q ShadowFoxTV-FastTaskKiller-Project-v3.0.4-NON-ROOT.zip -d extracted
-
-      - name: Apply ShadowFox overrides
+      - uses: actions/checkout@v4
+      - name: Extract project
+        run: mkdir extracted && unzip -q ShadowFoxTV-FastTaskKiller-Project-v3.0.4-NON-ROOT.zip -d extracted
+      - name: Apply v5 source
         run: cp -R overrides/. extracted/.
-
-      - name: Preserve highest-quality original logo
+      - name: Preserve original ShadowFox logo
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          res = Path('extracted/app/src/main/res')
-          raster_exts = {'.png', '.webp', '.jpg', '.jpeg'}
-          candidates = [p for p in res.rglob('shadowfox_logo.*') if p.suffix.lower() in raster_exts]
-          if candidates:
-              source = max(candidates, key=lambda p: p.stat().st_size)
-              data = source.read_bytes()
-              nodpi = res / 'drawable-nodpi'
-              nodpi.mkdir(parents=True, exist_ok=True)
-              destination = nodpi / source.name
-              destination.write_bytes(data)
-              for candidate in candidates:
-                  if candidate != destination and candidate.exists():
-                      candidate.unlink()
-              print(f'Using original ShadowFox logo: {source} ({len(data)} bytes) -> {destination}')
+          res=Path('extracted/app/src/main/res'); exts={'.png','.webp','.jpg','.jpeg'}
+          items=[p for p in res.rglob('shadowfox_logo.*') if p.suffix.lower() in exts]
+          if items:
+            src=max(items,key=lambda p:p.stat().st_size); data=src.read_bytes(); dst=res/'drawable-nodpi'/src.name; dst.parent.mkdir(parents=True,exist_ok=True); dst.write_bytes(data)
+            for p in items:
+              if p != dst and p.exists(): p.unlink()
           PY
-
-      - name: Read app version
+      - name: Configure Android TV manifest
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('extracted/app/src/main/AndroidManifest.xml'); t=p.read_text()
+          entries=[
+            '<uses-permission android:name="android.permission.INTERNET" />',
+            '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />',
+            '<uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />',
+            '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />',
+            '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
+            '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+            '<uses-feature android:name="android.software.leanback" android:required="true" />',
+            '<uses-feature android:name="android.hardware.touchscreen" android:required="false" />']
+          missing='\n'.join(x for x in entries if x not in t)
+          if missing:t=t.replace('<application',missing+'\n\n    <application',1)
+          if 'android:name=".ShadowFoxApp"' not in t:t=t.replace('<application','<application android:name=".ShadowFoxApp"',1)
+          if 'android:name=".V4DashboardActivity"' not in t:t=t.replace('</application>','<activity android:name=".V4DashboardActivity" android:exported="false" />\n</application>',1)
+          p.write_text(t)
+          PY
+      - name: Route launcher to v5 dashboard
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java'); t=p.read_text(); marker='super.onCreate(savedInstanceState);'
+          route='super.onCreate(savedInstanceState);\n        if (!getIntent().getBooleanExtra("shadowfox_update_center", false)) { startActivity(new Intent(this, V4DashboardActivity.class)); finish(); return; }'
+          if 'startActivity(new Intent(this, V4DashboardActivity.class));' not in t:t=t.replace(marker,route,1)
+          p.write_text(t)
+          PY
+      - name: Read version
         run: |
           VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
           echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
-
-      - name: Add updater and premium dashboard manifest entries
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('extracted/app/src/main/AndroidManifest.xml')
-          text = p.read_text()
-          permissions = [
-              '<uses-permission android:name="android.permission.INTERNET" />',
-              '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />',
-              '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />',
-              '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
-              '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
-          ]
-          additions = '\n'.join(x for x in permissions if x not in text)
-          if additions:
-              text = text.replace('<application', additions + '\n\n    <application', 1)
-          if 'android:name=".ShadowFoxApp"' not in text:
-              text = text.replace('<application', '<application android:name=".ShadowFoxApp"', 1)
-          if 'android:name=".V4DashboardActivity"' not in text:
-              text = text.replace('</application>', '\n        <activity android:name=".V4DashboardActivity" android:exported="false" />\n    </application>', 1)
-          receivers = ('\n        <receiver android:name=".UpdateCheckReceiver" android:enabled="true" android:exported="false" />\n'
-                       '        <receiver android:name=".UpdateBootReceiver" android:enabled="true" android:exported="true">\n'
-                       '            <intent-filter>\n'
-                       '                <action android:name="android.intent.action.BOOT_COMPLETED" />\n'
-                       '                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />\n'
-                       '            </intent-filter>\n'
-                       '        </receiver>\n')
-          if 'android:name=".UpdateBootReceiver"' not in text:
-              text = text.replace('</application>', receivers + '    </application>', 1)
-          p.write_text(text)
-          PY
-
-      - name: Route launcher to premium dashboard and repair update center
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          main = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java')
-          text = main.read_text()
-          marker = 'super.onCreate(savedInstanceState);'
-          route = 'super.onCreate(savedInstanceState);\n        if (!getIntent().getBooleanExtra("shadowfox_update_center", false)) {\n            startActivity(new Intent(this, V4DashboardActivity.class));\n            finish();\n            return;\n        }'
-          if 'startActivity(new Intent(this, V4DashboardActivity.class));' not in text:
-              text = text.replace(marker, route, 1)
-
-          start = text.find('    private void checkForUpdates() {')
-          end = text.find('    private int compareVersions(', start)
-          if start >= 0 and end > start:
-              block = text[start:end]
-              block = block.replace(
-                  'if (connection.getResponseCode() != 200) return;',
-                  'int responseCode = connection.getResponseCode();\n                if (responseCode != 200) {\n                    runOnUiThread(() -> Toast.makeText(this, "Update check failed • GitHub returned " + responseCode, Toast.LENGTH_LONG).show());\n                    return;\n                }',
-                  1)
-              block = block.replace(
-                  'if (latestVersion.isEmpty() || compareVersions(latestVersion, BuildConfig.VERSION_NAME) <= 0) return;',
-                  'if (latestVersion.isEmpty()) {\n                    runOnUiThread(() -> Toast.makeText(this, "Update check failed • invalid release information", Toast.LENGTH_LONG).show());\n                    return;\n                }\n                if (compareVersions(latestVersion, BuildConfig.VERSION_NAME) <= 0) {\n                    runOnUiThread(() -> Toast.makeText(this, "ShadowFox is up to date • v" + BuildConfig.VERSION_NAME, Toast.LENGTH_LONG).show());\n                    return;\n                }',
-                  1)
-              block = block.replace(
-                  'if (apkUrl != null) {\n                    final String finalUrl = apkUrl;\n                    runOnUiThread(() -> startUpdateDownload(finalUrl, latestVersion));\n                }',
-                  'if (apkUrl != null) {\n                    final String finalUrl = apkUrl;\n                    runOnUiThread(() -> {\n                        Toast.makeText(this, "Update available • v" + latestVersion, Toast.LENGTH_LONG).show();\n                        startUpdateDownload(finalUrl, latestVersion);\n                    });\n                } else {\n                    runOnUiThread(() -> Toast.makeText(this, "Update found but APK package is missing.", Toast.LENGTH_LONG).show());\n                }',
-                  1)
-              block = block.replace(
-                  '} catch (Exception ignored) {\n            } finally {\n                if (connection != null) connection.disconnect();',
-                  '} catch (Exception e) {\n                runOnUiThread(() -> Toast.makeText(this, "Update check failed • check internet connection", Toast.LENGTH_LONG).show());\n            } finally {\n                updateCheckStarted = false;\n                if (connection != null) connection.disconnect();',
-                  1)
-              text = text[:start] + block + text[end:]
-          main.write_text(text)
-
-          dash = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/V4DashboardActivity.java')
-          dtext = dash.read_text()
-          old = 'Intent i = new Intent(this, MainActivity.class);\n            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);'
-          new = 'Intent i = new Intent(this, MainActivity.class);\n            i.putExtra("shadowfox_update_center", true);\n            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);'
-          if 'i.putExtra("shadowfox_update_center", true);' not in dtext:
-              dtext = dtext.replace(old, new, 1)
-          dash.write_text(dtext)
-          PY
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17'}
+      - uses: gradle/actions/setup-gradle@v4
+        with: {gradle-version: '8.9'}
       - name: Build debug APK
         working-directory: extracted
         run: gradle :app:assembleDebug --stacktrace
-
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ShadowFox-TV-Task-Killer-v${{ env.APP_VERSION }}-debug
-          path: extracted/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Prepare permanent release signing key
+      - name: Prepare release signing
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         run: |
           printf '%s' "$SHADOWFOX_SIGNING_PASSWORD" | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in signing/shadowfox-release.keystore.enc -out "$RUNNER_TEMP/shadowfox-release.keystore" -pass stdin
           echo "SHADOWFOX_KEYSTORE_PATH=$RUNNER_TEMP/shadowfox-release.keystore" >> "$GITHUB_ENV"
-
       - name: Build signed release APK
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         working-directory: extracted
         run: gradle :app:assembleRelease --stacktrace
-
-      - name: Upload signed release artifact
-        if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: ShadowFox-TV-Task-Killer-v${{ env.APP_VERSION }}-signed
+          name: ShadowFox-TV-Optimizer-v${{ env.APP_VERSION }}
           path: extracted/app/build/outputs/apk/release/app-release.apk
-
-      - name: Publish GitHub Release for auto-update
+      - name: Publish release
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
+        env: {GH_TOKEN: "${{ github.token }}"}
         run: |
-          VERSION="$APP_VERSION"
-          TAG="v${VERSION}"
-          ASSET="ShadowFox-TV-Task-Killer-v${VERSION}.apk"
-          cp extracted/app/build/outputs/apk/release/app-release.apk "$ASSET"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$ASSET" --clobber
-          else
-            gh release create "$TAG" "$ASSET" --title "ShadowFox TV - Task Killer v${VERSION}" --notes "Automatic signed release for ShadowFox TV - Task Killer v${VERSION}."
-          fi
+          TAG="v${APP_VERSION}"; ASSET="ShadowFox-TV-Optimizer-v${APP_VERSION}.apk"; cp extracted/app/build/outputs/apk/release/app-release.apk "$ASSET"
+          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Optimizer v${APP_VERSION}" --notes "New ShadowFox TV network and system optimizer architecture."; fi
