@@ -77,12 +77,7 @@ jobs:
           p = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java')
           text = p.read_text()
           marker = 'super.onCreate(savedInstanceState);'
-          route = '''super.onCreate(savedInstanceState);
-        if (!getIntent().getBooleanExtra("shadowfox_update_center", false)) {
-            startActivity(new Intent(this, V4DashboardActivity.class));
-            finish();
-            return;
-        }'''
+          route = 'super.onCreate(savedInstanceState);\n        if (!getIntent().getBooleanExtra("shadowfox_update_center", false)) {\n            startActivity(new Intent(this, V4DashboardActivity.class));\n            finish();\n            return;\n        }'
           if 'shadowfox_update_center' not in text:
               text = text.replace(marker, route, 1)
           p.write_text(text)
