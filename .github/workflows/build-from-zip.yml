@@ -1,94 +1,101 @@
 name: Build & Release ShadowFox TV Optimizer
+
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths: ["overrides/**", "signing/**", ".github/workflows/build-from-zip.yml"]
+
 permissions:
   contents: write
+
 env:
   SHADOWFOX_SIGNING_PASSWORD: ${{ secrets.SHADOWFOX_SIGNING_PASSWORD }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Extract project
         run: mkdir extracted && unzip -q ShadowFoxTV-FastTaskKiller-Project-v3.0.4-NON-ROOT.zip -d extracted
-      - name: Apply v5 source
-        run: cp -R overrides/. extracted/.
+
+      - name: Apply ShadowFox Compose source
+        run: |
+          cp -R overrides/. extracted/.
+          rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java
+
       - name: Preserve original ShadowFox logo
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          res=Path('extracted/app/src/main/res'); exts={'.png','.webp','.jpg','.jpeg'}
-          items=[p for p in res.rglob('shadowfox_logo.*') if p.suffix.lower() in exts]
+          res = Path('extracted/app/src/main/res')
+          exts = {'.png', '.webp', '.jpg', '.jpeg'}
+          items = [p for p in res.rglob('shadowfox_logo.*') if p.suffix.lower() in exts]
           if items:
-            src=max(items,key=lambda p:p.stat().st_size); data=src.read_bytes(); dst=res/'drawable-nodpi'/src.name; dst.parent.mkdir(parents=True,exist_ok=True); dst.write_bytes(data)
-            for p in items:
-              if p != dst and p.exists(): p.unlink()
+              src = max(items, key=lambda p: p.stat().st_size)
+              data = src.read_bytes()
+              dst = res / 'drawable-nodpi' / src.name
+              dst.parent.mkdir(parents=True, exist_ok=True)
+              dst.write_bytes(data)
+              for p in items:
+                  if p != dst and p.exists():
+                      p.unlink()
           PY
-      - name: Configure Android TV manifest
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          p=Path('extracted/app/src/main/AndroidManifest.xml'); t=p.read_text()
-          permissions=[
-            'android.permission.INTERNET',
-            'android.permission.ACCESS_NETWORK_STATE',
-            'android.permission.KILL_BACKGROUND_PROCESSES',
-            'android.permission.REQUEST_INSTALL_PACKAGES',
-            'android.permission.RECEIVE_BOOT_COMPLETED',
-            'android.permission.POST_NOTIFICATIONS']
-          for name in permissions:
-            if f'android:name="{name}"' not in t:
-              t=t.replace('<application',f'<uses-permission android:name="{name}" />\n\n    <application',1)
-          # Normalize TV features so each is declared exactly once with the required value.
-          t=re.sub(r'\s*<uses-feature\s+android:name="android\.software\.leanback"[^>]*/>','',t)
-          t=re.sub(r'\s*<uses-feature\s+android:name="android\.hardware\.touchscreen"[^>]*/>','',t)
-          features='\n    <uses-feature android:name="android.software.leanback" android:required="true" />\n    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />\n\n    '
-          t=t.replace('<application',features+'<application',1)
-          if 'android:name=".ShadowFoxApp"' not in t:t=t.replace('<application','<application android:name=".ShadowFoxApp"',1)
-          if 'android:name=".V4DashboardActivity"' not in t:t=t.replace('</application>','<activity android:name=".V4DashboardActivity" android:exported="false" />\n</application>',1)
-          p.write_text(t)
-          PY
-      - name: Route launcher to v5 dashboard
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java'); t=p.read_text(); marker='super.onCreate(savedInstanceState);'
-          route='super.onCreate(savedInstanceState);\n        if (!getIntent().getBooleanExtra("shadowfox_update_center", false)) { startActivity(new Intent(this, V4DashboardActivity.class)); finish(); return; }'
-          if 'startActivity(new Intent(this, V4DashboardActivity.class));' not in t:t=t.replace(marker,route,1)
-          p.write_text(t)
-          PY
+
       - name: Read version
         run: |
           VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
           echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
+
       - uses: actions/setup-java@v4
-        with: {distribution: temurin, java-version: '17'}
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - uses: gradle/actions/setup-gradle@v4
-        with: {gradle-version: '8.9'}
+        with:
+          gradle-version: '8.9'
+
       - name: Build debug APK
         working-directory: extracted
         run: gradle :app:assembleDebug --stacktrace
+
       - name: Prepare release signing
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         run: |
           printf '%s' "$SHADOWFOX_SIGNING_PASSWORD" | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in signing/shadowfox-release.keystore.enc -out "$RUNNER_TEMP/shadowfox-release.keystore" -pass stdin
           echo "SHADOWFOX_KEYSTORE_PATH=$RUNNER_TEMP/shadowfox-release.keystore" >> "$GITHUB_ENV"
+
       - name: Build signed release APK
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         working-directory: extracted
         run: gradle :app:assembleRelease --stacktrace
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShadowFox-TV-Optimizer-v${{ env.APP_VERSION }}-debug
+          path: extracted/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload signed release APK
+        if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
+        uses: actions/upload-artifact@v4
         with:
           name: ShadowFox-TV-Optimizer-v${{ env.APP_VERSION }}
           path: extracted/app/build/outputs/apk/release/app-release.apk
+
       - name: Publish release
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
-        env: {GH_TOKEN: "${{ github.token }}"}
+        env:
+          GH_TOKEN: "${{ github.token }}"
         run: |
-          TAG="v${APP_VERSION}"; ASSET="ShadowFox-TV-Optimizer-v${APP_VERSION}.apk"; cp extracted/app/build/outputs/apk/release/app-release.apk "$ASSET"
-          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Optimizer v${APP_VERSION}" --notes "New ShadowFox TV network and system optimizer architecture."; fi
+          TAG="v${APP_VERSION}"
+          ASSET="ShadowFox-TV-Optimizer-v${APP_VERSION}.apk"
+          cp extracted/app/build/outputs/apk/release/app-release.apk "$ASSET"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ASSET" --clobber
+          else
+            gh release create "$TAG" "$ASSET" --title "ShadowFox TV Optimizer v${APP_VERSION}" --notes "Compose-based ShadowFox TV system and network optimizer for Android TV and Fire TV."
+          fi
