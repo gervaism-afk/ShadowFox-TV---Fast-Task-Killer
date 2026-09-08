@@ -64,10 +64,10 @@
         </LinearLayout>
 
         <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="58" android:layout_marginStart="7dp" android:orientation="vertical">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/panel_card" android:paddingStart="18dp" android:paddingEnd="18dp" android:paddingTop="10dp" android:paddingBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/panel_card" android:paddingStart="18dp" android:paddingEnd="18dp" android:paddingTop="8dp" android:paddingBottom="8dp">
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="@string/cleanup_heading" android:textColor="@color/muted" android:textSize="10sp" android:textStyle="bold" />
-                <Button android:id="@+id/cleanButton" android:layout_width="match_parent" android:layout_height="78dp" android:layout_marginTop="7dp" android:background="@drawable/button_primary_tv" android:text="@string/clean_now" android:textColor="@color/white" android:textSize="27sp" android:textStyle="bold" android:focusable="true" android:nextFocusLeft="@id/rescanButton" android:nextFocusDown="@id/rescanButton" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:gravity="center" android:text="@string/clean_hint" android:textColor="@color/muted" android:textSize="9sp" />
+                <Button android:id="@+id/cleanButton" android:layout_width="match_parent" android:layout_height="64dp" android:layout_marginTop="5dp" android:background="@drawable/button_primary_tv" android:text="@string/clean_now" android:textColor="@color/white" android:textSize="23sp" android:textStyle="bold" android:focusable="true" android:nextFocusLeft="@id/rescanButton" android:nextFocusDown="@id/rescanButton" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:text="@string/clean_hint" android:textColor="@color/muted" android:textSize="9sp" />
             </LinearLayout>
 
             <LinearLayout android:id="@+id/resultCard" android:layout_width="match_parent" android:layout_height="104dp" android:layout_marginTop="10dp" android:orientation="horizontal" android:weightSum="3" android:visibility="visible">
