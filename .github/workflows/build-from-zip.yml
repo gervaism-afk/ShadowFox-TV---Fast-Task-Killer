@@ -32,6 +32,28 @@ jobs:
       - name: Apply ShadowFox overrides
         run: cp -R overrides/. extracted/.
 
+      - name: Preserve highest-quality original logo
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          res = Path('extracted/app/src/main/res')
+          raster_exts = {'.png', '.webp', '.jpg', '.jpeg'}
+          candidates = [p for p in res.rglob('shadowfox_logo.*') if p.suffix.lower() in raster_exts]
+          if candidates:
+              source = max(candidates, key=lambda p: p.stat().st_size)
+              data = source.read_bytes()
+              nodpi = res / 'drawable-nodpi'
+              nodpi.mkdir(parents=True, exist_ok=True)
+              destination = nodpi / source.name
+              destination.write_bytes(data)
+              for candidate in candidates:
+                  if candidate != destination and candidate.exists():
+                      candidate.unlink()
+              print(f'Using original ShadowFox logo: {source} ({len(data)} bytes) -> {destination}')
+          else:
+              print('No raster shadowfox_logo asset found; leaving existing drawable unchanged.')
+          PY
+
       - name: Read app version
         run: |
           VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
@@ -70,17 +92,48 @@ jobs:
           p.write_text(text)
           PY
 
-      - name: Route launcher to v4 dashboard
+      - name: Route launcher to v4 dashboard and repair update center
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java')
-          text = p.read_text()
+
+          main = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java')
+          text = main.read_text()
           marker = 'super.onCreate(savedInstanceState);'
           route = 'super.onCreate(savedInstanceState);\n        if (!getIntent().getBooleanExtra("shadowfox_update_center", false)) {\n            startActivity(new Intent(this, V4DashboardActivity.class));\n            finish();\n            return;\n        }'
           if 'shadowfox_update_center' not in text:
               text = text.replace(marker, route, 1)
-          p.write_text(text)
+
+          start = text.find('    private void checkForUpdates() {')
+          end = text.find('    private int compareVersions(', start)
+          if start >= 0 and end > start:
+              block = text[start:end]
+              block = block.replace(
+                  'if (connection.getResponseCode() != 200) return;',
+                  'int responseCode = connection.getResponseCode();\n                if (responseCode != 200) {\n                    runOnUiThread(() -> Toast.makeText(this, "Update check failed • GitHub returned " + responseCode, Toast.LENGTH_LONG).show());\n                    return;\n                }',
+                  1)
+              block = block.replace(
+                  'if (latestVersion.isEmpty() || compareVersions(latestVersion, BuildConfig.VERSION_NAME) <= 0) return;',
+                  'if (latestVersion.isEmpty()) {\n                    runOnUiThread(() -> Toast.makeText(this, "Update check failed • invalid release information", Toast.LENGTH_LONG).show());\n                    return;\n                }\n                if (compareVersions(latestVersion, BuildConfig.VERSION_NAME) <= 0) {\n                    runOnUiThread(() -> Toast.makeText(this, "ShadowFox is up to date • v" + BuildConfig.VERSION_NAME, Toast.LENGTH_LONG).show());\n                    return;\n                }',
+                  1)
+              block = block.replace(
+                  'if (apkUrl != null) {\n                    final String finalUrl = apkUrl;\n                    runOnUiThread(() -> startUpdateDownload(finalUrl, latestVersion));\n                }',
+                  'if (apkUrl != null) {\n                    final String finalUrl = apkUrl;\n                    runOnUiThread(() -> {\n                        Toast.makeText(this, "Update available • v" + latestVersion, Toast.LENGTH_LONG).show();\n                        startUpdateDownload(finalUrl, latestVersion);\n                    });\n                } else {\n                    runOnUiThread(() -> Toast.makeText(this, "Update found but APK package is missing.", Toast.LENGTH_LONG).show());\n                }',
+                  1)
+              block = block.replace(
+                  '} catch (Exception ignored) {\n            } finally {\n                if (connection != null) connection.disconnect();',
+                  '} catch (Exception e) {\n                runOnUiThread(() -> Toast.makeText(this, "Update check failed • check internet connection", Toast.LENGTH_LONG).show());\n            } finally {\n                updateCheckStarted = false;\n                if (connection != null) connection.disconnect();',
+                  1)
+              text = text[:start] + block + text[end:]
+          main.write_text(text)
+
+          dash = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/V4DashboardActivity.java')
+          dtext = dash.read_text()
+          old = 'Intent i = new Intent(this, MainActivity.class);\n            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);'
+          new = 'Intent i = new Intent(this, MainActivity.class);\n            i.putExtra("shadowfox_update_center", true);\n            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);'
+          if 'i.putExtra("shadowfox_update_center", true);' not in dtext:
+              dtext = dtext.replace(old, new, 1)
+          dash.write_text(dtext)
           PY
 
       - name: Set up Java 17
