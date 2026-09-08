@@ -2,17 +2,22 @@ package ca.shadowfoxtv.taskkiller;
 
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.AlertDialog;
 import android.app.DownloadManager;
+import android.app.UiModeManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.StatFs;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.View;
 import android.view.animation.Animation;
@@ -29,8 +34,10 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -49,9 +56,20 @@ public class MainActivity extends Activity {
     private TextView appsCleanedText;
     private TextView ramRecoveredText;
     private TextView storageRecoveredText;
+    private TextView deviceText;
+    private TextView uptimeText;
+    private TextView ramUsageText;
+    private TextView storageUsageText;
+    private TextView runningAppsText;
+    private TextView cpuText;
+    private TextView websiteText;
     private View resultCard;
     private Button cleanButton;
     private Button rescanButton;
+    private Button appListButton;
+    private Button settingsButton;
+    private Button systemInfoButton;
+    private Button aboutButton;
     private boolean cleaning = false;
     private boolean updateCheckStarted = false;
 
@@ -69,6 +87,18 @@ public class MainActivity extends Activity {
         cleanButton = findViewById(R.id.cleanButton);
         rescanButton = findViewById(R.id.rescanButton);
 
+        deviceText = findOptionalText("deviceText");
+        uptimeText = findOptionalText("uptimeText");
+        ramUsageText = findOptionalText("ramUsageText");
+        storageUsageText = findOptionalText("storageUsageText");
+        runningAppsText = findOptionalText("runningAppsText");
+        cpuText = findOptionalText("cpuText");
+        websiteText = findOptionalText("websiteText");
+        appListButton = findOptionalButton("appListButton");
+        settingsButton = findOptionalButton("settingsButton");
+        systemInfoButton = findOptionalButton("systemInfoButton");
+        aboutButton = findOptionalButton("aboutButton");
+
         protectedPackages.add(getPackageName());
         protectedPackages.add("com.android.systemui");
         protectedPackages.add("com.google.android.tvlauncher");
@@ -78,27 +108,48 @@ public class MainActivity extends Activity {
 
         cleanButton.setOnClickListener(v -> cleanNow());
         rescanButton.setOnClickListener(v -> scanApps());
+        if (appListButton != null) appListButton.setOnClickListener(v -> showAppList());
+        if (settingsButton != null) settingsButton.setOnClickListener(v -> openAppSettings());
+        if (systemInfoButton != null) systemInfoButton.setOnClickListener(v -> showSystemInfo());
+        if (aboutButton != null) aboutButton.setOnClickListener(v -> showAbout());
+        if (websiteText != null) websiteText.setOnClickListener(v -> openWebsite());
 
         addTvFocusEffect(cleanButton);
         addTvFocusEffect(rescanButton);
+        addTvFocusEffect(appListButton);
+        addTvFocusEffect(settingsButton);
+        addTvFocusEffect(systemInfoButton);
+        addTvFocusEffect(aboutButton);
 
         scanApps();
+        refreshDashboard();
         cleanButton.requestFocus();
 
         View root = findViewById(R.id.rootLayout);
         View header = findViewById(R.id.headerCard);
         View status = findViewById(R.id.statusCard);
-        Animation intro = AnimationUtils.loadAnimation(this, R.anim.fade_scale_in);
-        root.startAnimation(intro);
-        header.startAnimation(AnimationUtils.loadAnimation(this, R.anim.fade_scale_in));
-        status.startAnimation(AnimationUtils.loadAnimation(this, R.anim.fade_scale_in));
+        if (root != null) root.startAnimation(AnimationUtils.loadAnimation(this, R.anim.fade_scale_in));
+        if (header != null) header.startAnimation(AnimationUtils.loadAnimation(this, R.anim.fade_scale_in));
+        if (status != null) status.startAnimation(AnimationUtils.loadAnimation(this, R.anim.fade_scale_in));
 
         resumePendingUpdateOrCheck();
+    }
+
+    @SuppressWarnings("unchecked")
+    private TextView findOptionalText(String name) {
+        int id = getResources().getIdentifier(name, "id", getPackageName());
+        return id == 0 ? null : findViewById(id);
+    }
+
+    private Button findOptionalButton(String name) {
+        int id = getResources().getIdentifier(name, "id", getPackageName());
+        return id == 0 ? null : findViewById(id);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        refreshDashboard();
         SharedPreferences prefs = getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE);
         String pendingUri = prefs.getString("pending_install_uri", null);
         if (pendingUri != null && canInstallPackages()) {
@@ -108,11 +159,61 @@ public class MainActivity extends Activity {
     }
 
     private void addTvFocusEffect(View view) {
+        if (view == null) return;
         view.setOnFocusChangeListener((v, hasFocus) -> {
-            float scale = hasFocus ? 1.035f : 1.0f;
-            v.animate().scaleX(scale).scaleY(scale).setDuration(120).start();
-            v.setElevation(hasFocus ? 18f : 2f);
+            float scale = hasFocus ? 1.015f : 1.0f;
+            v.animate().scaleX(scale).scaleY(scale).setDuration(100).start();
+            v.setElevation(hasFocus ? 12f : 2f);
         });
+    }
+
+    private void refreshDashboard() {
+        if (deviceText != null) deviceText.setText(getDeviceLabel());
+        if (uptimeText != null) uptimeText.setText(formatUptime());
+        if (cpuText != null) cpuText.setText(cleaning ? "CLEANING" : "ACTIVE");
+
+        ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        if (am != null && ramUsageText != null) {
+            ActivityManager.MemoryInfo info = new ActivityManager.MemoryInfo();
+            am.getMemoryInfo(info);
+            long used = Math.max(0L, info.totalMem - info.availMem);
+            ramUsageText.setText(formatGb(used) + " / " + formatGb(info.totalMem));
+        }
+
+        if (storageUsageText != null) {
+            try {
+                StatFs stat = new StatFs(Environment.getDataDirectory().getAbsolutePath());
+                long total = stat.getTotalBytes();
+                long free = stat.getAvailableBytes();
+                long used = Math.max(0L, total - free);
+                storageUsageText.setText(formatGb(used) + " / " + formatGb(total));
+            } catch (Exception e) {
+                storageUsageText.setText("—");
+            }
+        }
+
+        if (runningAppsText != null) runningAppsText.setText(String.valueOf(userPackages.size()));
+    }
+
+    private String getDeviceLabel() {
+        String manufacturer = Build.MANUFACTURER == null ? "" : Build.MANUFACTURER.toLowerCase(Locale.US);
+        if (manufacturer.contains("amazon")) return "FIRE TV";
+        UiModeManager ui = (UiModeManager) getSystemService(UI_MODE_SERVICE);
+        if (ui != null && ui.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION) return "ANDROID TV";
+        return "ANDROID";
+    }
+
+    private String formatUptime() {
+        long seconds = SystemClock.elapsedRealtime() / 1000L;
+        long days = seconds / 86400L;
+        long hours = (seconds % 86400L) / 3600L;
+        long minutes = (seconds % 3600L) / 60L;
+        return days > 0 ? days + "d " + hours + "h " + minutes + "m" : hours + "h " + minutes + "m";
+    }
+
+    private String formatGb(long bytes) {
+        double gb = bytes / (1024.0 * 1024.0 * 1024.0);
+        return String.format(Locale.US, gb < 10.0 ? "%.1f GB" : "%.0f GB", gb);
     }
 
     private void scanApps() {
@@ -138,13 +239,10 @@ public class MainActivity extends Activity {
                 userPackages.clear();
                 userPackages.addAll(found);
                 if (!cleaning) {
-                    if (detectedAppsText != null) {
-                        summaryText.setText(R.string.ready);
-                        detectedAppsText.setText(userPackages.size() + " BACKGROUND APPS DETECTED");
-                    } else {
-                        summaryText.setText("READY  •  " + userPackages.size() + " BACKGROUND APPS");
-                    }
+                    summaryText.setText(R.string.ready);
+                    if (detectedAppsText != null) detectedAppsText.setText(userPackages.size() + " BACKGROUND APPS DETECTED");
                 }
+                refreshDashboard();
             });
         });
     }
@@ -153,15 +251,13 @@ public class MainActivity extends Activity {
         if (cleaning) return;
 
         cleaning = true;
-        cleanButton.setEnabled(false);
-        rescanButton.setEnabled(false);
+        setActionButtonsEnabled(false);
         cleanButton.setText(R.string.cleaning_button);
         summaryText.setText(R.string.cleaning_status);
-        if (detectedAppsText != null) {
-            detectedAppsText.setText(R.string.cleaning_detail);
-            appsCleanedText.setText("—");
-            ramRecoveredText.setText("—");
-        }
+        if (detectedAppsText != null) detectedAppsText.setText(R.string.cleaning_detail);
+        if (appsCleanedText != null) appsCleanedText.setText("—");
+        if (ramRecoveredText != null) ramRecoveredText.setText("—");
+        refreshDashboard();
 
         final List<String> targets = new ArrayList<>(userPackages);
         final long ramBefore = getAvailableRamBytes();
@@ -169,7 +265,6 @@ public class MainActivity extends Activity {
         executor.execute(() -> {
             int appsCleaned = 0;
             ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-
             if (am != null) {
                 for (String pkg : targets) {
                     if (protectedPackages.contains(pkg)) continue;
@@ -192,20 +287,89 @@ public class MainActivity extends Activity {
 
             runOnUiThread(() -> {
                 cleaning = false;
-                cleanButton.setEnabled(true);
-                rescanButton.setEnabled(true);
+                setActionButtonsEnabled(true);
                 cleanButton.setText(R.string.clean_now);
                 cleanButton.startAnimation(AnimationUtils.loadAnimation(this, R.anim.button_pop));
                 summaryText.setText(R.string.cleanup_complete);
-                if (detectedAppsText != null) detectedAppsText.setText(cleanedCount + " APPS PROCESSED");
-                appsCleanedText.setText(String.valueOf(cleanedCount));
-                ramRecoveredText.setText(formatMb(ramRecovered));
-                storageRecoveredText.setText(R.string.storage_restricted);
-                resultCard.setVisibility(View.VISIBLE);
-                resultCard.startAnimation(AnimationUtils.loadAnimation(this, R.anim.fade_scale_in));
+                if (detectedAppsText != null) detectedAppsText.setText(cleanedCount + " APPS PROCESSED • " + formatMb(ramRecovered) + " RAM RECOVERED");
+                if (appsCleanedText != null) appsCleanedText.setText(String.valueOf(cleanedCount));
+                if (ramRecoveredText != null) ramRecoveredText.setText(formatMb(ramRecovered));
+                if (storageRecoveredText != null) storageRecoveredText.setText(R.string.storage_restricted);
+                if (resultCard != null) resultCard.setVisibility(View.VISIBLE);
+                refreshDashboard();
                 cleanButton.requestFocus();
             });
         });
+    }
+
+    private void setActionButtonsEnabled(boolean enabled) {
+        cleanButton.setEnabled(enabled);
+        rescanButton.setEnabled(enabled);
+        if (appListButton != null) appListButton.setEnabled(enabled);
+        if (settingsButton != null) settingsButton.setEnabled(enabled);
+        if (systemInfoButton != null) systemInfoButton.setEnabled(enabled);
+        if (aboutButton != null) aboutButton.setEnabled(enabled);
+    }
+
+    private void showAppList() {
+        executor.execute(() -> {
+            PackageManager pm = getPackageManager();
+            List<String> labels = new ArrayList<>();
+            for (String pkg : userPackages) {
+                try {
+                    ApplicationInfo info = pm.getApplicationInfo(pkg, 0);
+                    labels.add(pm.getApplicationLabel(info).toString());
+                } catch (Exception ignored) {
+                    labels.add(pkg);
+                }
+            }
+            Collections.sort(labels, String.CASE_INSENSITIVE_ORDER);
+            runOnUiThread(() -> {
+                String[] items = labels.toArray(new String[0]);
+                new AlertDialog.Builder(this)
+                        .setTitle("Background App List (" + items.length + ")")
+                        .setItems(items, null)
+                        .setPositiveButton("CLOSE", null)
+                        .show();
+            });
+        });
+    }
+
+    private void openAppSettings() {
+        try {
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        } catch (Exception e) {
+            Toast.makeText(this, "Settings unavailable on this device.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showSystemInfo() {
+        StringBuilder text = new StringBuilder();
+        text.append("Device: ").append(getDeviceLabel()).append('\n');
+        text.append("Manufacturer: ").append(Build.MANUFACTURER).append('\n');
+        text.append("Model: ").append(Build.MODEL).append('\n');
+        text.append("Android: ").append(Build.VERSION.RELEASE).append(" (API ").append(Build.VERSION.SDK_INT).append(")\n");
+        text.append("Uptime: ").append(formatUptime()).append('\n');
+        text.append("Background apps detected: ").append(userPackages.size());
+        new AlertDialog.Builder(this).setTitle("System Info").setMessage(text.toString()).setPositiveButton("CLOSE", null).show();
+    }
+
+    private void showAbout() {
+        new AlertDialog.Builder(this)
+                .setTitle("ShadowFox TV - Task Killer")
+                .setMessage("Version " + BuildConfig.VERSION_NAME + "\n\nFast background cleanup optimized for Android TV, Fire TV, Android phones and tablets.\n\nwww.shadowfoxtv.ca")
+                .setNegativeButton("CLOSE", null)
+                .setPositiveButton("WEBSITE", (d, w) -> openWebsite())
+                .show();
+    }
+
+    private void openWebsite() {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.shadowfoxtv.ca")));
+        } catch (Exception e) {
+            Toast.makeText(this, "www.shadowfoxtv.ca", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void resumePendingUpdateOrCheck() {
@@ -249,7 +413,7 @@ public class MainActivity extends Activity {
                         JSONObject asset = assets.optJSONObject(i);
                         if (asset == null) continue;
                         String name = asset.optString("name", "");
-                        if (name.toLowerCase(java.util.Locale.US).endsWith(".apk")) {
+                        if (name.toLowerCase(Locale.US).endsWith(".apk")) {
                             apkUrl = asset.optString("browser_download_url", null);
                             if (apkUrl != null) break;
                         }
@@ -305,8 +469,7 @@ public class MainActivity extends Activity {
             request.setDescription("Downloading update");
             request.setMimeType("application/vnd.android.package-archive");
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-            request.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS,
-                    "ShadowFox-TV-Task-Killer-v" + version + ".apk");
+            request.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, "ShadowFox-TV-Task-Killer-v" + version + ".apk");
 
             long id = manager.enqueue(request);
             prefs.edit().putLong("download_id", id).putString("download_version", version).apply();
@@ -362,8 +525,7 @@ public class MainActivity extends Activity {
 
         if (!canInstallPackages()) {
             try {
-                Intent settingsIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                        Uri.parse("package:" + getPackageName()));
+                Intent settingsIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName()));
                 startActivity(settingsIntent);
                 Toast.makeText(this, "Allow updates from ShadowFox TV, then return to the app.", Toast.LENGTH_LONG).show();
             } catch (Exception ignored) {}
@@ -400,8 +562,8 @@ public class MainActivity extends Activity {
     private String formatMb(long bytes) {
         double mb = bytes / (1024.0 * 1024.0);
         if (mb < 0.05) return "0 MB";
-        if (mb < 10.0) return String.format(java.util.Locale.US, "%.1f MB", mb);
-        return String.format(java.util.Locale.US, "%.0f MB", mb);
+        if (mb < 10.0) return String.format(Locale.US, "%.1f MB", mb);
+        return String.format(Locale.US, "%.0f MB", mb);
     }
 
     @Override
