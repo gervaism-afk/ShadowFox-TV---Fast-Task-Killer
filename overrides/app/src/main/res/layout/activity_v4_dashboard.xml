@@ -1,25 +1,181 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true" android:background="@drawable/screen_bg">
-<LinearLayout android:id="@+id/commandCenterPanel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingStart="28dp" android:paddingEnd="28dp" android:paddingTop="16dp" android:paddingBottom="18dp">
-<LinearLayout android:layout_width="match_parent" android:layout_height="122dp" android:orientation="horizontal" android:gravity="center_vertical">
-<ImageView android:layout_width="0dp" android:layout_height="122dp" android:layout_weight="0.9" android:adjustViewBounds="true" android:scaleType="fitCenter" android:contentDescription="@string/app_name" android:src="@drawable/shadowfox_logo" />
-<LinearLayout android:layout_width="0dp" android:layout_height="112dp" android:layout_weight="1.3" android:orientation="vertical" android:gravity="center_vertical" android:background="@drawable/tech_panel" android:paddingStart="20dp" android:paddingEnd="20dp">
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SHADOWFOX COMMAND CENTER" android:textColor="@color/blue2" android:textStyle="bold" android:textSize="13sp" android:letterSpacing="0.12" />
-<TextView android:id="@+id/deviceTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="ANDROID TV" android:textColor="@color/white" android:textSize="24sp" android:textStyle="bold" />
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="9dp" android:orientation="horizontal">
-<TextView android:id="@+id/rootTextV4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="STANDARD MODE" android:textColor="@color/white" android:textStyle="bold" android:textSize="12sp" />
-<TextView android:id="@+id/networkTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ONLINE" android:textColor="@color/blue2" android:textStyle="bold" android:textSize="12sp" />
-</LinearLayout></LinearLayout></LinearLayout>
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:orientation="horizontal">
-<LinearLayout android:layout_width="0dp" android:layout_height="126dp" android:layout_weight="1" android:layout_marginEnd="6dp" android:gravity="center" android:orientation="vertical" android:background="@drawable/tech_stat_tile"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="DEVICE HEALTH" android:textColor="@color/blue2" android:textSize="12sp" android:textStyle="bold" /><TextView android:id="@+id/healthScoreText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="100" android:textColor="@color/white" android:textSize="42sp" android:textStyle="bold" /><TextView android:id="@+id/healthStateText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="EXCELLENT" android:textColor="@color/blue2" android:textSize="11sp" android:textStyle="bold" /></LinearLayout>
-<LinearLayout android:layout_width="0dp" android:layout_height="126dp" android:layout_weight="1.45" android:layout_marginStart="6dp" android:layout_marginEnd="6dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/tech_stat_tile"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="RAM LOAD" android:textColor="@color/blue2" android:textSize="12sp" android:textStyle="bold" /><TextView android:id="@+id/ramTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="9dp" android:text="—" android:textColor="@color/white" android:textSize="18sp" android:textStyle="bold" /></LinearLayout>
-<LinearLayout android:layout_width="0dp" android:layout_height="126dp" android:layout_weight="1.45" android:layout_marginStart="6dp" android:layout_marginEnd="6dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/tech_stat_tile"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="STORAGE" android:textColor="@color/blue2" android:textSize="12sp" android:textStyle="bold" /><TextView android:id="@+id/storageTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="9dp" android:text="—" android:textColor="@color/white" android:textSize="18sp" android:textStyle="bold" /></LinearLayout>
-<LinearLayout android:layout_width="0dp" android:layout_height="126dp" android:layout_weight="0.85" android:layout_marginStart="6dp" android:layout_marginEnd="6dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/tech_stat_tile"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="APPS" android:textColor="@color/blue2" android:textSize="12sp" android:textStyle="bold" /><TextView android:id="@+id/appsTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="0" android:textColor="@color/white" android:textSize="34sp" android:textStyle="bold" /></LinearLayout>
-<LinearLayout android:layout_width="0dp" android:layout_height="126dp" android:layout_weight="1" android:layout_marginStart="6dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/tech_stat_tile"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="UPTIME" android:textColor="@color/blue2" android:textSize="12sp" android:textStyle="bold" /><TextView android:id="@+id/uptimeTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="9dp" android:text="—" android:textColor="@color/white" android:textSize="18sp" android:textStyle="bold" /></LinearLayout>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/commandCenterPanel"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/screen_bg"
+    android:paddingStart="30dp"
+    android:paddingEnd="30dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="26dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="94dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:layout_width="0dp"
+            android:layout_height="92dp"
+            android:layout_weight="0.9"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/app_name"
+            android:src="@drawable/shadowfox_logo" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="88dp"
+            android:layout_weight="1.3"
+            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:background="@drawable/tech_panel"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SHADOWFOX COMMAND CENTER"
+                android:textColor="@color/blue2"
+                android:textStyle="bold"
+                android:textSize="12sp"
+                android:letterSpacing="0.1" />
+
+            <TextView
+                android:id="@+id/deviceTextV4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="ANDROID TV"
+                android:textColor="@color/white"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/rootTextV4"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="STANDARD MODE"
+                    android:textColor="@color/white"
+                    android:textStyle="bold"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/networkTextV4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ONLINE"
+                    android:textColor="@color/blue2"
+                    android:textStyle="bold"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="108dp"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
+
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginEnd="5dp" android:gravity="center" android:orientation="vertical" android:background="@drawable/tech_stat_tile">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="DEVICE HEALTH" android:textColor="@color/blue2" android:textSize="11sp" android:textStyle="bold" />
+            <TextView android:id="@+id/healthScoreText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="100" android:textColor="@color/white" android:textSize="38sp" android:textStyle="bold" />
+            <TextView android:id="@+id/healthStateText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="EXCELLENT" android:textColor="@color/blue2" android:textSize="10sp" android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.45" android:layout_marginStart="5dp" android:layout_marginEnd="5dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/tech_stat_tile">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="RAM LOAD" android:textColor="@color/blue2" android:textSize="11sp" android:textStyle="bold" />
+            <TextView android:id="@+id/ramTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="—" android:textColor="@color/white" android:textSize="17sp" android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.45" android:layout_marginStart="5dp" android:layout_marginEnd="5dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/tech_stat_tile">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="STORAGE" android:textColor="@color/blue2" android:textSize="11sp" android:textStyle="bold" />
+            <TextView android:id="@+id/storageTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="—" android:textColor="@color/white" android:textSize="17sp" android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.82" android:layout_marginStart="5dp" android:layout_marginEnd="5dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/tech_stat_tile">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="APPS" android:textColor="@color/blue2" android:textSize="11sp" android:textStyle="bold" />
+            <TextView android:id="@+id/appsTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="0" android:textColor="@color/white" android:textSize="31sp" android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="5dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/tech_stat_tile">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="UPTIME" android:textColor="@color/blue2" android:textSize="11sp" android:textStyle="bold" />
+            <TextView android:id="@+id/uptimeTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="—" android:textColor="@color/white" android:textSize="17sp" android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="88dp"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/optimizeButtonV4"
+            android:layout_width="540dp"
+            android:layout_height="54dp"
+            android:background="@drawable/button_primary_tv"
+            android:focusable="true"
+            android:text="OPTIMIZE NOW"
+            android:textColor="@color/white"
+            android:textSize="21sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+            <TextView android:id="@+id/resultTitleV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SYSTEM READY" android:textColor="@color/white" android:textStyle="bold" android:textSize="13sp" />
+            <TextView android:id="@+id/resultDetailV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:text="Smart analysis • protected system apps • root-aware engine" android:textColor="@color/blue2" android:textStyle="bold" android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="18dp"
+        android:text="PREMIUM TOOLKIT"
+        android:textColor="@color/blue2"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:gravity="center_vertical"
+        android:letterSpacing="0.12" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="4dp" android:orientation="horizontal">
+        <Button android:id="@+id/appsButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginEnd="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="APP MANAGER" android:textColor="@color/white" android:textStyle="bold" android:textSize="12sp" />
+        <Button android:id="@+id/storageButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="4dp" android:layout_marginEnd="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="STORAGE TOOLS" android:textColor="@color/white" android:textStyle="bold" android:textSize="12sp" />
+        <Button android:id="@+id/networkButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="4dp" android:layout_marginEnd="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="NETWORK TOOLS" android:textColor="@color/white" android:textStyle="bold" android:textSize="12sp" />
+        <Button android:id="@+id/rootButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="ROOT MODE" android:textColor="@color/white" android:textStyle="bold" android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="7dp" android:orientation="horizontal">
+        <Button android:id="@+id/reportButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginEnd="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="HEALTH REPORT" android:textColor="@color/white" android:textStyle="bold" android:textSize="12sp" />
+        <Button android:id="@+id/updateButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="4dp" android:layout_marginEnd="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="UPDATE CENTER" android:textColor="@color/white" android:textStyle="bold" android:textSize="12sp" />
+        <Button android:id="@+id/settingsButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="4dp" android:layout_marginEnd="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="SYSTEM SETTINGS" android:textColor="@color/white" android:textStyle="bold" android:textSize="12sp" />
+        <Button android:id="@+id/aboutButtonV4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="4dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="ABOUT" android:textColor="@color/white" android:textStyle="bold" android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="24dp"
+        android:layout_marginTop="7dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="www.shadowfoxtv.ca" android:textColor="@color/white" android:textStyle="bold" android:textSize="11sp" />
+        <TextView android:id="@+id/versionTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="v4.1.1 • SYSTEM OPTIMIZER EDITION" android:textColor="@color/blue2" android:textStyle="bold" android:textSize="10sp" />
+    </LinearLayout>
+
 </LinearLayout>
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="vertical" android:gravity="center"><Button android:id="@+id/optimizeButtonV4" android:layout_width="560dp" android:layout_height="64dp" android:background="@drawable/button_primary_tv" android:focusable="true" android:text="OPTIMIZE NOW" android:textColor="@color/white" android:textSize="23sp" android:textStyle="bold" /><TextView android:id="@+id/resultTitleV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="SYSTEM READY" android:textColor="@color/white" android:textStyle="bold" android:textSize="15sp" /><TextView android:id="@+id/resultDetailV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Smart analysis • protected system apps • root-aware engine" android:textColor="@color/blue2" android:textStyle="bold" android:textSize="11sp" /></LinearLayout>
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="PREMIUM TOOLKIT" android:textColor="@color/blue2" android:textSize="12sp" android:textStyle="bold" android:letterSpacing="0.14" />
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:orientation="horizontal"><Button android:id="@+id/appsButtonV4" android:layout_width="0dp" android:layout_height="60dp" android:layout_weight="1" android:layout_marginEnd="5dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="APP MANAGER" android:textColor="@color/white" android:textStyle="bold" android:textSize="13sp" /><Button android:id="@+id/storageButtonV4" android:layout_width="0dp" android:layout_height="60dp" android:layout_weight="1" android:layout_marginStart="5dp" android:layout_marginEnd="5dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="STORAGE TOOLS" android:textColor="@color/white" android:textStyle="bold" android:textSize="13sp" /><Button android:id="@+id/networkButtonV4" android:layout_width="0dp" android:layout_height="60dp" android:layout_weight="1" android:layout_marginStart="5dp" android:layout_marginEnd="5dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="NETWORK TOOLS" android:textColor="@color/white" android:textStyle="bold" android:textSize="13sp" /><Button android:id="@+id/rootButtonV4" android:layout_width="0dp" android:layout_height="60dp" android:layout_weight="1" android:layout_marginStart="5dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="ROOT MODE" android:textColor="@color/white" android:textStyle="bold" android:textSize="13sp" /></LinearLayout>
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="9dp" android:orientation="horizontal"><Button android:id="@+id/reportButtonV4" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginEnd="5dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="HEALTH REPORT" android:textColor="@color/white" android:textStyle="bold" android:textSize="12sp" /><Button android:id="@+id/updateButtonV4" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginStart="5dp" android:layout_marginEnd="5dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="UPDATE CENTER" android:textColor="@color/white" android:textStyle="bold" android:textSize="12sp" /><Button android:id="@+id/settingsButtonV4" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginStart="5dp" android:layout_marginEnd="5dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="SYSTEM SETTINGS" android:textColor="@color/white" android:textStyle="bold" android:textSize="12sp" /><Button android:id="@+id/aboutButtonV4" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginStart="5dp" android:background="@drawable/button_secondary_tv" android:focusable="true" android:text="ABOUT" android:textColor="@color/white" android:textStyle="bold" android:textSize="12sp" /></LinearLayout>
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="horizontal" android:gravity="center_vertical"><TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="www.shadowfoxtv.ca" android:textColor="@color/white" android:textStyle="bold" android:textSize="12sp" /><TextView android:id="@+id/versionTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="v4.1.0 • SYSTEM OPTIMIZER EDITION" android:textColor="@color/blue2" android:textStyle="bold" android:textSize="11sp" /></LinearLayout>
-</LinearLayout></ScrollView>
