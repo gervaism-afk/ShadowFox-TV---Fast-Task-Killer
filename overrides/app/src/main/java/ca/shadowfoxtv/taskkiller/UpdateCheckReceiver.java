@@ -7,7 +7,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
-import android.net.Uri;
 import android.os.Build;
 
 import org.json.JSONObject;
@@ -79,6 +78,7 @@ public class UpdateCheckReceiver extends BroadcastReceiver {
         }
 
         Intent open = new Intent(context, MainActivity.class);
+        open.putExtra("shadowfox_update_center", true);
         open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent contentIntent = PendingIntent.getActivity(context, 8801, open,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
