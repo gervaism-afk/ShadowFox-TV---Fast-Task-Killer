@@ -104,9 +104,20 @@
         </LinearLayout>
     </LinearLayout>
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="40dp" android:orientation="horizontal" android:gravity="center_vertical">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="52dp" android:orientation="horizontal" android:gravity="center_vertical">
         <TextView android:id="@+id/resultTitleV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SYSTEM READY" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" />
         <TextView android:id="@+id/resultDetailV4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="14dp" android:text="Network diagnostics and background process optimizer ready" android:textColor="#00E5FF" android:textSize="11sp" />
-        <TextView android:id="@+id/versionTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="v5.0.0" android:textColor="#FF6D00" android:textStyle="bold" android:textSize="11sp" />
+        <ca.shadowfoxtv.taskkiller.UpdateCenterButton
+            android:id="@+id/updateCenterButtonV5"
+            android:layout_width="172dp"
+            android:layout_height="42dp"
+            android:layout_marginEnd="14dp"
+            android:background="@drawable/optimizer_button"
+            android:focusable="true"
+            android:text="UPDATE CENTER"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="11sp" />
+        <TextView android:id="@+id/versionTextV4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="v5.0.2" android:textColor="#FF6D00" android:textStyle="bold" android:textSize="11sp" />
     </LinearLayout>
 </LinearLayout>
