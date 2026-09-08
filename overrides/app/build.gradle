@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
-    id 'org.jetbrains.kotlin.android' version '1.9.24'
+    id 'org.jetbrains.kotlin.android' version '2.0.20'
+    id 'org.jetbrains.kotlin.plugin.compose' version '2.0.20'
 }
 
 def keystorePath = System.getenv("SHADOWFOX_KEYSTORE_PATH")
@@ -21,10 +22,6 @@ android {
     buildFeatures {
         compose true
         buildConfig true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion '1.5.14'
     }
 
     signingConfigs {
@@ -57,21 +54,18 @@ android {
 }
 
 dependencies {
-    // Compatibility-pinned Compose stack for Kotlin 1.9.24 + Compose Compiler 1.5.14.
-    // Keeping the runtime on the Compose 1.6 generation avoids the JVM IR inline
-    // failure seen with the newer BOM while retaining all UI APIs used by the app.
-    def composeBom = platform('androidx.compose:compose-bom:2024.06.00')
+    def composeBom = platform('androidx.compose:compose-bom:2024.09.03')
     implementation composeBom
     androidTestImplementation composeBom
 
     implementation 'androidx.core:core-ktx:1.13.1'
-    implementation 'androidx.activity:activity-compose:1.9.0'
+    implementation 'androidx.activity:activity-compose:1.9.2'
     implementation 'androidx.compose.runtime:runtime'
     implementation 'androidx.compose.ui:ui'
     implementation 'androidx.compose.ui:ui-tooling-preview'
     implementation 'androidx.compose.foundation:foundation'
     implementation 'androidx.compose.material3:material3'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.3'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.6'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
 
     debugImplementation 'androidx.compose.ui:ui-tooling'
