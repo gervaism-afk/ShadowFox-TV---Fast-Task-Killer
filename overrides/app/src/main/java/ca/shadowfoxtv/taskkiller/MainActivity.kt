@@ -7,7 +7,10 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.TrafficStats
 import android.net.VpnService
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.os.StatFs
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.animateFloatAsState
@@ -54,6 +57,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -81,9 +85,7 @@ class MainActivity : ComponentActivity() {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         setContent {
-            MaterialTheme(
-                colorScheme = darkColorScheme(background = BG, surface = PANEL),
-            ) {
+            MaterialTheme(colorScheme = darkColorScheme(background = BG, surface = PANEL)) {
                 ShadowFoxUpdateGate(applicationContext) {
                     MasterDashboard(applicationContext)
                 }
@@ -108,16 +110,20 @@ private fun MasterDashboard(context: Context) {
     var mbps by remember { mutableFloatStateOf(0f) }
     var ping by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf(false) }
+    var rootAvailable by remember { mutableStateOf(false) }
+    var ramFreed by remember { mutableStateOf(0L) }
+    var storageFreed by remember { mutableStateOf(0L) }
+    var closedApps by remember { mutableIntStateOf(0) }
     val graph = remember { mutableStateListOf<Int>() }
     val optimizer = remember { AppOptimizer(context) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         while (true) {
-            val a = totalTrafficBytes()
+            val before = totalTrafficBytes()
             delay(1000)
-            val b = totalTrafficBytes()
-            if (a >= 0 && b >= a) mbps = (b - a) * 8f / 1_000_000f
+            val after = totalTrafficBytes()
+            if (before >= 0 && after >= before) mbps = (after - before) * 8f / 1_000_000f
             ping = measureLatencyMs()
             if (ping > 0) {
                 graph.add(ping)
@@ -132,21 +138,21 @@ private fun MasterDashboard(context: Context) {
         if (busy) return
         scope.launch {
             busy = true
-            optimizer.optimize()
-            delay(400)
+            val result = optimizer.optimize()
+            delay(450)
             ram = memoryUsedPercent(context)
             apps = runningProcessCount(context)
+            rootAvailable = result.rootUsed
+            ramFreed = result.ramFreedBytes
+            storageFreed = result.storageFreedBytes
+            closedApps = result.closedApps
             busy = false
         }
     }
 
     BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
         val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
-        Box(
-            Modifier
-                .size(960.dp * scale, 540.dp * scale)
-                .align(Alignment.Center)
-        ) {
+        Box(Modifier.size(960.dp * scale, 540.dp * scale).align(Alignment.Center)) {
             Box(
                 Modifier
                     .size(960.dp, 540.dp)
@@ -168,7 +174,8 @@ private fun MasterDashboard(context: Context) {
                 Image(
                     painter = painterResource(R.drawable.shadowfox_logo),
                     contentDescription = "ShadowFox TV",
-                    modifier = Modifier.offset(804.dp, 26.dp).size(100.dp)
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.offset(790.dp, 18.dp).size(122.dp, 98.dp)
                 )
 
                 GlowCard(Modifier.offset(45.dp, 145.dp).size(205.dp, 265.dp), onClick = { clean() }) {
@@ -179,7 +186,7 @@ private fun MasterDashboard(context: Context) {
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text("SYSTEM SCAN", color = WHITE, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                            Text("Scan loaded system apps.", color = MUTED, fontSize = 8.sp)
+                            Text("$apps ACTIVE PROCESSES", color = MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(10.dp))
                             MasterButton(if (busy) "SCANNING..." else "SCAN NOW", 105.dp, !busy) { clean() }
                         }
@@ -192,10 +199,7 @@ private fun MasterDashboard(context: Context) {
                     hero = true
                 ) {
                     Box(Modifier.fillMaxSize()) {
-                        RamGauge(
-                            ram,
-                            Modifier.align(Alignment.TopCenter).padding(top = 22.dp).size(240.dp)
-                        )
+                        RamGauge(ram, Modifier.align(Alignment.TopCenter).padding(top = 22.dp).size(240.dp))
                         Column(
                             Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
@@ -213,7 +217,7 @@ private fun MasterDashboard(context: Context) {
                         Spacer(Modifier.width(14.dp))
                         Column {
                             Text("CACHE CLEANER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
-                            Text("Remove cache machines\nand cache.", color = MUTED, fontSize = 8.sp)
+                            Text("Trim app cache without deleting data.", color = MUTED, fontSize = 8.sp)
                             Spacer(Modifier.height(9.dp))
                             MasterButton(if (busy) "CLEANING..." else "CLEAN NOW", 105.dp, !busy) { clean() }
                         }
@@ -227,7 +231,7 @@ private fun MasterDashboard(context: Context) {
                         Column {
                             Text("NETWORK MONITOR", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
                             Text(
-                                if (ping > 0) "${String.format("%.1f", mbps)} Mbps • ${ping} ms" else "Connect internet monitor",
+                                if (ping > 0) "${String.format("%.1f", mbps)} Mbps • ${ping} ms" else "LIVE CONNECTION MONITOR",
                                 color = MUTED,
                                 fontSize = 8.sp
                             )
@@ -237,11 +241,53 @@ private fun MasterDashboard(context: Context) {
                     }
                 }
 
-                AppTiles(Modifier.offset(47.dp, 448.dp).size(205.dp, 42.dp))
-                Bolt(Modifier.offset(438.dp, 452.dp).size(47.dp))
-                AndroidBadge(Modifier.offset(780.dp, 449.dp).size(132.dp, 39.dp))
+                BottomSystemStrip(
+                    root = rootAvailable,
+                    ramFreed = ramFreed,
+                    storageFreed = storageFreed,
+                    closedApps = closedApps,
+                    modifier = Modifier.offset(45.dp, 454.dp).size(867.dp, 58.dp)
+                )
+                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun BottomSystemStrip(
+    root: Boolean,
+    ramFreed: Long,
+    storageFreed: Long,
+    closedApps: Int,
+    modifier: Modifier
+) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        StatTile("RAM FREED", formatBytes(ramFreed), Modifier.size(126.dp, 48.dp))
+        Spacer(Modifier.width(9.dp))
+        StatTile("CACHE CLEARED", formatBytes(storageFreed), Modifier.size(126.dp, 48.dp))
+        Spacer(Modifier.width(9.dp))
+        StatTile("APPS CLOSED", closedApps.toString(), Modifier.size(112.dp, 48.dp))
+        Spacer(Modifier.width(78.dp))
+        StatTile("ROOT", if (root) "ACTIVE" else "READY", Modifier.size(112.dp, 48.dp), if (root) GREEN else MUTED)
+        Spacer(Modifier.width(9.dp))
+        StatTile("DEVICE", deviceLabel(), Modifier.size(175.dp, 48.dp))
+        Spacer(Modifier.width(9.dp))
+        StatTile("ANDROID", Build.VERSION.RELEASE.orEmpty().ifBlank { "Unknown" }, Modifier.size(100.dp, 48.dp))
+    }
+}
+
+@Composable
+private fun StatTile(label: String, value: String, modifier: Modifier, valueColor: Color = WHITE) {
+    val shape = RoundedCornerShape(10.dp)
+    Column(
+        modifier
+            .shadow(6.dp, shape, false, CYAN.copy(alpha = .25f), CYAN.copy(alpha = .25f))
+            .background(Color(0xD90A1C29), shape)
+            .padding(horizontal = 10.dp, vertical = 7.dp)
+    ) {
+        Text(label, color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
+        Text(value, color = valueColor, fontSize = 11.sp, fontWeight = FontWeight.Black, maxLines = 1)
     }
 }
 
@@ -282,12 +328,7 @@ private fun GlowCard(
 }
 
 @Composable
-private fun MasterButton(
-    text: String,
-    width: androidx.compose.ui.unit.Dp,
-    enabled: Boolean,
-    onClick: () -> Unit
-) {
+private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabled: Boolean, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(50)
     Box(
@@ -295,13 +336,7 @@ private fun MasterButton(
             .width(width)
             .height(32.dp)
             .scale(if (focused) 1.08f else 1f)
-            .shadow(
-                elevation = if (focused) 20.dp else 9.dp,
-                shape = shape,
-                clip = false,
-                ambientColor = CYAN,
-                spotColor = CYAN
-            )
+            .shadow(if (focused) 20.dp else 9.dp, shape, false, CYAN, CYAN)
             .background(Brush.horizontalGradient(listOf(Color(0xFF16E7F4), Color(0xFF08A9D4))), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable(enabled)
@@ -357,10 +392,7 @@ private fun RamGauge(value: Float, modifier: Modifier) {
             drawLine(CYAN, c, end, 3.dp.toPx(), StrokeCap.Round)
             drawCircle(CYAN, 8.dp.toPx(), c)
         }
-        Column(
-            Modifier.align(Alignment.Center).offset(y = 52.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Column(Modifier.align(Alignment.Center).offset(y = 52.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("${value.toInt()}%", color = WHITE, fontSize = 20.sp, fontWeight = FontWeight.Black)
             Text("RAM", color = MUTED, fontSize = 7.sp)
         }
@@ -426,39 +458,6 @@ private fun Bolt(modifier: Modifier) {
 }
 
 @Composable
-private fun AndroidBadge(modifier: Modifier) {
-    Row(
-        modifier.background(Color(0xDD14212A), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text("●", color = GREEN, fontSize = 17.sp)
-        Spacer(Modifier.width(6.dp))
-        Column {
-            Text("For", color = MUTED, fontSize = 7.sp)
-            Text("ANDROID TV", color = WHITE, fontSize = 10.sp, fontWeight = FontWeight.Black)
-        }
-    }
-}
-
-@Composable
-private fun AppTiles(modifier: Modifier) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        val labels = listOf("NETFLIX", "YouTube", "Prime", "tv", "Disney+", "TV", "hulu", "⚙")
-        labels.forEachIndexed { i, label ->
-            Box(
-                Modifier
-                    .padding(end = 3.dp)
-                    .size(if (i < 4) 23.dp else 22.dp, 18.dp)
-                    .background(if (i == 7) Color(0xFF26333C) else Color(0xFFE9EEF2), RoundedCornerShape(2.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(label, color = if (i == 7) WHITE else Color(0xFF182028), fontSize = if (label.length > 5) 4.sp else 6.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
-
-@Composable
 private fun MasterBackdrop() {
     Canvas(Modifier.fillMaxSize()) {
         drawRect(BG)
@@ -473,31 +472,63 @@ private fun MasterBackdrop() {
     }
 }
 
-private fun memoryUsedPercent(context: Context): Float {
-    val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-    val info = ActivityManager.MemoryInfo()
-    manager.getMemoryInfo(info)
-    return if (info.totalMem <= 0) 0f else ((info.totalMem - info.availMem).toDouble() / info.totalMem * 100).toFloat().coerceIn(0f, 100f)
-}
-
-private fun runningProcessCount(context: Context): Int {
-    val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-    return manager.runningAppProcesses.orEmpty().size
-}
+private data class CleanupResult(
+    val closedApps: Int,
+    val ramFreedBytes: Long,
+    val storageFreedBytes: Long,
+    val rootUsed: Boolean
+)
 
 private class AppOptimizer(private val context: Context) {
     private val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     private val packageManager = context.packageManager
 
-    suspend fun optimize() = withContext(Dispatchers.IO) {
+    suspend fun optimize(): CleanupResult = withContext(Dispatchers.IO) {
+        val beforeRam = availableMemoryBytes(context)
+        val beforeStorage = freeStorageBytes()
         val protected = protectedPackages()
-        activityManager.runningAppProcesses.orEmpty()
-            .flatMap { it.pkgList?.toList().orEmpty() }
-            .distinct()
-            .filter { it != context.packageName }
-            .filterNot { it in protected }
-            .filterNot(::isSystemPackage)
-            .forEach { runCatching { activityManager.killBackgroundProcesses(it) } }
+        val root = rootShellAvailable()
+
+        val packages = if (root) {
+            runRoot("pm list packages -3").output
+                .lineSequence()
+                .map { it.trim() }
+                .filter { it.startsWith("package:") }
+                .map { it.removePrefix("package:") }
+                .filter { it.isNotBlank() && it != context.packageName && it !in protected }
+                .toList()
+        } else {
+            activityManager.runningAppProcesses.orEmpty()
+                .flatMap { it.pkgList?.toList().orEmpty() }
+                .distinct()
+                .filter { it != context.packageName && it !in protected }
+                .filterNot(::isSystemPackage)
+        }
+
+        var closed = 0
+        if (root && packages.isNotEmpty()) {
+            val command = packages.joinToString(" ; ") { pkg -> "am force-stop '$pkg'" }
+            if (runRoot(command).success) closed = packages.size
+            runRoot("pm trim-caches 999999999999")
+            runRoot("sync")
+        } else {
+            packages.forEach { packageName ->
+                runCatching {
+                    activityManager.killBackgroundProcesses(packageName)
+                    closed++
+                }
+            }
+        }
+
+        delay(300)
+        val afterRam = availableMemoryBytes(context)
+        val afterStorage = freeStorageBytes()
+        CleanupResult(
+            closedApps = closed,
+            ramFreedBytes = (afterRam - beforeRam).coerceAtLeast(0L),
+            storageFreedBytes = (afterStorage - beforeStorage).coerceAtLeast(0L),
+            rootUsed = root
+        )
     }
 
     private fun isSystemPackage(packageName: String): Boolean {
@@ -520,14 +551,62 @@ private class AppOptimizer(private val context: Context) {
             "com.amazon.firehomestarter",
             "com.amazon.device.software.ota"
         )
-        packageManager.queryIntentActivities(
-            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME),
-            PackageManager.MATCH_DEFAULT_ONLY
-        ).mapNotNullTo(protected) { it.activityInfo?.packageName }
+        packageManager.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), PackageManager.MATCH_DEFAULT_ONLY)
+            .mapNotNullTo(protected) { it.activityInfo?.packageName }
         packageManager.queryIntentServices(Intent(VpnService.SERVICE_INTERFACE), PackageManager.MATCH_ALL)
             .mapNotNullTo(protected) { it.serviceInfo?.packageName }
         return protected
     }
+}
+
+private data class RootResult(val success: Boolean, val output: String)
+
+private fun rootShellAvailable(): Boolean = runRoot("id").let { it.success && it.output.contains("uid=0") }
+
+private fun runRoot(command: String): RootResult = runCatching {
+    val process = ProcessBuilder("su", "-c", command).redirectErrorStream(true).start()
+    val output = process.inputStream.bufferedReader().use { it.readText() }
+    val code = process.waitFor()
+    RootResult(code == 0, output)
+}.getOrElse { RootResult(false, "") }
+
+private fun memoryUsedPercent(context: Context): Float {
+    val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    val info = ActivityManager.MemoryInfo()
+    manager.getMemoryInfo(info)
+    return if (info.totalMem <= 0) 0f else ((info.totalMem - info.availMem).toDouble() / info.totalMem * 100).toFloat().coerceIn(0f, 100f)
+}
+
+private fun availableMemoryBytes(context: Context): Long {
+    val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    val info = ActivityManager.MemoryInfo()
+    manager.getMemoryInfo(info)
+    return info.availMem
+}
+
+private fun runningProcessCount(context: Context): Int {
+    val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    return manager.runningAppProcesses.orEmpty().size
+}
+
+private fun freeStorageBytes(): Long = runCatching {
+    StatFs(Environment.getDataDirectory().absolutePath).availableBytes
+}.getOrDefault(0L)
+
+private fun deviceLabel(): String {
+    val maker = Build.MANUFACTURER.orEmpty().trim()
+    val model = Build.MODEL.orEmpty().trim()
+    return when {
+        maker.isBlank() -> model
+        model.startsWith(maker, ignoreCase = true) -> model
+        else -> "$maker $model"
+    }.take(24)
+}
+
+private fun formatBytes(bytes: Long): String {
+    if (bytes <= 0L) return "0 MB"
+    val mb = bytes / (1024.0 * 1024.0)
+    return if (mb >= 1024.0) String.format("%.2f GB", mb / 1024.0) else String.format("%.0f MB", mb)
 }
 
 private fun totalTrafficBytes(): Long {
