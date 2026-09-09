@@ -15,8 +15,8 @@ android {
         applicationId "ca.shadowfoxtv.taskkiller"
         minSdk 23
         targetSdk 35
-        versionCode 41
-        versionName "5.2.7"
+        versionCode 42
+        versionName "5.2.8"
     }
 
     buildFeatures {
@@ -51,6 +51,28 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
+}
+
+def hdLogoSource = file("${rootProject.projectDir}/logo_src/shadowfox_logo_512.b64")
+def hdLogoDir = file("src/main/res/drawable-nodpi")
+def hdLogoFile = file("src/main/res/drawable-nodpi/shadowfox_logo.webp")
+
+tasks.register("prepareShadowFoxHdLogo") {
+    inputs.file(hdLogoSource)
+    outputs.file(hdLogoFile)
+    doLast {
+        if (!hdLogoSource.exists()) {
+            throw new GradleException("Missing staged ShadowFox HD logo source")
+        }
+        hdLogoDir.mkdirs()
+        hdLogoDir.listFiles()?.findAll { it.name.toLowerCase().startsWith("shadowfox_logo.") }?.each { it.delete() }
+        hdLogoFile.bytes = hdLogoSource.text.trim().decodeBase64()
+        println "Using supplied ShadowFox HD logo: ${hdLogoFile.length()} bytes"
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("prepareShadowFoxHdLogo")
 }
 
 dependencies {
