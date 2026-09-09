@@ -23,27 +23,18 @@ jobs:
         run: |
           cp -R overrides/. extracted/.
           rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java
-      - name: Preserve highest-quality ShadowFox logo
+      - name: Use supplied ShadowFox logo
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import zipfile, tempfile
-          res=Path('extracted/app/src/main/res'); exts={'.png','.webp','.jpg','.jpeg'}
-          current=[p for p in res.rglob('shadowfox_logo.*') if p.suffix.lower() in exts]
-          sources=[(p.stat().st_size,p.read_bytes(),p.name) for p in current]
-          z=Path('ShadowFoxTV-FastTaskKiller-Project-v3.0.1-REAL-LOGO.zip')
-          if z.exists():
-            with zipfile.ZipFile(z) as f:
-              for n in f.namelist():
-                p=Path(n)
-                if p.name.lower().startswith('shadowfox_logo.') and p.suffix.lower() in exts:
-                  data=f.read(n); sources.append((len(data),data,p.name))
-          if not sources: raise SystemExit('No ShadowFox logo found')
-          _,data,name=max(sources,key=lambda x:x[0])
-          for p in current:
-            if p.exists(): p.unlink()
-          dst=res/'drawable-nodpi'/name; dst.parent.mkdir(parents=True,exist_ok=True); dst.write_bytes(data)
-          print('Using high-resolution logo',name,len(data),'bytes')
+          res=Path('extracted/app/src/main/res')
+          supplied=res/'drawable-nodpi'/'shadowfox_logo.webp'
+          if not supplied.exists():
+              raise SystemExit('Supplied ShadowFox HD logo is missing')
+          for p in res.rglob('shadowfox_logo.*'):
+              if p != supplied and p.is_file():
+                  p.unlink()
+          print('Using supplied ShadowFox HD logo:', supplied, supplied.stat().st_size, 'bytes')
           PY
       - name: Read version
         run: |
