@@ -32,6 +32,7 @@
         android:icon="@drawable/shadowfox_logo"
         android:label="ShadowFox TV"
         android:supportsRtl="true"
+        android:theme="@style/Theme.ShadowFox"
         android:usesCleartextTraffic="false">
 
         <activity
@@ -39,7 +40,8 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
             android:exported="true"
             android:launchMode="singleTask"
-            android:screenOrientation="landscape">
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.ShadowFox">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
