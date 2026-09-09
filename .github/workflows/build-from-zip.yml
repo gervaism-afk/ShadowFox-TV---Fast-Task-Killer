@@ -17,111 +17,73 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Extract project
         run: mkdir extracted && unzip -q ShadowFoxTV-FastTaskKiller-Project-v3.0.4-NON-ROOT.zip -d extracted
-
       - name: Apply ShadowFox Compose source
         run: |
           cp -R overrides/. extracted/.
           rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java
-
       - name: Preserve highest-quality ShadowFox logo
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import zipfile, tempfile, shutil
-
-          res = Path('extracted/app/src/main/res')
-          exts = {'.png', '.webp', '.jpg', '.jpeg'}
-          candidates = [p for p in res.rglob('shadowfox_logo.*') if p.suffix.lower() in exts]
-
-          # Prefer the dedicated REAL-LOGO project archive when it contains a larger source.
-          source_zip = Path('ShadowFoxTV-FastTaskKiller-Project-v3.0.1-REAL-LOGO.zip')
-          if source_zip.exists():
-              with tempfile.TemporaryDirectory() as td:
-                  with zipfile.ZipFile(source_zip) as zf:
-                      for name in zf.namelist():
-                          n = Path(name)
-                          if n.name.lower().startswith('shadowfox_logo.') and n.suffix.lower() in exts:
-                              zf.extract(name, td)
-                  extra = [p for p in Path(td).rglob('shadowfox_logo.*') if p.suffix.lower() in exts]
-                  all_items = candidates + extra
-                  if all_items:
-                      src = max(all_items, key=lambda p: p.stat().st_size)
-                      dst = res / 'drawable-nodpi' / src.name
-                      dst.parent.mkdir(parents=True, exist_ok=True)
-                      shutil.copyfile(src, dst)
-                      for p in candidates:
-                          if p != dst and p.exists():
-                              p.unlink()
-                      print(f'Using logo: {src} ({src.stat().st_size} bytes)')
-                      raise SystemExit(0)
-
-          if candidates:
-              src = max(candidates, key=lambda p: p.stat().st_size)
-              data = src.read_bytes()
-              dst = res / 'drawable-nodpi' / src.name
-              dst.parent.mkdir(parents=True, exist_ok=True)
-              dst.write_bytes(data)
-              for p in candidates:
-                  if p != dst and p.exists():
-                      p.unlink()
-              print(f'Using logo: {src} ({src.stat().st_size} bytes)')
+          import zipfile, tempfile
+          res=Path('extracted/app/src/main/res'); exts={'.png','.webp','.jpg','.jpeg'}
+          current=[p for p in res.rglob('shadowfox_logo.*') if p.suffix.lower() in exts]
+          sources=[(p.stat().st_size,p.read_bytes(),p.name) for p in current]
+          z=Path('ShadowFoxTV-FastTaskKiller-Project-v3.0.1-REAL-LOGO.zip')
+          if z.exists():
+            with zipfile.ZipFile(z) as f:
+              for n in f.namelist():
+                p=Path(n)
+                if p.name.lower().startswith('shadowfox_logo.') and p.suffix.lower() in exts:
+                  data=f.read(n); sources.append((len(data),data,p.name))
+          if not sources: raise SystemExit('No ShadowFox logo found')
+          _,data,name=max(sources,key=lambda x:x[0])
+          for p in current:
+            if p.exists(): p.unlink()
+          dst=res/'drawable-nodpi'/name; dst.parent.mkdir(parents=True,exist_ok=True); dst.write_bytes(data)
+          print('Using high-resolution logo',name,len(data),'bytes')
           PY
-
       - name: Read version
         run: |
           VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
           echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-
       - name: Build debug APK
         working-directory: extracted
         run: gradle :app:assembleDebug --stacktrace
-
       - name: Prepare release signing
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         run: |
           printf '%s' "$SHADOWFOX_SIGNING_PASSWORD" | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in signing/shadowfox-release.keystore.enc -out "$RUNNER_TEMP/shadowfox-release.keystore" -pass stdin
           echo "SHADOWFOX_KEYSTORE_PATH=$RUNNER_TEMP/shadowfox-release.keystore" >> "$GITHUB_ENV"
-
       - name: Build signed release APK
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         working-directory: extracted
         run: gradle :app:assembleRelease --stacktrace
-
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: ShadowFox-TV-Optimizer-v${{ env.APP_VERSION }}-debug
           path: extracted/app/build/outputs/apk/debug/app-debug.apk
-
       - name: Upload signed release APK
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: ShadowFox-TV-Optimizer-v${{ env.APP_VERSION }}
           path: extracted/app/build/outputs/apk/release/app-release.apk
-
       - name: Publish release
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         env:
           GH_TOKEN: "${{ github.token }}"
         run: |
-          TAG="v${APP_VERSION}"
-          ASSET="ShadowFox-TV-Optimizer-v${APP_VERSION}.apk"
+          TAG="v${APP_VERSION}"; ASSET="ShadowFox-TV-Optimizer-v${APP_VERSION}.apk"
           cp extracted/app/build/outputs/apk/release/app-release.apk "$ASSET"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$ASSET" --clobber
-          else
-            gh release create "$TAG" "$ASSET" --title "ShadowFox TV Optimizer v${APP_VERSION}" --notes "Compose-based ShadowFox TV system and network optimizer for Android TV and Fire TV."
-          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Optimizer v${APP_VERSION}" --notes "ShadowFox TV optimizer for Android TV and Fire TV."; fi
