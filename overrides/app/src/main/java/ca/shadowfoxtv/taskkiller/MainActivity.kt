@@ -18,7 +18,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -62,6 +61,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -75,6 +77,11 @@ import kotlin.math.sin
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
         setContent {
             ShadowFoxTheme {
                 ShadowFoxUpdateGate(applicationContext) {
@@ -86,7 +93,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private val ScreenBlack = Color(0xFF121212)
-private val CardBlack = Color(0xFF121212)
+private val GlassBlack = Color(0xCC121212)
 private val NeonBlue = Color(0xFF00E5FF)
 private val NeonBlueSoft = Color(0x3300E5FF)
 private val Orange = Color(0xFFFF6D00)
@@ -101,7 +108,7 @@ private fun ShadowFoxTheme(content: @Composable () -> Unit) {
             primary = NeonBlue,
             secondary = Orange,
             background = ScreenBlack,
-            surface = CardBlack,
+            surface = GlassBlack,
             onBackground = White,
             onSurface = White
         ),
@@ -171,9 +178,9 @@ private fun PremiumDashboard(context: Context) {
                     .align(Alignment.Center)
                     .background(ScreenBlack)
             ) {
-                CinematicBackdrop()
+                CircuitBackdrop()
 
-                Column(Modifier.offset(48.dp, 32.dp)) {
+                Column(Modifier.offset(48.dp, 26.dp)) {
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text("ShadowFox", color = White, fontSize = 32.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
                         Spacer(Modifier.width(6.dp))
@@ -185,25 +192,38 @@ private fun PremiumDashboard(context: Context) {
                 Image(
                     painter = painterResource(R.drawable.shadowfox_logo),
                     contentDescription = "ShadowFox TV",
-                    modifier = Modifier.offset(808.dp, 23.dp).size(92.dp)
+                    modifier = Modifier.offset(808.dp, 17.dp).size(92.dp)
                 )
 
+                // Uniform left + center grid: exact same top and bottom edges.
                 PremiumCard(
-                    modifier = Modifier.offset(48.dp, 142.dp).size(205.dp, 292.dp),
+                    modifier = Modifier.offset(48.dp, 116.dp).size(205.dp, 344.dp),
                     clickable = true,
                     onClick = { optimize() }
                 ) {
                     Box(Modifier.fillMaxSize()) {
-                        MagnifierIcon(Modifier.align(Alignment.TopCenter).offset(y = 21.dp).size(104.dp))
                         Column(
-                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 23.dp),
+                            modifier = Modifier.align(Alignment.TopCenter).padding(top = 17.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("SYSTEM SCAN", color = White, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold)
-                            Spacer(Modifier.height(7.dp))
+                            Text("SYSTEM SCAN", color = White, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                            Text("LIVE PROCESS ANALYSIS", color = Muted, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        MagnifierIcon(
+                            Modifier
+                                .align(Alignment.Center)
+                                .offset(y = (-4).dp)
+                                .size(118.dp)
+                        )
+
+                        Column(
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Text("$runningApps ACTIVE PROCESSES", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(12.dp))
-                            PremiumButton(if (working) "SCANNING..." else "SCAN NOW", 112.dp, !working) { optimize() }
+                            PremiumButton(if (working) "SCANNING..." else "SCAN NOW", 122.dp, !working) { optimize() }
                         }
                     }
                 }
@@ -247,7 +267,7 @@ private fun PremiumDashboard(context: Context) {
                 }
 
                 PremiumCard(
-                    modifier = Modifier.offset(603.dp, 142.dp).size(309.dp, 143.dp),
+                    modifier = Modifier.offset(603.dp, 116.dp).size(309.dp, 164.dp),
                     clickable = true,
                     onClick = { optimize() }
                 ) {
@@ -255,7 +275,7 @@ private fun PremiumDashboard(context: Context) {
                         modifier = Modifier.fillMaxSize().padding(horizontal = 21.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        BroomIcon(Modifier.size(67.dp))
+                        BroomIcon(Modifier.size(72.dp))
                         Spacer(Modifier.width(15.dp))
                         Column {
                             Text("CACHE CLEANER", color = White, fontSize = 20.sp, fontWeight = FontWeight.Black)
@@ -267,7 +287,7 @@ private fun PremiumDashboard(context: Context) {
                 }
 
                 PremiumCard(
-                    modifier = Modifier.offset(603.dp, 300.dp).size(309.dp, 140.dp),
+                    modifier = Modifier.offset(603.dp, 296.dp).size(309.dp, 164.dp),
                     clickable = false,
                     onClick = {}
                 ) {
@@ -275,7 +295,7 @@ private fun PremiumDashboard(context: Context) {
                         modifier = Modifier.fillMaxSize().padding(horizontal = 21.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        NetworkIcon(Modifier.size(65.dp))
+                        NetworkIcon(Modifier.size(69.dp))
                         Spacer(Modifier.width(15.dp))
                         Column {
                             Text("NETWORK MONITOR", color = White, fontSize = 19.sp, fontWeight = FontWeight.Black)
@@ -290,8 +310,8 @@ private fun PremiumDashboard(context: Context) {
                     }
                 }
 
-                LightningBolt(Modifier.offset(438.dp, 465.dp).size(52.dp))
-                AndroidTvBadge(Modifier.offset(768.dp, 468.dp).size(144.dp, 45.dp))
+                LightningBolt(Modifier.offset(438.dp, 471.dp).size(52.dp))
+                AndroidTvBadge(Modifier.offset(768.dp, 472.dp).size(144.dp, 45.dp))
             }
         }
     }
@@ -308,18 +328,18 @@ private fun PremiumCard(
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(12.dp)
     val border = if (focused) BorderStroke(2.dp, NeonBlue) else BorderStroke(1.dp, NeonBlueSoft)
-    val scale by animateFloatAsState(if (focused) 1.045f else 1f, label = "cardFocus")
+    val focusScale by animateFloatAsState(if (focused) 1.045f else 1f, label = "cardFocus")
 
     Box(
         modifier = modifier
-            .scale(scale)
+            .scale(focusScale)
             .shadow(
                 elevation = if (focused) 20.dp else if (emphasized) 7.dp else 2.dp,
                 shape = shape,
                 ambientColor = if (focused) NeonBlue else Color.Black,
                 spotColor = if (focused) NeonBlue else Color.Black
             )
-            .background(CardBlack, shape)
+            .background(GlassBlack, shape)
             .border(border, shape)
             .onFocusChanged { focused = it.isFocused }
             .then(if (clickable) Modifier.focusable().clickable(onClick = onClick) else Modifier)
@@ -346,40 +366,33 @@ private fun PremiumButton(
 ) {
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(12.dp)
-    val scale by animateFloatAsState(if (focused) 1.08f else 1f, label = "buttonFocus")
+    val focusScale by animateFloatAsState(if (focused) 1.08f else 1f, label = "buttonFocus")
 
     Box(
         modifier = modifier
             .width(width)
             .height(36.dp)
-            .scale(scale)
+            .scale(focusScale)
             .shadow(
                 elevation = if (focused) 18.dp else 3.dp,
                 shape = shape,
                 ambientColor = if (focused) NeonBlue else Color.Black,
                 spotColor = if (focused) NeonBlue else Color.Black
             )
-            .background(if (focused) NeonBlue else Color(0xFF07333A), shape)
+            .background(if (focused) NeonBlue else Color(0xCC07333A), shape)
             .border(BorderStroke(if (focused) 2.dp else 1.dp, if (focused) NeonBlue else NeonBlue.copy(alpha = 0.75f)), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable(enabled)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = text,
-            color = if (focused) Color.Black else White,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Black,
-            textAlign = TextAlign.Center
-        )
+        Text(text, color = if (focused) Color.Black else White, fontSize = 11.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
     }
 }
 
 @Composable
 private fun SpeedometerGauge(percent: Float, modifier: Modifier = Modifier) {
     val animated by animateFloatAsState(percent.coerceIn(0f, 100f), label = "ramGauge")
-
     Canvas(modifier) {
         val center = Offset(size.width / 2f, size.height * 0.79f)
         val radius = size.width * 0.39f
@@ -387,53 +400,17 @@ private fun SpeedometerGauge(percent: Float, modifier: Modifier = Modifier) {
         val totalSweep = 180f
         val bounds = Size(radius * 2f, radius * 2f)
         val topLeft = Offset(center.x - radius, center.y - radius)
-
-        drawArc(
-            color = Color(0xFF252525),
-            startAngle = start,
-            sweepAngle = totalSweep,
-            useCenter = false,
-            topLeft = topLeft,
-            size = bounds,
-            style = Stroke(18.dp.toPx(), cap = StrokeCap.Round)
-        )
-        drawArc(
-            color = Orange.copy(alpha = 0.22f),
-            startAngle = start,
-            sweepAngle = totalSweep * animated / 100f,
-            useCenter = false,
-            topLeft = topLeft,
-            size = bounds,
-            style = Stroke(25.dp.toPx(), cap = StrokeCap.Round)
-        )
-        drawArc(
-            color = Orange,
-            startAngle = start,
-            sweepAngle = totalSweep * animated / 100f,
-            useCenter = false,
-            topLeft = topLeft,
-            size = bounds,
-            style = Stroke(12.dp.toPx(), cap = StrokeCap.Round)
-        )
-
+        drawArc(Color(0xFF252525), start, totalSweep, false, topLeft, bounds, style = Stroke(18.dp.toPx(), cap = StrokeCap.Round))
+        drawArc(Orange.copy(alpha = 0.22f), start, totalSweep * animated / 100f, false, topLeft, bounds, style = Stroke(25.dp.toPx(), cap = StrokeCap.Round))
+        drawArc(Orange, start, totalSweep * animated / 100f, false, topLeft, bounds, style = Stroke(12.dp.toPx(), cap = StrokeCap.Round))
         for (i in 0..10) {
             val angle = Math.toRadians((start + totalSweep * i / 10f).toDouble())
-            val p1 = Offset(
-                center.x + cos(angle).toFloat() * radius * 0.72f,
-                center.y + sin(angle).toFloat() * radius * 0.72f
-            )
-            val p2 = Offset(
-                center.x + cos(angle).toFloat() * radius * 0.9f,
-                center.y + sin(angle).toFloat() * radius * 0.9f
-            )
+            val p1 = Offset(center.x + cos(angle).toFloat() * radius * 0.72f, center.y + sin(angle).toFloat() * radius * 0.72f)
+            val p2 = Offset(center.x + cos(angle).toFloat() * radius * 0.9f, center.y + sin(angle).toFloat() * radius * 0.9f)
             drawLine(White.copy(alpha = 0.65f), p1, p2, if (i % 5 == 0) 3.dp.toPx() else 1.5.dp.toPx(), StrokeCap.Round)
         }
-
         val needleAngle = Math.toRadians((start + totalSweep * animated / 100f).toDouble())
-        val needleEnd = Offset(
-            center.x + cos(needleAngle).toFloat() * radius * 0.74f,
-            center.y + sin(needleAngle).toFloat() * radius * 0.74f
-        )
+        val needleEnd = Offset(center.x + cos(needleAngle).toFloat() * radius * 0.74f, center.y + sin(needleAngle).toFloat() * radius * 0.74f)
         drawLine(NeonBlue.copy(alpha = 0.22f), center, needleEnd, 15.dp.toPx(), StrokeCap.Round)
         drawLine(NeonBlue, center, needleEnd, 5.dp.toPx(), StrokeCap.Round)
         drawCircle(NeonBlue.copy(alpha = 0.30f), 16.dp.toPx(), center)
@@ -451,8 +428,8 @@ private fun MagnifierIcon(modifier: Modifier = Modifier) {
         drawCircle(NeonBlue.copy(alpha = 0.22f), r * 1.25f, c, style = Stroke(9.dp.toPx()))
         drawCircle(NeonBlue, r, c, style = Stroke(6.dp.toPx()))
         val a = Math.toRadians(44.0)
-        val start = Offset(c.x + cos(a).toFloat() * r, c.y + sin(a).toFloat() * r)
-        drawLine(NeonBlue, start, Offset(size.width * 0.84f, size.height * 0.86f), 11.dp.toPx(), StrokeCap.Round)
+        val handleStart = Offset(c.x + cos(a).toFloat() * r, c.y + sin(a).toFloat() * r)
+        drawLine(NeonBlue, handleStart, Offset(size.width * 0.84f, size.height * 0.86f), 11.dp.toPx(), StrokeCap.Round)
     }
 }
 
@@ -470,7 +447,7 @@ private fun BroomIcon(modifier: Modifier = Modifier) {
         drawPath(head, NeonBlue)
         for (i in 1..4) {
             val x = size.width * (.18f + i * .13f)
-            drawLine(CardBlack, Offset(x, size.height * .59f), Offset(x - size.width * .05f, size.height * .9f), 2.dp.toPx())
+            drawLine(GlassBlack, Offset(x, size.height * .59f), Offset(x - size.width * .05f, size.height * .9f), 2.dp.toPx())
         }
     }
 }
@@ -528,7 +505,7 @@ private fun LightningBolt(modifier: Modifier = Modifier) {
 private fun AndroidTvBadge(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
-            .background(CardBlack, RoundedCornerShape(12.dp))
+            .background(GlassBlack, RoundedCornerShape(12.dp))
             .border(BorderStroke(1.dp, NeonBlueSoft), RoundedCornerShape(12.dp))
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -543,17 +520,45 @@ private fun AndroidTvBadge(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun CinematicBackdrop() {
+private fun CircuitBackdrop() {
     Canvas(Modifier.fillMaxSize()) {
         drawRect(ScreenBlack)
-        val cyan = NeonBlue.copy(alpha = 0.035f)
-        val orange = Orange.copy(alpha = 0.025f)
-        drawCircle(cyan, size.width * .31f, Offset(size.width*.48f, size.height*.45f))
-        drawCircle(orange, size.width * .20f, Offset(size.width*.78f, size.height*.22f))
-        val line = NeonBlue.copy(alpha = .06f)
-        val step = size.width / 10f
-        for (i in -1..10) {
-            drawLine(line, Offset(i*step, 0f), Offset((i+2)*step, size.height), 1.dp.toPx())
+        val cyanLine = NeonBlue.copy(alpha = 0.085f)
+        val cyanNode = NeonBlue.copy(alpha = 0.18f)
+        val orangeLine = Orange.copy(alpha = 0.055f)
+
+        val traces = listOf(
+            listOf(Offset(0f, size.height*.17f), Offset(size.width*.12f, size.height*.17f), Offset(size.width*.17f, size.height*.27f), Offset(size.width*.31f, size.height*.27f)),
+            listOf(Offset(size.width*.06f, size.height*.72f), Offset(size.width*.18f, size.height*.72f), Offset(size.width*.23f, size.height*.61f), Offset(size.width*.42f, size.height*.61f)),
+            listOf(Offset(size.width*.37f, 0f), Offset(size.width*.37f, size.height*.14f), Offset(size.width*.48f, size.height*.22f), Offset(size.width*.48f, size.height*.37f)),
+            listOf(Offset(size.width*.61f, 0f), Offset(size.width*.61f, size.height*.13f), Offset(size.width*.70f, size.height*.20f), Offset(size.width*.84f, size.height*.20f)),
+            listOf(Offset(size.width*.72f, size.height), Offset(size.width*.72f, size.height*.84f), Offset(size.width*.82f, size.height*.76f), Offset(size.width, size.height*.76f)),
+            listOf(Offset(size.width*.52f, size.height), Offset(size.width*.52f, size.height*.86f), Offset(size.width*.44f, size.height*.78f), Offset(size.width*.44f, size.height*.67f))
+        )
+
+        traces.forEachIndexed { index, points ->
+            for (i in 0 until points.lastIndex) {
+                drawLine(if (index % 3 == 2) orangeLine else cyanLine, points[i], points[i + 1], 1.2.dp.toPx())
+            }
+            points.drop(1).dropLast(1).forEach { node ->
+                drawCircle(cyanNode, 2.2.dp.toPx(), node)
+            }
+        }
+
+        val hexCenters = listOf(
+            Offset(size.width*.18f, size.height*.44f),
+            Offset(size.width*.48f, size.height*.48f),
+            Offset(size.width*.79f, size.height*.45f)
+        )
+        hexCenters.forEach { c ->
+            val r = size.minDimension * .055f
+            val path = Path()
+            for (i in 0..6) {
+                val a = Math.toRadians((60.0 * i) - 30.0)
+                val p = Offset(c.x + cos(a).toFloat()*r, c.y + sin(a).toFloat()*r)
+                if (i == 0) path.moveTo(p.x, p.y) else path.lineTo(p.x, p.y)
+            }
+            drawPath(path, cyanLine, style = Stroke(1.dp.toPx()))
         }
     }
 }
@@ -616,16 +621,12 @@ private class AppOptimizer(private val context: Context) {
             "com.amazon.firehomestarter",
             "com.amazon.device.software.ota"
         )
-
         packageManager.queryIntentActivities(
             Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME),
             PackageManager.MATCH_DEFAULT_ONLY
         ).mapNotNullTo(protected) { it.activityInfo?.packageName }
-
-        val vpnIntent = Intent(VpnService.SERVICE_INTERFACE)
-        packageManager.queryIntentServices(vpnIntent, PackageManager.MATCH_ALL)
+        packageManager.queryIntentServices(Intent(VpnService.SERVICE_INTERFACE), PackageManager.MATCH_ALL)
             .mapNotNullTo(protected) { it.serviceInfo?.packageName }
-
         return protected
     }
 }
