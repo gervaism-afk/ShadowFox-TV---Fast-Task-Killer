@@ -26,22 +26,48 @@ jobs:
           cp -R overrides/. extracted/.
           rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java
 
-      - name: Preserve original ShadowFox logo
+      - name: Preserve highest-quality ShadowFox logo
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import zipfile, tempfile, shutil
+
           res = Path('extracted/app/src/main/res')
           exts = {'.png', '.webp', '.jpg', '.jpeg'}
-          items = [p for p in res.rglob('shadowfox_logo.*') if p.suffix.lower() in exts]
-          if items:
-              src = max(items, key=lambda p: p.stat().st_size)
+          candidates = [p for p in res.rglob('shadowfox_logo.*') if p.suffix.lower() in exts]
+
+          # Prefer the dedicated REAL-LOGO project archive when it contains a larger source.
+          source_zip = Path('ShadowFoxTV-FastTaskKiller-Project-v3.0.1-REAL-LOGO.zip')
+          if source_zip.exists():
+              with tempfile.TemporaryDirectory() as td:
+                  with zipfile.ZipFile(source_zip) as zf:
+                      for name in zf.namelist():
+                          n = Path(name)
+                          if n.name.lower().startswith('shadowfox_logo.') and n.suffix.lower() in exts:
+                              zf.extract(name, td)
+                  extra = [p for p in Path(td).rglob('shadowfox_logo.*') if p.suffix.lower() in exts]
+                  all_items = candidates + extra
+                  if all_items:
+                      src = max(all_items, key=lambda p: p.stat().st_size)
+                      dst = res / 'drawable-nodpi' / src.name
+                      dst.parent.mkdir(parents=True, exist_ok=True)
+                      shutil.copyfile(src, dst)
+                      for p in candidates:
+                          if p != dst and p.exists():
+                              p.unlink()
+                      print(f'Using logo: {src} ({src.stat().st_size} bytes)')
+                      raise SystemExit(0)
+
+          if candidates:
+              src = max(candidates, key=lambda p: p.stat().st_size)
               data = src.read_bytes()
               dst = res / 'drawable-nodpi' / src.name
               dst.parent.mkdir(parents=True, exist_ok=True)
               dst.write_bytes(data)
-              for p in items:
+              for p in candidates:
                   if p != dst and p.exists():
                       p.unlink()
+              print(f'Using logo: {src} ({src.stat().st_size} bytes)')
           PY
 
       - name: Read version
