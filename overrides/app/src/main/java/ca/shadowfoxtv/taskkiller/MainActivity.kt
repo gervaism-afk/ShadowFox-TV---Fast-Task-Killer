@@ -118,8 +118,10 @@ private fun MasterDashboard(context: Context) {
     val optimizer = remember { AppOptimizer(context) }
     val scope = rememberCoroutineScope()
 
+    // Do not invoke su while the dashboard is launching. Some rooted TV firmware
+    // terminates or blocks the foreground activity when su is started at startup.
+    // Root is detected only when the user actually runs a cleanup.
     LaunchedEffect(Unit) {
-        rootAvailable = withContext(Dispatchers.IO) { rootShellAvailable() }
         while (true) {
             val before = totalTrafficBytes()
             delay(1000)
@@ -143,7 +145,7 @@ private fun MasterDashboard(context: Context) {
             delay(450)
             ram = memoryUsedPercent(context)
             apps = runningProcessCount(context)
-            rootAvailable = result.rootUsed || withContext(Dispatchers.IO) { rootShellAvailable() }
+            rootAvailable = result.rootUsed
             ramFreed = result.ramFreedBytes
             storageFreed = result.storageFreedBytes
             closedApps = result.closedApps
@@ -270,11 +272,11 @@ private fun BottomSystemStrip(
         Spacer(Modifier.width(9.dp))
         StatTile("APPS CLOSED", closedApps.toString(), Modifier.size(112.dp, 48.dp))
         Spacer(Modifier.width(78.dp))
-        StatTile("ROOT", if (root) "ACTIVE" else "FALLBACK", Modifier.size(112.dp, 48.dp), if (root) GREEN else ORANGE)
+        StatTile("ROOT", if (root) "ACTIVE" else "READY", Modifier.size(112.dp, 48.dp), if (root) GREEN else MUTED)
         Spacer(Modifier.width(9.dp))
         StatTile("DEVICE", deviceLabel(), Modifier.size(175.dp, 48.dp))
         Spacer(Modifier.width(9.dp))
-        StatTile("ANDROID", Build.VERSION.RELEASE, Modifier.size(100.dp, 48.dp))
+        StatTile("ANDROID", Build.VERSION.RELEASE.orEmpty().ifBlank { "Unknown" }, Modifier.size(100.dp, 48.dp))
     }
 }
 
