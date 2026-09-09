@@ -53,7 +53,7 @@ android {
     }
 }
 
-def hdLogoSource = file("${rootProject.projectDir}/logo_src/shadowfox_logo_512.b64")
+def hdLogoSource = file("${rootProject.projectDir}/../logo_src/shadowfox_logo_512.b64")
 def hdLogoDir = file("src/main/res/drawable-nodpi")
 def hdLogoFile = file("src/main/res/drawable-nodpi/shadowfox_logo.webp")
 
