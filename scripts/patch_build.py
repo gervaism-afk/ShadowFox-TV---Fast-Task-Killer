@@ -3,7 +3,6 @@ from pathlib import Path
 p = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt')
 s = p.read_text()
 
-# Add only the layout imports needed for the phone/tablet dashboard.
 s = s.replace('import androidx.compose.foundation.layout.BoxWithConstraints\n', 'import androidx.compose.foundation.layout.BoxWithConstraints\nimport androidx.compose.foundation.layout.Arrangement\n')
 s = s.replace('import androidx.compose.foundation.layout.fillMaxSize\n', 'import androidx.compose.foundation.layout.fillMaxSize\nimport androidx.compose.foundation.layout.fillMaxWidth\n')
 s = s.replace('import androidx.compose.foundation.layout.width\n', 'import androidx.compose.foundation.layout.width\nimport androidx.compose.foundation.rememberScrollState\nimport androidx.compose.foundation.verticalScroll\n')
@@ -57,7 +56,6 @@ if old_startup not in s:
     raise SystemExit('Expected stable MainActivity startup block not found')
 s = s.replace(old_startup, new_startup, 1)
 
-# Keep the approved TV composition unchanged, but make the full 960x540 canvas fit the available TV viewport.
 old_scale = '''    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
         val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
         Box(Modifier.size(960.dp * scale, 540.dp * scale).align(Alignment.Center)) {
@@ -146,13 +144,14 @@ private fun MobileDashboard(context: Context) {
     }
 
     BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
-        val contentWidth = minOf(maxWidth - 28.dp, 620.dp)
+        val portrait = maxHeight >= maxWidth
+        val contentWidth = minOf(maxWidth - 24.dp, if (portrait) 620.dp else 940.dp)
         Column(
             modifier = Modifier
                 .width(contentWidth)
                 .align(Alignment.TopCenter)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 18.dp, bottom = 28.dp),
+                .padding(top = 10.dp, bottom = 64.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
@@ -162,9 +161,9 @@ private fun MobileDashboard(context: Context) {
             ) {
                 Column {
                     Row(verticalAlignment = Alignment.Bottom) {
-                        Text("ShadowFox", color = WHITE, fontSize = 28.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
+                        Text("ShadowFox", color = WHITE, fontSize = if (portrait) 26.sp else 22.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
                         Spacer(Modifier.width(4.dp))
-                        Text("TV", color = ORANGE, fontSize = 28.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
+                        Text("TV", color = ORANGE, fontSize = if (portrait) 26.sp else 22.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
                     }
                     Text("www.shadowfoxtv.ca", color = MUTED, fontSize = 9.sp)
                 }
@@ -172,94 +171,136 @@ private fun MobileDashboard(context: Context) {
                     painter = painterResource(R.drawable.shadowfox_logo),
                     contentDescription = "ShadowFox TV",
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(88.dp, 70.dp)
+                    modifier = Modifier.size(if (portrait) 68.dp else 58.dp)
                 )
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(if (portrait) 10.dp else 6.dp))
 
-            GlowCard(Modifier.fillMaxWidth().height(330.dp), onClick = { clean() }, hero = true) {
-                Box(Modifier.fillMaxSize()) {
-                    RamGauge(ram, Modifier.align(Alignment.TopCenter).padding(top = 16.dp).size(235.dp))
-                    Column(
-                        Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("RAM BOOSTER", color = WHITE, fontSize = 21.sp, fontWeight = FontWeight.Black)
-                        Spacer(Modifier.height(10.dp))
-                        MasterButton(if (busy) "BOOSTING..." else "BOOST", 170.dp, !busy) { clean() }
+            if (portrait) {
+                GlowCard(Modifier.fillMaxWidth().height(255.dp), onClick = { clean() }, hero = true) {
+                    Box(Modifier.fillMaxSize()) {
+                        RamGauge(ram, Modifier.align(Alignment.TopCenter).padding(top = 6.dp).size(185.dp))
+                        Column(Modifier.align(Alignment.BottomCenter).padding(bottom = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("RAM BOOSTER", color = WHITE, fontSize = 19.sp, fontWeight = FontWeight.Black)
+                            Spacer(Modifier.height(7.dp))
+                            MasterButton(if (busy) "BOOSTING..." else "BOOST", 160.dp, !busy) { clean() }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+
+                GlowCard(Modifier.fillMaxWidth().height(160.dp), onClick = { clean() }) {
+                    Row(Modifier.fillMaxSize().padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                        ScanDial(Modifier.size(105.dp))
+                        Spacer(Modifier.width(14.dp))
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("SYSTEM SCAN", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
+                            Text("$apps ACTIVE PROCESSES", color = MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(9.dp))
+                            MasterButton(if (busy) "SCANNING..." else "SCAN NOW", 118.dp, !busy) { clean() }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+
+                GlowCard(Modifier.fillMaxWidth().height(125.dp), onClick = { clean() }) {
+                    Row(Modifier.fillMaxSize().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Broom(Modifier.size(58.dp))
+                        Spacer(Modifier.width(14.dp))
+                        Column {
+                            Text("CACHE CLEANER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
+                            Text("Trim app cache without deleting data.", color = MUTED, fontSize = 8.sp)
+                            Spacer(Modifier.height(8.dp))
+                            MasterButton(if (busy) "CLEANING..." else "CLEAN NOW", 118.dp, !busy) { clean() }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+
+                GlowCard(Modifier.fillMaxWidth().height(125.dp), onClick = {}) {
+                    Row(Modifier.fillMaxSize().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        NetworkIcon(Modifier.size(58.dp))
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("NETWORK MONITOR", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
+                            Text(if (ping > 0) "${String.format("%.1f", mbps)} Mbps • ${ping} ms" else "LIVE CONNECTION MONITOR", color = MUTED, fontSize = 8.sp)
+                            Spacer(Modifier.height(6.dp))
+                            Bars(graph, Modifier.fillMaxWidth().height(38.dp))
+                        }
+                    }
+                }
+            } else {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        GlowCard(Modifier.fillMaxWidth().height(210.dp), onClick = { clean() }, hero = true) {
+                            Box(Modifier.fillMaxSize()) {
+                                RamGauge(ram, Modifier.align(Alignment.TopCenter).padding(top = 2.dp).size(155.dp))
+                                Column(Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("RAM BOOSTER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
+                                    Spacer(Modifier.height(5.dp))
+                                    MasterButton(if (busy) "BOOSTING..." else "BOOST", 140.dp, !busy) { clean() }
+                                }
+                            }
+                        }
+                        GlowCard(Modifier.fillMaxWidth().height(118.dp), onClick = { clean() }) {
+                            Row(Modifier.fillMaxSize().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                ScanDial(Modifier.size(78.dp))
+                                Spacer(Modifier.width(10.dp))
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("SYSTEM SCAN", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                                    Text("$apps ACTIVE PROCESSES", color = MUTED, fontSize = 7.sp)
+                                    Spacer(Modifier.height(6.dp))
+                                    MasterButton(if (busy) "SCANNING..." else "SCAN NOW", 105.dp, !busy) { clean() }
+                                }
+                            }
+                        }
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        GlowCard(Modifier.fillMaxWidth().height(159.dp), onClick = { clean() }) {
+                            Row(Modifier.fillMaxSize().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Broom(Modifier.size(56.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Column {
+                                    Text("CACHE CLEANER", color = WHITE, fontSize = 16.sp, fontWeight = FontWeight.Black)
+                                    Text("Trim app cache without deleting data.", color = MUTED, fontSize = 8.sp)
+                                    Spacer(Modifier.height(8.dp))
+                                    MasterButton(if (busy) "CLEANING..." else "CLEAN NOW", 110.dp, !busy) { clean() }
+                                }
+                            }
+                        }
+                        GlowCard(Modifier.fillMaxWidth().height(159.dp), onClick = {}) {
+                            Row(Modifier.fillMaxSize().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                NetworkIcon(Modifier.size(56.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text("NETWORK MONITOR", color = WHITE, fontSize = 16.sp, fontWeight = FontWeight.Black)
+                                    Text(if (ping > 0) "${String.format("%.1f", mbps)} Mbps • ${ping} ms" else "LIVE CONNECTION MONITOR", color = MUTED, fontSize = 8.sp)
+                                    Spacer(Modifier.height(6.dp))
+                                    Bars(graph, Modifier.fillMaxWidth().height(42.dp))
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            Spacer(Modifier.height(14.dp))
-
-            GlowCard(Modifier.fillMaxWidth().height(220.dp), onClick = { clean() }) {
-                Row(Modifier.fillMaxSize().padding(horizontal = 22.dp), verticalAlignment = Alignment.CenterVertically) {
-                    ScanDial(Modifier.size(135.dp))
-                    Spacer(Modifier.width(22.dp))
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("SYSTEM SCAN", color = WHITE, fontSize = 19.sp, fontWeight = FontWeight.Black)
-                        Text("$apps ACTIVE PROCESSES", color = MUTED, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(12.dp))
-                        MasterButton(if (busy) "SCANNING..." else "SCAN NOW", 120.dp, !busy) { clean() }
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            GlowCard(Modifier.fillMaxWidth().height(155.dp), onClick = { clean() }) {
-                Row(Modifier.fillMaxSize().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Broom(Modifier.size(72.dp))
-                    Spacer(Modifier.width(18.dp))
-                    Column {
-                        Text("CACHE CLEANER", color = WHITE, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                        Text("Trim app cache without deleting data.", color = MUTED, fontSize = 9.sp)
-                        Spacer(Modifier.height(12.dp))
-                        MasterButton(if (busy) "CLEANING..." else "CLEAN NOW", 122.dp, !busy) { clean() }
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            GlowCard(Modifier.fillMaxWidth().height(160.dp), onClick = {}) {
-                Row(Modifier.fillMaxSize().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                    NetworkIcon(Modifier.size(72.dp))
-                    Spacer(Modifier.width(18.dp))
-                    Column {
-                        Text("NETWORK MONITOR", color = WHITE, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                        Text(
-                            if (ping > 0) "${String.format("%.1f", mbps)} Mbps • ${ping} ms" else "LIVE CONNECTION MONITOR",
-                            color = MUTED,
-                            fontSize = 9.sp
-                        )
-                        Spacer(Modifier.height(9.dp))
-                        Bars(graph, Modifier.fillMaxWidth().height(48.dp))
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatTile("RAM FREED", formatBytes(ramFreed), Modifier.weight(1f).height(58.dp))
-                StatTile("CACHE CLEARED", formatBytes(storageFreed), Modifier.weight(1f).height(58.dp))
-            }
             Spacer(Modifier.height(10.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatTile("APPS CLOSED", closedApps.toString(), Modifier.weight(1f).height(58.dp))
-                StatTile("ROOT", if (rootAvailable) "ACTIVE" else "READY", Modifier.weight(1f).height(58.dp), if (rootAvailable) GREEN else MUTED)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StatTile("RAM FREED", formatBytes(ramFreed), Modifier.weight(1f).height(52.dp))
+                StatTile("CACHE CLEARED", formatBytes(storageFreed), Modifier.weight(1f).height(52.dp))
+                if (!portrait) StatTile("APPS CLOSED", closedApps.toString(), Modifier.weight(1f).height(52.dp))
             }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (portrait) StatTile("APPS CLOSED", closedApps.toString(), Modifier.weight(1f).height(52.dp))
+                StatTile("ROOT", if (rootAvailable) "ACTIVE" else "READY", Modifier.weight(1f).height(52.dp), if (rootAvailable) GREEN else MUTED)
+                StatTile("ANDROID", Build.VERSION.RELEASE.orEmpty().ifBlank { "Unknown" }, Modifier.weight(1f).height(52.dp))
+            }
+            Spacer(Modifier.height(8.dp))
+            StatTile("DEVICE", deviceLabel(), Modifier.fillMaxWidth().height(52.dp))
             Spacer(Modifier.height(10.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatTile("DEVICE", deviceLabel(), Modifier.weight(1.45f).height(58.dp))
-                StatTile("ANDROID", Build.VERSION.RELEASE.orEmpty().ifBlank { "Unknown" }, Modifier.weight(.75f).height(58.dp))
-            }
-
-            Spacer(Modifier.height(18.dp))
-            Bolt(Modifier.size(42.dp))
+            Bolt(Modifier.size(34.dp))
         }
     }
 }
@@ -271,4 +312,4 @@ if marker not in s:
 s = s.replace(marker, mobile + marker, 1)
 
 p.write_text(s)
-print('Applied approved ShadowFox visual system to responsive phone/tablet layout')
+print('Applied compact grouped ShadowFox mobile portrait and landscape layouts')
