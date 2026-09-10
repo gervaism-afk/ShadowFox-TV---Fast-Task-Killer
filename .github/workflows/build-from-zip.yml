@@ -17,29 +17,113 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Extract project
         run: mkdir extracted && unzip -q ShadowFoxTV-FastTaskKiller-Project-v3.0.4-NON-ROOT.zip -d extracted
+
       - name: Apply ShadowFox Compose source
         run: |
           cp -R overrides/. extracted/.
           rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java
+
+      - name: Route TV and phone inside proven MainActivity
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt')
+          s = p.read_text()
+          old = '''class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+        setContent {
+            MaterialTheme(colorScheme = darkColorScheme(background = BG, surface = PANEL)) {
+                ShadowFoxUpdateGate(applicationContext) {
+                    MasterDashboard(applicationContext)
+                }
+            }
+        }
+    }
+}'''
+          new = '''class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val isTvDevice = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
+            packageManager.hasSystemFeature(PackageManager.FEATURE_TELEVISION)
+
+        if (isTvDevice) {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            WindowInsetsControllerCompat(window, window.decorView).apply {
+                hide(WindowInsetsCompat.Type.systemBars())
+                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        } else {
+            WindowCompat.setDecorFitsSystemWindows(window, true)
+        }
+
+        setContent {
+            MaterialTheme(colorScheme = darkColorScheme(background = BG, surface = PANEL)) {
+                ShadowFoxUpdateGate(applicationContext) {
+                    if (isTvDevice) MasterDashboard(applicationContext)
+                    else MobileDashboard(applicationContext)
+                }
+            }
+        }
+    }
+}'''
+          if old not in s:
+              raise SystemExit('Expected proven MainActivity startup block not found')
+          p.write_text(s.replace(old, new, 1))
+          print('Applied safe single-activity TV/phone routing')
+          PY
+
       - name: Apply safe fit-to-screen dashboard scaling
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt')
           s = p.read_text()
-          old = "    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {\n        val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)\n        Box(Modifier.size(960.dp * scale, 540.dp * scale).align(Alignment.Center)) {\n            Box(\n                Modifier\n                    .size(960.dp, 540.dp)\n                    .scale(scale)\n                    .align(Alignment.Center)\n                    .background(BG)\n            ) {"
-          new = "    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {\n        val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)\n        Box(\n            Modifier\n                .size(960.dp, 540.dp)\n                .scale(scale)\n                .align(Alignment.Center)\n                .background(BG)\n        ) {"
-          if old not in s: raise SystemExit('Expected stable dashboard scaling block not found')
+          old = '''    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
+        val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
+        Box(Modifier.size(960.dp * scale, 540.dp * scale).align(Alignment.Center)) {
+            Box(
+                Modifier
+                    .size(960.dp, 540.dp)
+                    .scale(scale)
+                    .align(Alignment.Center)
+                    .background(BG)
+            ) {'''
+          new = '''    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
+        val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
+        Box(
+            Modifier
+                .size(960.dp, 540.dp)
+                .scale(scale)
+                .align(Alignment.Center)
+                .background(BG)
+        ) {'''
+          if old not in s:
+              raise SystemExit('Expected stable dashboard scaling block not found')
           s = s.replace(old, new, 1)
-          marker = "                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))\n            }\n        }\n    }\n}"
-          fixed = "                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))\n        }\n    }\n}"
-          if marker not in s: raise SystemExit('Expected stable dashboard closing block not found')
-          s = s.replace(marker, fixed, 1)
-          p.write_text(s)
-          print('Applied fit-to-screen scaling patch while preserving dashboard coordinates')
+          marker = '''                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))
+            }
+        }
+    }
+}'''
+          fixed = '''                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))
+        }
+    }
+}'''
+          if marker not in s:
+              raise SystemExit('Expected stable dashboard closing block not found')
+          p.write_text(s.replace(marker, fixed, 1))
+          print('Applied TV fit-to-screen patch')
           PY
+
       - name: Preserve highest-quality ShadowFox logo
         run: |
           python3 - <<'PY'
@@ -52,50 +136,59 @@ jobs:
           if z.exists():
             with zipfile.ZipFile(z) as f:
               for n in f.namelist():
-                q=Path(n)
-                if q.name.lower().startswith('shadowfox_logo.') and q.suffix.lower() in exts:
-                  data=f.read(n); sources.append((len(data),data,q.name))
+                p=Path(n)
+                if p.name.lower().startswith('shadowfox_logo.') and p.suffix.lower() in exts:
+                  data=f.read(n); sources.append((len(data),data,p.name))
           if not sources: raise SystemExit('No ShadowFox logo found')
           _,data,name=max(sources,key=lambda x:x[0])
-          for q in current:
-            if q.exists(): q.unlink()
+          for p in current:
+            if p.exists(): p.unlink()
           dst=res/'drawable-nodpi'/name; dst.parent.mkdir(parents=True,exist_ok=True); dst.write_bytes(data)
           print('Using high-resolution logo',name,len(data),'bytes')
           PY
+
       - name: Read version
         run: |
           VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
           echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+
       - name: Build debug APK
         working-directory: extracted
         run: gradle :app:assembleDebug --stacktrace
+
       - name: Prepare release signing
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         run: |
           printf '%s' "$SHADOWFOX_SIGNING_PASSWORD" | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in signing/shadowfox-release.keystore.enc -out "$RUNNER_TEMP/shadowfox-release.keystore" -pass stdin
           echo "SHADOWFOX_KEYSTORE_PATH=$RUNNER_TEMP/shadowfox-release.keystore" >> "$GITHUB_ENV"
+
       - name: Build signed release APK
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         working-directory: extracted
         run: gradle :app:assembleRelease --stacktrace
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: ShadowFox-TV-Optimizer-v${{ env.APP_VERSION }}-debug
           path: extracted/app/build/outputs/apk/debug/app-debug.apk
+
       - name: Upload signed release APK
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: ShadowFox-TV-Optimizer-v${{ env.APP_VERSION }}
           path: extracted/app/build/outputs/apk/release/app-release.apk
+
       - name: Publish release
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         env:
@@ -103,4 +196,4 @@ jobs:
         run: |
           TAG="v${APP_VERSION}"; ASSET="ShadowFox-TV-Optimizer-v${APP_VERSION}.apk"
           cp extracted/app/build/outputs/apk/release/app-release.apk "$ASSET"
-          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Optimizer v${APP_VERSION}" --notes "ShadowFox TV optimizer for Android TV and Fire TV."; fi
+          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Optimizer v${APP_VERSION}" --notes "ShadowFox TV optimizer for Android TV, Fire TV, Android phones and tablets."; fi
