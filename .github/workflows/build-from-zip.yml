@@ -23,11 +23,55 @@ jobs:
         run: |
           cp -R overrides/. extracted/.
           rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java
+      - name: Apply safe fit-to-screen dashboard scaling
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt')
+          s = p.read_text()
+          old = '''    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
+        val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
+        Box(Modifier.size(960.dp * scale, 540.dp * scale).align(Alignment.Center)) {
+            Box(
+                Modifier
+                    .size(960.dp, 540.dp)
+                    .scale(scale)
+                    .align(Alignment.Center)
+                    .background(BG)
+            ) {'''
+          new = '''    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
+        val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
+        Box(
+            Modifier
+                .size(960.dp, 540.dp)
+                .scale(scale)
+                .align(Alignment.Center)
+                .background(BG)
+        ) {'''
+          if old not in s:
+              raise SystemExit('Expected stable dashboard scaling block not found')
+          s = s.replace(old, new, 1)
+          # The original layout had one extra closing brace for the removed wrapper Box.
+          marker = '''                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))
+            }
+        }
+    }
+}'''
+          fixed = '''                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))
+        }
+    }
+}'''
+          if marker not in s:
+              raise SystemExit('Expected stable dashboard closing block not found')
+          s = s.replace(marker, fixed, 1)
+          p.write_text(s)
+          print('Applied fit-to-screen scaling patch while preserving dashboard coordinates')
+          PY
       - name: Preserve highest-quality ShadowFox logo
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import zipfile, tempfile
+          import zipfile
           res=Path('extracted/app/src/main/res'); exts={'.png','.webp','.jpg','.jpeg'}
           current=[p for p in res.rglob('shadowfox_logo.*') if p.suffix.lower() in exts]
           sources=[(p.stat().st_size,p.read_bytes(),p.name) for p in current]
