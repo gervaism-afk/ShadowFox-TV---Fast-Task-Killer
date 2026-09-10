@@ -19,22 +19,18 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
@@ -121,10 +117,6 @@ private fun MasterDashboard(context: Context) {
     val graph = remember { mutableStateListOf<Int>() }
     val optimizer = remember { AppOptimizer(context) }
     val scope = rememberCoroutineScope()
-    val isTv = remember {
-        context.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
-            context.packageManager.hasSystemFeature(PackageManager.FEATURE_TELEVISION)
-    }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -158,23 +150,6 @@ private fun MasterDashboard(context: Context) {
         }
     }
 
-    if (!isTv) {
-        MobileDashboard(
-            ram = ram,
-            apps = apps,
-            mbps = mbps,
-            ping = ping,
-            busy = busy,
-            rootAvailable = rootAvailable,
-            ramFreed = ramFreed,
-            storageFreed = storageFreed,
-            closedApps = closedApps,
-            graph = graph,
-            onClean = { clean() }
-        )
-        return
-    }
-
     BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
         val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
         Box(Modifier.size(960.dp * scale, 540.dp * scale).align(Alignment.Center)) {
@@ -200,7 +175,7 @@ private fun MasterDashboard(context: Context) {
                     painter = painterResource(R.drawable.shadowfox_logo),
                     contentDescription = "ShadowFox TV",
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.offset(782.dp, 14.dp).size(136.dp, 106.dp)
+                    modifier = Modifier.offset(790.dp, 18.dp).size(122.dp, 98.dp)
                 )
 
                 GlowCard(Modifier.offset(45.dp, 145.dp).size(205.dp, 265.dp), onClick = { clean() }) {
@@ -271,153 +246,10 @@ private fun MasterDashboard(context: Context) {
                     ramFreed = ramFreed,
                     storageFreed = storageFreed,
                     closedApps = closedApps,
-                    modifier = Modifier.offset(45.dp, 447.dp).size(867.dp, 66.dp)
+                    modifier = Modifier.offset(45.dp, 454.dp).size(867.dp, 58.dp)
                 )
-                Bolt(Modifier.offset(454.dp, 450.dp).size(42.dp))
+                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))
             }
-        }
-    }
-}
-
-@Composable
-private fun MobileDashboard(
-    ram: Float,
-    apps: Int,
-    mbps: Float,
-    ping: Int,
-    busy: Boolean,
-    rootAvailable: Boolean,
-    ramFreed: Long,
-    storageFreed: Long,
-    closedApps: Int,
-    graph: List<Int>,
-    onClean: () -> Unit
-) {
-    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
-        val portrait = maxHeight >= maxWidth
-        val contentWidth = if (portrait) maxWidth else minOf(maxWidth, 760.dp)
-        val cardWidth = (contentWidth - 36.dp).coerceAtLeast(280.dp)
-        val halfWidth = ((cardWidth - 12.dp) / 2).coerceAtLeast(130.dp)
-        val scroll = rememberScrollState()
-
-        Column(
-            modifier = Modifier
-                .width(contentWidth)
-                .align(Alignment.TopCenter)
-                .verticalScroll(scroll)
-                .padding(horizontal = 18.dp, vertical = 22.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text("ShadowFox", color = WHITE, fontSize = if (portrait) 27.sp else 24.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
-                        Spacer(Modifier.width(4.dp))
-                        Text("TV", color = ORANGE, fontSize = if (portrait) 27.sp else 24.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
-                    }
-                    Text("www.shadowfoxtv.ca", color = MUTED, fontSize = 10.sp)
-                }
-                Image(
-                    painter = painterResource(R.drawable.shadowfox_logo),
-                    contentDescription = "ShadowFox TV",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(if (portrait) 86.dp else 72.dp)
-                )
-            }
-
-            Spacer(Modifier.height(18.dp))
-
-            GlowCard(
-                modifier = Modifier.width(cardWidth).height(if (portrait) 300.dp else 250.dp),
-                onClick = onClean,
-                hero = true
-            ) {
-                Box(Modifier.fillMaxSize()) {
-                    RamGauge(
-                        ram,
-                        Modifier.align(Alignment.TopCenter).padding(top = 10.dp).size(if (portrait) 220.dp else 175.dp)
-                    )
-                    Column(
-                        Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("RAM BOOSTER", color = WHITE, fontSize = 20.sp, fontWeight = FontWeight.Black)
-                        Spacer(Modifier.height(9.dp))
-                        MasterButton(if (busy) "BOOSTING..." else "BOOST", 170.dp, !busy, onClean)
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            GlowCard(Modifier.width(cardWidth).height(128.dp), onClick = onClean) {
-                Row(Modifier.fillMaxSize().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    ScanDial(Modifier.size(82.dp))
-                    Spacer(Modifier.width(18.dp))
-                    Column {
-                        Text("SYSTEM SCAN", color = WHITE, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                        Text("$apps ACTIVE PROCESSES", color = MUTED, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(9.dp))
-                        MasterButton(if (busy) "SCANNING..." else "SCAN NOW", 128.dp, !busy, onClean)
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            GlowCard(Modifier.width(cardWidth).height(128.dp), onClick = onClean) {
-                Row(Modifier.fillMaxSize().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Broom(Modifier.size(64.dp))
-                    Spacer(Modifier.width(18.dp))
-                    Column {
-                        Text("CACHE CLEANER", color = WHITE, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                        Text("Trim app cache without deleting data.", color = MUTED, fontSize = 10.sp)
-                        Spacer(Modifier.height(9.dp))
-                        MasterButton(if (busy) "CLEANING..." else "CLEAN NOW", 128.dp, !busy, onClean)
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            GlowCard(Modifier.width(cardWidth).height(128.dp), onClick = {}) {
-                Row(Modifier.fillMaxSize().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    NetworkIcon(Modifier.size(64.dp))
-                    Spacer(Modifier.width(18.dp))
-                    Column {
-                        Text("NETWORK MONITOR", color = WHITE, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                        Text(
-                            if (ping > 0) "${String.format("%.1f", mbps)} Mbps • ${ping} ms" else "LIVE CONNECTION MONITOR",
-                            color = MUTED,
-                            fontSize = 10.sp
-                        )
-                        Spacer(Modifier.height(7.dp))
-                        Bars(graph, Modifier.width(minOf(230.dp, cardWidth - 130.dp)).height(42.dp))
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            Row(Modifier.width(cardWidth), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatTile("RAM FREED", formatBytes(ramFreed), Modifier.width(halfWidth).height(62.dp))
-                StatTile("CACHE CLEARED", formatBytes(storageFreed), Modifier.width(halfWidth).height(62.dp))
-            }
-            Spacer(Modifier.height(12.dp))
-            Row(Modifier.width(cardWidth), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatTile("APPS CLOSED", closedApps.toString(), Modifier.width(halfWidth).height(62.dp))
-                StatTile("ROOT", if (rootAvailable) "ACTIVE" else "READY", Modifier.width(halfWidth).height(62.dp), if (rootAvailable) GREEN else WHITE)
-            }
-            Spacer(Modifier.height(12.dp))
-            Row(Modifier.width(cardWidth), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatTile("DEVICE", deviceLabel(), Modifier.width(halfWidth).height(62.dp))
-                StatTile("ANDROID", Build.VERSION.RELEASE.orEmpty().ifBlank { "Unknown" }, Modifier.width(halfWidth).height(62.dp))
-            }
-            Spacer(Modifier.height(28.dp))
         }
     }
 }
@@ -431,17 +263,17 @@ private fun BottomSystemStrip(
     modifier: Modifier
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        StatTile("RAM FREED", formatBytes(ramFreed), Modifier.size(126.dp, 56.dp))
+        StatTile("RAM FREED", formatBytes(ramFreed), Modifier.size(126.dp, 48.dp))
         Spacer(Modifier.width(9.dp))
-        StatTile("CACHE CLEARED", formatBytes(storageFreed), Modifier.size(126.dp, 56.dp))
+        StatTile("CACHE CLEARED", formatBytes(storageFreed), Modifier.size(126.dp, 48.dp))
         Spacer(Modifier.width(9.dp))
-        StatTile("APPS CLOSED", closedApps.toString(), Modifier.size(112.dp, 56.dp))
+        StatTile("APPS CLOSED", closedApps.toString(), Modifier.size(112.dp, 48.dp))
         Spacer(Modifier.width(78.dp))
-        StatTile("ROOT", if (root) "ACTIVE" else "READY", Modifier.size(112.dp, 56.dp), if (root) GREEN else WHITE)
+        StatTile("ROOT", if (root) "ACTIVE" else "READY", Modifier.size(112.dp, 48.dp), if (root) GREEN else MUTED)
         Spacer(Modifier.width(9.dp))
-        StatTile("DEVICE", deviceLabel(), Modifier.size(175.dp, 56.dp))
+        StatTile("DEVICE", deviceLabel(), Modifier.size(175.dp, 48.dp))
         Spacer(Modifier.width(9.dp))
-        StatTile("ANDROID", Build.VERSION.RELEASE.orEmpty().ifBlank { "Unknown" }, Modifier.size(100.dp, 56.dp))
+        StatTile("ANDROID", Build.VERSION.RELEASE.orEmpty().ifBlank { "Unknown" }, Modifier.size(100.dp, 48.dp))
     }
 }
 
@@ -450,13 +282,12 @@ private fun StatTile(label: String, value: String, modifier: Modifier, valueColo
     val shape = RoundedCornerShape(10.dp)
     Column(
         modifier
-            .shadow(8.dp, shape, false, CYAN.copy(alpha = .30f), CYAN.copy(alpha = .30f))
-            .background(Color(0xEB081C2A), shape)
-            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .shadow(6.dp, shape, false, CYAN.copy(alpha = .25f), CYAN.copy(alpha = .25f))
+            .background(Color(0xD90A1C29), shape)
+            .padding(horizontal = 10.dp, vertical = 7.dp)
     ) {
-        Text(label, color = CYAN.copy(alpha = .82f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(2.dp))
-        Text(value, color = valueColor, fontSize = 12.sp, fontWeight = FontWeight.Black, maxLines = 1)
+        Text(label, color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
+        Text(value, color = valueColor, fontSize = 11.sp, fontWeight = FontWeight.Black, maxLines = 1)
     }
 }
 
