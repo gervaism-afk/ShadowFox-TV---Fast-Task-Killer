@@ -3,11 +3,12 @@ from pathlib import Path
 p = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt')
 s = p.read_text()
 
+# Imports needed by responsive phone layout.
 s = s.replace('import android.content.Context\n', 'import android.content.Context\nimport android.content.res.Configuration\n')
-s = s.replace('import androidx.compose.ui.layout.ContentScale\n', 'import androidx.compose.ui.layout.ContentScale\nimport androidx.compose.ui.platform.LocalConfiguration\n')
 s = s.replace('import androidx.compose.foundation.layout.BoxWithConstraints\n', 'import androidx.compose.foundation.layout.BoxWithConstraints\nimport androidx.compose.foundation.layout.Arrangement\n')
 s = s.replace('import androidx.compose.foundation.layout.fillMaxSize\n', 'import androidx.compose.foundation.layout.fillMaxSize\nimport androidx.compose.foundation.layout.fillMaxWidth\n')
 s = s.replace('import androidx.compose.foundation.layout.width\n', 'import androidx.compose.foundation.layout.width\nimport androidx.compose.foundation.rememberScrollState\nimport androidx.compose.foundation.verticalScroll\n')
+s = s.replace('import androidx.compose.ui.layout.ContentScale\n', 'import androidx.compose.ui.layout.ContentScale\nimport androidx.compose.ui.platform.LocalConfiguration\nimport androidx.compose.ui.text.style.TextOverflow\n')
 
 old_startup = '''class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,10 +47,14 @@ new_startup = '''class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(background = BG, surface = PANEL)) {
                 ShadowFoxUpdateGate(applicationContext) {
-                    val configuration = LocalConfiguration.current
-                    val landscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-                    if (isTvDevice || landscape) MasterDashboard(applicationContext)
-                    else MobileDashboard(applicationContext)
+                    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+                    when {
+                        isTvDevice -> MasterDashboard(applicationContext)
+                        landscape -> Box(Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp)) {
+                            MasterDashboard(applicationContext)
+                        }
+                        else -> MobileDashboard(applicationContext)
+                    }
                 }
             }
         }
@@ -59,44 +64,6 @@ new_startup = '''class MainActivity : ComponentActivity() {
 if old_startup not in s:
     raise SystemExit('Expected stable MainActivity startup block not found')
 s = s.replace(old_startup, new_startup, 1)
-
-old_scale = '''    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
-        val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
-        Box(Modifier.size(960.dp * scale, 540.dp * scale).align(Alignment.Center)) {
-            Box(
-                Modifier
-                    .size(960.dp, 540.dp)
-                    .scale(scale)
-                    .align(Alignment.Center)
-                    .background(BG)
-            ) {'''
-
-new_scale = '''    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
-        val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
-        Box(
-            Modifier
-                .size(960.dp, 540.dp)
-                .scale(scale)
-                .align(Alignment.Center)
-                .background(BG)
-        ) {'''
-
-if old_scale not in s:
-    raise SystemExit('Expected stable dashboard scaling block not found')
-s = s.replace(old_scale, new_scale, 1)
-
-old_close = '''                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))
-            }
-        }
-    }
-}'''
-new_close = '''                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))
-        }
-    }
-}'''
-if old_close not in s:
-    raise SystemExit('Expected stable dashboard closing block not found')
-s = s.replace(old_close, new_close, 1)
 
 mobile = r'''
 
@@ -155,14 +122,10 @@ private fun MobileDashboard(context: Context) {
                 .width(contentWidth)
                 .align(Alignment.TopCenter)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 10.dp, bottom = 72.dp),
+                .padding(top = 10.dp, bottom = 84.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text("ShadowFox", color = WHITE, fontSize = 26.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
@@ -171,16 +134,10 @@ private fun MobileDashboard(context: Context) {
                     }
                     Text("www.shadowfoxtv.ca", color = MUTED, fontSize = 9.sp)
                 }
-                Image(
-                    painter = painterResource(R.drawable.shadowfox_logo),
-                    contentDescription = "ShadowFox TV",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(68.dp)
-                )
+                Image(painter = painterResource(R.drawable.shadowfox_logo), contentDescription = "ShadowFox TV", contentScale = ContentScale.Fit, modifier = Modifier.size(68.dp))
             }
 
             Spacer(Modifier.height(10.dp))
-
             GlowCard(Modifier.fillMaxWidth().height(245.dp), onClick = { clean() }, hero = true) {
                 Box(Modifier.fillMaxSize()) {
                     RamGauge(ram, Modifier.align(Alignment.TopCenter).padding(top = 2.dp).size(178.dp))
@@ -205,12 +162,10 @@ private fun MobileDashboard(context: Context) {
                         }
                     }
                 }
-
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     GlowCard(Modifier.fillMaxWidth().height(85.dp), onClick = { clean() }) {
                         Row(Modifier.fillMaxSize().padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Broom(Modifier.size(38.dp))
-                            Spacer(Modifier.width(8.dp))
+                            Broom(Modifier.size(38.dp)); Spacer(Modifier.width(8.dp))
                             Column {
                                 Text("CACHE CLEANER", color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Black)
                                 Text("Trim app cache", color = MUTED, fontSize = 7.sp)
@@ -221,37 +176,64 @@ private fun MobileDashboard(context: Context) {
                     }
                     GlowCard(Modifier.fillMaxWidth().height(85.dp), onClick = {}) {
                         Row(Modifier.fillMaxSize().padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            NetworkIcon(Modifier.size(38.dp))
-                            Spacer(Modifier.width(8.dp))
+                            NetworkIcon(Modifier.size(38.dp)); Spacer(Modifier.width(8.dp))
                             Column(Modifier.weight(1f)) {
                                 Text("NETWORK", color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Black)
                                 Text(if (ping > 0) "${String.format("%.1f", mbps)} Mbps • ${ping} ms" else "LIVE MONITOR", color = MUTED, fontSize = 7.sp)
-                                Spacer(Modifier.height(3.dp))
-                                Bars(graph, Modifier.fillMaxWidth().height(24.dp))
+                                Spacer(Modifier.height(3.dp)); Bars(graph, Modifier.fillMaxWidth().height(24.dp))
                             }
                         }
                     }
                 }
             }
 
-            Spacer(Modifier.height(9.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                StatTile("RAM FREED", formatBytes(ramFreed), Modifier.weight(1f).height(50.dp))
-                StatTile("CACHE CLEARED", formatBytes(storageFreed), Modifier.weight(1f).height(50.dp))
-            }
-            Spacer(Modifier.height(7.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                StatTile("APPS CLOSED", closedApps.toString(), Modifier.weight(1f).height(50.dp))
-                StatTile("ROOT", if (rootAvailable) "ACTIVE" else "READY", Modifier.weight(1f).height(50.dp), if (rootAvailable) GREEN else MUTED)
-            }
-            Spacer(Modifier.height(7.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                StatTile("DEVICE", deviceLabel(), Modifier.weight(1.5f).height(50.dp))
-                StatTile("ANDROID", Build.VERSION.RELEASE.orEmpty().ifBlank { "Unknown" }, Modifier.weight(.75f).height(50.dp))
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MobileStatTile("RAM FREED", formatBytes(ramFreed), Modifier.weight(1f).height(58.dp))
+                MobileStatTile("CACHE CLEARED", formatBytes(storageFreed), Modifier.weight(1f).height(58.dp))
             }
             Spacer(Modifier.height(8.dp))
-            Bolt(Modifier.size(34.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MobileStatTile("APPS CLOSED", closedApps.toString(), Modifier.weight(1f).height(58.dp))
+                MobileStatTile("ROOT", if (rootAvailable) "ACTIVE" else "READY", Modifier.weight(1f).height(58.dp), if (rootAvailable) GREEN else WHITE)
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MobileStatTile("DEVICE", deviceLabel(), Modifier.weight(1.45f).height(58.dp), compactValue = true)
+                MobileStatTile("ANDROID", Build.VERSION.RELEASE.orEmpty().ifBlank { "Unknown" }, Modifier.weight(.75f).height(58.dp))
+            }
+            Spacer(Modifier.height(10.dp)); Bolt(Modifier.size(34.dp))
         }
+    }
+}
+
+@Composable
+private fun MobileStatTile(
+    label: String,
+    value: String,
+    modifier: Modifier,
+    valueColor: Color = WHITE,
+    compactValue: Boolean = false
+) {
+    val shape = RoundedCornerShape(10.dp)
+    Column(
+        modifier
+            .shadow(6.dp, shape, false, CYAN.copy(alpha = .25f), CYAN.copy(alpha = .25f))
+            .background(Color(0xE60A1C29), shape)
+            .padding(horizontal = 8.dp, vertical = 7.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(label, color = CYAN, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Spacer(Modifier.height(2.dp))
+        Text(
+            value,
+            color = valueColor,
+            fontSize = if (compactValue) 9.sp else 11.sp,
+            fontWeight = FontWeight.Black,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 '''
@@ -262,4 +244,4 @@ if marker not in s:
 s = s.replace(marker, mobile + marker, 1)
 
 p.write_text(s)
-print('Applied Android TV-matched portrait layout and exact TV landscape layout')
+print('Applied mobile stats text fix and safe full-TV landscape layout')
