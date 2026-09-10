@@ -41,7 +41,13 @@ new_startup = '''class MainActivity : ComponentActivity() {
                 systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
         } else {
+            // Keep the Samsung navigation bar hidden during normal use.
+            // A swipe from the bottom edge reveals it temporarily.
             WindowCompat.setDecorFitsSystemWindows(window, true)
+            WindowInsetsControllerCompat(window, window.decorView).apply {
+                hide(WindowInsetsCompat.Type.navigationBars())
+                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
         }
 
         setContent {
@@ -56,6 +62,18 @@ new_startup = '''class MainActivity : ComponentActivity() {
                         else -> MobileDashboard(applicationContext)
                     }
                 }
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val isTvDevice = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
+            packageManager.hasSystemFeature(PackageManager.FEATURE_TELEVISION)
+        if (!isTvDevice) {
+            WindowInsetsControllerCompat(window, window.decorView).apply {
+                hide(WindowInsetsCompat.Type.navigationBars())
+                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
         }
     }
@@ -122,7 +140,7 @@ private fun MobileDashboard(context: Context) {
                 .width(contentWidth)
                 .align(Alignment.TopCenter)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 10.dp, bottom = 84.dp),
+                .padding(top = 10.dp, bottom = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -244,4 +262,4 @@ if marker not in s:
 s = s.replace(marker, mobile + marker, 1)
 
 p.write_text(s)
-print('Applied mobile stats text fix and safe full-TV landscape layout')
+print('Applied Samsung immersive navigation and mobile stats layout')
