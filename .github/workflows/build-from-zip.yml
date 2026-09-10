@@ -29,40 +29,13 @@ jobs:
           from pathlib import Path
           p = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt')
           s = p.read_text()
-          old = '''    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
-        val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
-        Box(Modifier.size(960.dp * scale, 540.dp * scale).align(Alignment.Center)) {
-            Box(
-                Modifier
-                    .size(960.dp, 540.dp)
-                    .scale(scale)
-                    .align(Alignment.Center)
-                    .background(BG)
-            ) {'''
-          new = '''    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
-        val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
-        Box(
-            Modifier
-                .size(960.dp, 540.dp)
-                .scale(scale)
-                .align(Alignment.Center)
-                .background(BG)
-        ) {'''
-          if old not in s:
-              raise SystemExit('Expected stable dashboard scaling block not found')
+          old = "    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {\n        val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)\n        Box(Modifier.size(960.dp * scale, 540.dp * scale).align(Alignment.Center)) {\n            Box(\n                Modifier\n                    .size(960.dp, 540.dp)\n                    .scale(scale)\n                    .align(Alignment.Center)\n                    .background(BG)\n            ) {"
+          new = "    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {\n        val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)\n        Box(\n            Modifier\n                .size(960.dp, 540.dp)\n                .scale(scale)\n                .align(Alignment.Center)\n                .background(BG)\n        ) {"
+          if old not in s: raise SystemExit('Expected stable dashboard scaling block not found')
           s = s.replace(old, new, 1)
-          # The original layout had one extra closing brace for the removed wrapper Box.
-          marker = '''                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))
-            }
-        }
-    }
-}'''
-          fixed = '''                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))
-        }
-    }
-}'''
-          if marker not in s:
-              raise SystemExit('Expected stable dashboard closing block not found')
+          marker = "                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))\n            }\n        }\n    }\n}"
+          fixed = "                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))\n        }\n    }\n}"
+          if marker not in s: raise SystemExit('Expected stable dashboard closing block not found')
           s = s.replace(marker, fixed, 1)
           p.write_text(s)
           print('Applied fit-to-screen scaling patch while preserving dashboard coordinates')
@@ -79,13 +52,13 @@ jobs:
           if z.exists():
             with zipfile.ZipFile(z) as f:
               for n in f.namelist():
-                p=Path(n)
-                if p.name.lower().startswith('shadowfox_logo.') and p.suffix.lower() in exts:
-                  data=f.read(n); sources.append((len(data),data,p.name))
+                q=Path(n)
+                if q.name.lower().startswith('shadowfox_logo.') and q.suffix.lower() in exts:
+                  data=f.read(n); sources.append((len(data),data,q.name))
           if not sources: raise SystemExit('No ShadowFox logo found')
           _,data,name=max(sources,key=lambda x:x[0])
-          for p in current:
-            if p.exists(): p.unlink()
+          for q in current:
+            if q.exists(): q.unlink()
           dst=res/'drawable-nodpi'/name; dst.parent.mkdir(parents=True,exist_ok=True); dst.write_bytes(data)
           print('Using high-resolution logo',name,len(data),'bytes')
           PY
