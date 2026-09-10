@@ -15,8 +15,8 @@ android {
         applicationId "ca.shadowfoxtv.taskkiller"
         minSdk 23
         targetSdk 35
-        versionCode 44
-        versionName "5.2.10"
+        versionCode 45
+        versionName "5.2.11"
     }
 
     buildFeatures {
@@ -53,28 +53,6 @@ android {
     }
 }
 
-def hdLogoSource = file("${rootProject.projectDir}/../logo_src/shadowfox_logo_512.b64")
-def hdLogoDir = file("src/main/res/drawable-nodpi")
-def hdLogoFile = file("src/main/res/drawable-nodpi/shadowfox_logo.webp")
-
-tasks.register("prepareShadowFoxHdLogo") {
-    inputs.file(hdLogoSource)
-    outputs.file(hdLogoFile)
-    doLast {
-        if (!hdLogoSource.exists()) {
-            throw new GradleException("Missing staged ShadowFox HD logo source")
-        }
-        hdLogoDir.mkdirs()
-        hdLogoDir.listFiles()?.findAll { it.name.toLowerCase().startsWith("shadowfox_logo.") }?.each { it.delete() }
-        hdLogoFile.bytes = hdLogoSource.text.trim().decodeBase64()
-        println "Using supplied ShadowFox HD logo: ${hdLogoFile.length()} bytes"
-    }
-}
-
-tasks.named("preBuild").configure {
-    dependsOn("prepareShadowFoxHdLogo")
-}
-
 dependencies {
     def composeBom = platform('androidx.compose:compose-bom:2024.09.03')
     implementation composeBom
@@ -92,5 +70,3 @@ dependencies {
 
     debugImplementation 'androidx.compose.ui:ui-tooling'
 }
-
-// v5.2.10 isolated mobile/TV launcher build trigger
