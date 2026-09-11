@@ -27,6 +27,8 @@ jobs:
         run: python3 scripts/patch_build.py
       - name: Apply final mobile layout correction
         run: python3 scripts/fix_layout_5_2_19.py
+      - name: Apply TV bottom and root cleanup fixes
+        run: python3 scripts/patch_tv_root.py
       - name: Preserve highest-quality ShadowFox logo
         run: |
           python3 - <<'PY'
