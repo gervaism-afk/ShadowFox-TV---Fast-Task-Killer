@@ -181,3 +181,19 @@ optimizer = r'''private class AppOptimizer(private val context: Context) {
 s = s[:start] + optimizer + s[end:]
 p.write_text(s)
 print('Applied TV bottom-row fix and verified root-first cleanup engine')
+
+# 4) Prevent GitHub's latest-release endpoint from serving a stale cached result.
+up = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/GitHubReleaseUpdater.kt')
+u = up.read_text()
+u = u.replace(
+    '(URL(LATEST_RELEASE_API).openConnection() as HttpURLConnection).apply {',
+    '(URL("$LATEST_RELEASE_API?ts=${System.currentTimeMillis()}").openConnection() as HttpURLConnection).apply {',
+    1
+)
+u = u.replace(
+    'setRequestProperty("Accept", "application/vnd.github+json")',
+    'setRequestProperty("Accept", "application/vnd.github+json")\n                setRequestProperty("Cache-Control", "no-cache")\n                setRequestProperty("Pragma", "no-cache")',
+    1
+)
+up.write_text(u)
+print('Applied no-cache GitHub update check')
