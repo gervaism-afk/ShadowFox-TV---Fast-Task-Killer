@@ -5,22 +5,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
 
-/** Keeps the existing Compose entry point while using the previous GitHub-release updater. */
+/** Keeps the Compose entry point while continuously checking the GitHub release updater. */
 @Composable
 fun ShadowFoxUpdateGate(
     context: Context,
     content: @Composable () -> Unit
 ) {
     LaunchedEffect(Unit) {
-        UpdateScheduler.schedule(context.applicationContext)
-        GitHubReleaseUpdater.start(context.applicationContext)
+        val appContext = context.applicationContext
+        UpdateScheduler.schedule(appContext)
+        GitHubReleaseUpdater.start(appContext)
 
-        // The previous updater resumed installation after the user returned from the
-        // "Install unknown apps" settings screen. Poll lightly while this activity is alive
-        // so the same behavior is preserved without coupling the updater to the dashboard UI.
+        var seconds = 0
         while (true) {
-            GitHubReleaseUpdater.resumePendingInstall(context.applicationContext)
+            GitHubReleaseUpdater.resumePendingInstall(appContext)
+            if (seconds >= 60) {
+                GitHubReleaseUpdater.start(appContext)
+                seconds = 0
+            }
             delay(1_000)
+            seconds++
         }
     }
 
