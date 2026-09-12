@@ -8,12 +8,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <uses-feature
-        android:name="android.software.leanback"
-        android:required="false" />
-    <uses-feature
-        android:name="android.hardware.touchscreen"
-        android:required="false" />
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
     <queries>
         <intent>
@@ -49,18 +45,21 @@
             </intent-filter>
         </activity>
 
-        <receiver
-            android:name=".UpdateCheckReceiver"
-            android:enabled="true"
-            android:exported="false" />
+        <activity
+            android:name=".UltimateCenterActivity"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
+            android:exported="false"
+            android:screenOrientation="unspecified"
+            android:theme="@style/Theme.ShadowFox" />
 
-        <receiver
-            android:name=".UpdateBootReceiver"
-            android:enabled="true"
-            android:exported="true">
+        <receiver android:name=".UpdateCheckReceiver" android:enabled="true" android:exported="false" />
+
+        <receiver android:name=".UpdateBootReceiver" android:enabled="true" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <receiver android:name=".MaintenanceReceiver" android:enabled="true" android:exported="false" />
     </application>
 </manifest>
