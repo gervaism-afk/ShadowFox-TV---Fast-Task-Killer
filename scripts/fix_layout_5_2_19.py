@@ -3,8 +3,8 @@ from pathlib import Path
 p = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt')
 s = p.read_text()
 
-# 1) Fix the fixed 960x540 canvas scaling. The previous nested scaled wrapper
-# could visually crop the bottom strip on wide phone landscape screens.
+# Keep the 960x540 master canvas as the dedicated Android TV / Fire TV layout.
+# Scale it exactly once so every edge, including the bottom stats strip, remains visible.
 old_scale = '''    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
         val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
         Box(Modifier.size(960.dp * scale, 540.dp * scale).align(Alignment.Center)) {
@@ -24,9 +24,8 @@ new_scale = '''    BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
                 .align(Alignment.Center)
                 .background(BG)
         ) {'''
-if old_scale not in s:
-    raise SystemExit('Expected MasterDashboard scaling block not found')
-s = s.replace(old_scale, new_scale, 1)
+if old_scale in s:
+    s = s.replace(old_scale, new_scale, 1)
 
 old_close = '''                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))
             }
@@ -37,40 +36,41 @@ new_close = '''                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))
         }
     }
 }'''
-if old_close not in s:
-    raise SystemExit('Expected MasterDashboard closing block not found')
-s = s.replace(old_close, new_close, 1)
+if old_close in s:
+    s = s.replace(old_close, new_close, 1)
 
-# 2) In phone landscape use the corrected full dashboard directly. This keeps
-# the bottom RAM/cache/apps/root/device/android strip visible and centered.
+# Phones in landscape get a protected viewport around the TV-style dashboard.
+# This prevents tall/wide Samsung screens and gesture/navigation insets from clipping the bottom row.
 old_landscape = '''                        landscape -> Box(Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp)) {
                             MasterDashboard(applicationContext)
                         }'''
-new_landscape = '''                        landscape -> MasterDashboard(applicationContext)'''
-if old_landscape not in s:
-    raise SystemExit('Expected landscape wrapper not found')
-s = s.replace(old_landscape, new_landscape, 1)
+new_landscape = '''                        landscape -> Box(
+                            Modifier.fillMaxSize().padding(horizontal = 26.dp, vertical = 22.dp)
+                        ) {
+                            MasterDashboard(applicationContext)
+                        }'''
+if old_landscape in s:
+    s = s.replace(old_landscape, new_landscape, 1)
+else:
+    old_direct = '''                        landscape -> MasterDashboard(applicationContext)'''
+    if old_direct not in s:
+        raise SystemExit('Expected phone landscape route not found')
+    s = s.replace(old_direct, new_landscape, 1)
 
-# 3) Pull the portrait dashboard inward slightly so the entire UI reads as one
-# centered composition instead of touching the phone edges.
-old_width = '        val contentWidth = minOf(maxWidth - 24.dp, 620.dp)'
-new_width = '        val contentWidth = minOf(maxWidth - 40.dp, 560.dp)'
-if old_width not in s:
-    raise SystemExit('Expected mobile content width not found')
-s = s.replace(old_width, new_width, 1)
-
-# Center the header group inside the same portrait content column while keeping
-# the same ShadowFox TV left/right visual relationship.
-old_header = '''            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {'''
-new_header = '''            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {'''
-# Formatting-only but verifies we are editing the intended mobile header.
-if old_header not in s:
-    raise SystemExit('Expected mobile header row not found')
-s = s.replace(old_header, new_header, 1)
+# Portrait is a separate phone composition: narrower, shorter cards and more breathing room.
+s = s.replace('val contentWidth = minOf(maxWidth - 24.dp, 620.dp)', 'val contentWidth = minOf(maxWidth - 48.dp, 520.dp)', 1)
+s = s.replace('val contentWidth = minOf(maxWidth - 40.dp, 560.dp)', 'val contentWidth = minOf(maxWidth - 48.dp, 520.dp)', 1)
+s = s.replace('GlowCard(Modifier.fillMaxWidth().height(245.dp)', 'GlowCard(Modifier.fillMaxWidth().height(214.dp)', 1)
+s = s.replace('.padding(top = 2.dp).size(178.dp)', '.padding(top = 0.dp).size(154.dp)', 1)
+s = s.replace('GlowCard(Modifier.weight(1f).height(178.dp)', 'GlowCard(Modifier.weight(1f).height(160.dp)', 1)
+s = s.replace('.padding(top = 8.dp).size(92.dp)', '.padding(top = 6.dp).size(78.dp)', 1)
+s = s.replace('GlowCard(Modifier.fillMaxWidth().height(85.dp)', 'GlowCard(Modifier.fillMaxWidth().height(76.dp)', 2)
+s = s.replace('MobileStatTile("RAM FREED", formatBytes(ramFreed), Modifier.weight(1f).height(58.dp))', 'MobileStatTile("RAM FREED", formatBytes(ramFreed), Modifier.weight(1f).height(54.dp))', 1)
+s = s.replace('MobileStatTile("CACHE CLEARED", formatBytes(storageFreed), Modifier.weight(1f).height(58.dp))', 'MobileStatTile("CACHE CLEARED", formatBytes(storageFreed), Modifier.weight(1f).height(54.dp))', 1)
+s = s.replace('MobileStatTile("APPS CLOSED", closedApps.toString(), Modifier.weight(1f).height(58.dp))', 'MobileStatTile("APPS CLOSED", closedApps.toString(), Modifier.weight(1f).height(54.dp))', 1)
+s = s.replace('MobileStatTile("ROOT", if (rootAvailable) "ACTIVE" else "READY", Modifier.weight(1f).height(58.dp)', 'MobileStatTile("ROOT", if (rootAvailable) "ACTIVE" else "READY", Modifier.weight(1f).height(54.dp)', 1)
+s = s.replace('MobileStatTile("DEVICE", deviceLabel(), Modifier.weight(1.45f).height(58.dp)', 'MobileStatTile("DEVICE", deviceLabel(), Modifier.weight(1.45f).height(54.dp)', 1)
+s = s.replace('MobileStatTile("ANDROID", Build.VERSION.RELEASE.orEmpty().ifBlank { "Unknown" }, Modifier.weight(.75f).height(58.dp))', 'MobileStatTile("ANDROID", Build.VERSION.RELEASE.orEmpty().ifBlank { "Unknown" }, Modifier.weight(.75f).height(54.dp))', 1)
 
 p.write_text(s)
-print('Applied v5.2.19 portrait centering and full landscape bottom-strip fix')
+print('Applied final independent portrait, phone-landscape, and TV/Fire TV viewport layout')
