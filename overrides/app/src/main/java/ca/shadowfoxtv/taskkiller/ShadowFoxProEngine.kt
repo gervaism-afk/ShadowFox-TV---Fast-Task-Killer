@@ -35,7 +35,10 @@ class ShadowFoxProEngine(private val context: Context) {
     private val activityManager = appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     private val packageManager = appContext.packageManager
 
-    fun rootAvailable(): Boolean = runRoot("id").let { it.success && it.output.contains("uid=0") }
+    fun rootAvailable(): Boolean {
+        val result = runRoot("id")
+        return result.success && result.output.contains("uid=0")
+    }
 
     suspend fun optimize(): ProCleanupResult = withContext(Dispatchers.IO) {
         val beforeRam = availableMemoryBytes()
@@ -55,18 +58,15 @@ class ShadowFoxProEngine(private val context: Context) {
 
             for (pkg in runningCandidates) {
                 runRoot("am force-stop --user 0 ${shellQuote(pkg)}")
-
                 var stillRunning = true
-                repeat(6) {
+                for (attempt in 0 until 6) {
                     Thread.sleep(100)
                     stillRunning = isPackageRunningRoot(pkg)
-                    if (!stillRunning) return@repeat
+                    if (!stillRunning) break
                 }
                 if (!stillRunning) verifiedStopped++
             }
 
-            // Clear only cache/code_cache contents for eligible third-party apps.
-            // App databases, accounts, preferences and user data are preserved.
             for (pkg in allEligible) {
                 val paths = listOf(
                     "/data/user/0/$pkg/cache",
@@ -99,7 +99,7 @@ class ShadowFoxProEngine(private val context: Context) {
         val summary = if (root) {
             "ROOT ✓ • $verifiedStopped/${runningCandidates.size} running apps stopped • +${formatBytes(ramFreed)} RAM • ${formatBytes(storageFreed)} cache"
         } else {
-            "LIMITED MODE • ${runningCandidates.size} apps targeted • +${formatBytes(ramFreed)} RAM"
+            "STANDARD MODE • safe optimization complete • +${formatBytes(ramFreed)} RAM"
         }
 
         appendDiagnostic(
@@ -120,7 +120,7 @@ class ShadowFoxProEngine(private val context: Context) {
 
     fun diagnosticsSummary(): String {
         val root = rootAvailable()
-        if (!root) return "ROOT NOT AVAILABLE"
+        if (!root) return "STANDARD MODE • ROOT NOT GRANTED"
         val eligible = rootThirdPartyPackages(protectedPackages())
         val running = eligible.count(::isPackageRunningRoot)
         return "ROOT ACTIVE • UID 0 • $running running • ${eligible.size} eligible"
@@ -230,17 +230,33 @@ class ShadowFoxProEngine(private val context: Context) {
 
     private fun shellQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
 
-    private fun runRoot(command: String): RootExec = runCatching {
-        val process = ProcessBuilder("su", "-c", command).redirectErrorStream(true).start()
-        val finished = process.waitFor(15, TimeUnit.SECONDS)
-        if (!finished) {
-            process.destroyForcibly()
-            RootExec(false, "timeout")
-        } else {
-            val output = process.inputStream.bufferedReader().use { it.readText() }
-            RootExec(process.exitValue() == 0, output)
+    private fun runRoot(command: String): RootExec {
+        val candidates = listOf(
+            "su",
+            "/system/bin/su",
+            "/system/xbin/su",
+            "/sbin/su",
+            "/debug_ramdisk/su",
+            "/data/adb/magisk/su"
+        )
+        var lastOutput = "su unavailable"
+        for (suPath in candidates.distinct()) {
+            val result = runCatching {
+                val process = ProcessBuilder(suPath, "-c", command).redirectErrorStream(true).start()
+                val finished = process.waitFor(15, TimeUnit.SECONDS)
+                if (!finished) {
+                    process.destroyForcibly()
+                    RootExec(false, "timeout")
+                } else {
+                    val output = process.inputStream.bufferedReader().use { it.readText() }
+                    RootExec(process.exitValue() == 0, output)
+                }
+            }.getOrElse { RootExec(false, it.message.orEmpty()) }
+            if (result.success || result.output.contains("uid=0")) return result
+            if (result.output.isNotBlank()) lastOutput = result.output
         }
-    }.getOrElse { RootExec(false, it.message.orEmpty()) }
+        return RootExec(false, lastOutput)
+    }
 
     private fun formatBytes(bytes: Long): String {
         if (bytes <= 0L) return "0 MB"
