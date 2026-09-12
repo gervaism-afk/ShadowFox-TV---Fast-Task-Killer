@@ -275,7 +275,7 @@ class UltimateManager(private val context: Context) {
 
     private fun appendHistory(message: String) {
         val stamp = SimpleDateFormat("MMM d HH:mm", Locale.US).format(Date())
-        val old = prefs.getString("history", "").orEmpty().lineSequence().filter { it.isNotBlank() }.takeLast(29).toList()
+        val old = prefs.getString("history", "").orEmpty().lineSequence().filter { it.isNotBlank() }.toList().takeLast(29)
         prefs.edit().putString("history", (old + "$stamp • $message").joinToString("\n")).apply()
     }
 
