@@ -3,7 +3,7 @@ name: Build & Release ShadowFox TV Optimizer
 on:
   workflow_dispatch:
   push:
-    branches: [main, shadowfox-v6-ultimate]
+    branches: [main, shadowfox-v6-ultimate, v6.0.3-layout-final]
     paths: ["overrides/**", "scripts/**", "signing/**", ".github/workflows/build-from-zip.yml"]
 
 permissions:
@@ -45,13 +45,13 @@ jobs:
           if z.exists():
             with zipfile.ZipFile(z) as f:
               for n in f.namelist():
-                p=Path(n)
-                if p.name.lower().startswith('shadowfox_logo.') and p.suffix.lower() in exts:
-                  data=f.read(n); sources.append((len(data),data,p.name))
+                q=Path(n)
+                if q.name.lower().startswith('shadowfox_logo.') and q.suffix.lower() in exts:
+                  data=f.read(n); sources.append((len(data),data,q.name))
           if not sources: raise SystemExit('No ShadowFox logo found')
           _,data,name=max(sources,key=lambda x:x[0])
-          for p in current:
-            if p.exists(): p.unlink()
+          for q in current:
+            if q.exists(): q.unlink()
           dst=res/'drawable-nodpi'/name; dst.parent.mkdir(parents=True,exist_ok=True); dst.write_bytes(data)
           print('Using high-resolution logo',name,len(data),'bytes')
           PY
@@ -96,4 +96,4 @@ jobs:
         run: |
           TAG="v${APP_VERSION}"; ASSET="ShadowFox-TV-Optimizer-v${APP_VERSION}.apk"
           cp extracted/app/build/outputs/apk/release/app-release.apk "$ASSET"
-          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Optimizer v${APP_VERSION}" --notes "ShadowFox TV Ultimate 6.0: dual-mode rooted/non-rooted optimizer, Smart Optimize, Streaming Mode, app protection and management, network diagnostics, storage/device center, health score, thermal and Widevine info, maintenance history, scheduled maintenance, and update center."; fi
+          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Optimizer v${APP_VERSION}" --notes "Responsive phone portrait/landscape and Android TV/Fire TV layout correction with ShadowFox Ultimate Center."; fi
