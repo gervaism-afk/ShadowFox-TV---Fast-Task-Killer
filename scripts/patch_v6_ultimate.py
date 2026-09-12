@@ -50,4 +50,16 @@ s = s.replace('StatTile("ROOT", if (root) "ACTIVE" else "READY"', 'StatTile("ROO
 s = s.replace('MobileStatTile("ROOT", if (rootAvailable) "ACTIVE" else "READY"', 'MobileStatTile("ROOT", if (rootAvailable) "ACTIVE" else "STANDARD"')
 
 p.write_text(s)
-print('ShadowFox 6.0.1 Ultimate Center entry and root status labels fixed')
+
+# v6.0.2 responsive Ultimate Center compile fix.
+# Pass the local load function as a callback instead of invoking/coercing it incorrectly.
+u = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt')
+us = u.read_text()
+old_callback = 'AppActions(manager, item, load, { message = it }, scope)'
+new_callback = 'AppActions(manager, item, { load() }, { message = it }, scope)'
+if old_callback not in us:
+    raise SystemExit('Expected Ultimate Center Apps callback not found')
+us = us.replace(old_callback, new_callback, 1)
+u.write_text(us)
+
+print('ShadowFox 6.0.2 Ultimate Center entry, root labels, and mobile callback fixed')
