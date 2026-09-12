@@ -33,13 +33,20 @@ if count < 2:
     raise SystemExit(f'Expected two cleanup result blocks, found {count}')
 s = s.replace(needle, replacement)
 
-# TV hero: add a tiny real-results status line under RAM BOOSTER while preserving spacing.
+# Add a visible build marker under the website so we can immediately confirm which engine is installed.
+website = 'Text("www.shadowfoxtv.ca", color = MUTED, fontSize = 9.sp)'
+versioned = website + '\n                    Text("PRO ENGINE • v${BuildConfig.VERSION_NAME}", color = CYAN, fontSize = 7.sp, fontWeight = FontWeight.Bold)'
+if s.count(website) < 2:
+    raise SystemExit('Expected website labels in TV and mobile headers')
+s = s.replace(website, versioned)
+
+# TV hero: display real-results status prominently under RAM BOOSTER.
 old_tv = '''                            Text("RAM BOOSTER", color = WHITE, fontSize = 19.sp, fontWeight = FontWeight.Black)
                             Spacer(Modifier.height(10.dp))
                             MasterButton(if (busy) "BOOSTING..." else "BOOST", 150.dp, !busy) { clean() }'''
 new_tv = '''                            Text("RAM BOOSTER", color = WHITE, fontSize = 19.sp, fontWeight = FontWeight.Black)
-                            Text(engineStatus, color = if (rootAvailable) GREEN else MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Spacer(Modifier.height(7.dp))
+                            Text(engineStatus, color = if (rootAvailable) GREEN else MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Spacer(Modifier.height(6.dp))
                             MasterButton(if (busy) "DEEP CLEAN..." else "DEEP CLEAN", 150.dp, !busy) { clean() }'''
 if old_tv not in s:
     raise SystemExit('TV RAM booster block not found')
@@ -50,7 +57,7 @@ old_mobile = '''                        Text("RAM BOOSTER", color = WHITE, fontS
                         Spacer(Modifier.height(6.dp))
                         MasterButton(if (busy) "BOOSTING..." else "BOOST", 150.dp, !busy) { clean() }'''
 new_mobile = '''                        Text("RAM BOOSTER", color = WHITE, fontSize = 19.sp, fontWeight = FontWeight.Black)
-                        Text(engineStatus, color = if (rootAvailable) GREEN else MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(engineStatus, color = if (rootAvailable) GREEN else MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Spacer(Modifier.height(4.dp))
                         MasterButton(if (busy) "DEEP CLEAN..." else "DEEP CLEAN", 150.dp, !busy) { clean() }'''
 if old_mobile not in s:
@@ -58,7 +65,6 @@ if old_mobile not in s:
 s = s.replace(old_mobile, new_mobile, 1)
 
 # Scan/cache buttons keep the same visual design but now run the stronger verified engine.
-# Their labels make it clear they are real cleanup actions rather than decorative meters.
 s = s.replace('MasterButton(if (busy) "SCANNING..." else "SCAN NOW", 105.dp, !busy) { clean() }',
               'MasterButton(if (busy) "SCANNING..." else "SCAN + CLEAN", 105.dp, !busy) { clean() }')
 s = s.replace('MasterButton(if (busy) "CLEANING..." else "CLEAN NOW", 105.dp, !busy) { clean() }',
