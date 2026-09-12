@@ -42,40 +42,53 @@ class ShadowFoxProEngine(private val context: Context) {
         val beforeStorage = freeStorageBytes()
         val root = rootAvailable()
         val protected = protectedPackages()
-        val candidates = if (root) rootThirdPartyPackages(protected) else nonRootCandidates(protected)
+
+        val allEligible = if (root) rootThirdPartyPackages(protected) else nonRootCandidates(protected)
+        val runningCandidates = if (root) allEligible.filter(::isPackageRunningRoot) else allEligible
 
         var verifiedStopped = 0
         var cacheBefore = 0L
         var cacheAfter = 0L
 
         if (root) {
-            cacheBefore = cacheBytes(candidates)
-            for (pkg in candidates) {
-                val stop = runRoot("am force-stop --user 0 ${shellQuote(pkg)}")
-                if (stop.success) {
-                    Thread.sleep(45)
-                    val pid = runRoot("pidof ${shellQuote(pkg)}")
-                    if (pid.success && pid.output.trim().isEmpty()) verifiedStopped++
+            cacheBefore = cacheBytes(allEligible)
+
+            for (pkg in runningCandidates) {
+                runRoot("am force-stop --user 0 ${shellQuote(pkg)}")
+
+                var stillRunning = true
+                repeat(6) {
+                    Thread.sleep(100)
+                    stillRunning = isPackageRunningRoot(pkg)
+                    if (!stillRunning) return@repeat
                 }
+                if (!stillRunning) verifiedStopped++
             }
 
             // Clear only cache/code_cache contents for eligible third-party apps.
-            // This does not delete app data, accounts, settings, or databases.
-            for (pkg in candidates) {
-                val base = "/data/user/0/$pkg"
-                runRoot("for d in ${shellQuote("$base/cache")} ${shellQuote("$base/code_cache")}; do [ -d \"\$d\" ] && find \"\$d\" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + 2>/dev/null; done")
+            // App databases, accounts, preferences and user data are preserved.
+            for (pkg in allEligible) {
+                val paths = listOf(
+                    "/data/user/0/$pkg/cache",
+                    "/data/user/0/$pkg/code_cache",
+                    "/data/data/$pkg/cache",
+                    "/data/data/$pkg/code_cache"
+                )
+                val joined = paths.joinToString(" ") { shellQuote(it) }
+                runRoot("for d in $joined; do [ -d \"\$d\" ] && find \"\$d\" -mindepth 1 -exec rm -rf -- {} + 2>/dev/null; done")
             }
+
             runRoot("pm trim-caches 999999999999")
             runRoot("sync")
-            cacheAfter = cacheBytes(candidates)
+            cacheAfter = cacheBytes(allEligible)
         } else {
-            for (pkg in candidates) {
+            for (pkg in runningCandidates) {
                 runCatching { activityManager.killBackgroundProcesses(pkg) }
             }
-            Thread.sleep(350)
+            Thread.sleep(500)
         }
 
-        Thread.sleep(650)
+        Thread.sleep(750)
         val afterRam = availableMemoryBytes()
         val afterStorage = freeStorageBytes()
         val ramFreed = (afterRam - beforeRam).coerceAtLeast(0L)
@@ -84,21 +97,21 @@ class ShadowFoxProEngine(private val context: Context) {
         val storageFreed = maxOf(measuredStorageGain, measuredCacheGain)
 
         val summary = if (root) {
-            "ROOT ✓ • $verifiedStopped/${candidates.size} stopped • +${formatBytes(ramFreed)} RAM • ${formatBytes(storageFreed)} cache"
+            "ROOT ✓ • $verifiedStopped/${runningCandidates.size} running apps stopped • +${formatBytes(ramFreed)} RAM • ${formatBytes(storageFreed)} cache"
         } else {
-            "LIMITED MODE • ${candidates.size} apps targeted • +${formatBytes(ramFreed)} RAM"
+            "LIMITED MODE • ${runningCandidates.size} apps targeted • +${formatBytes(ramFreed)} RAM"
         }
 
         appendDiagnostic(
-            "root=$root candidates=${candidates.size} stopped=$verifiedStopped ramFreed=$ramFreed cacheBefore=$cacheBefore cacheAfter=$cacheAfter storageFreed=$storageFreed"
+            "root=$root eligible=${allEligible.size} running=${runningCandidates.size} stopped=$verifiedStopped ramFreed=$ramFreed cacheBefore=$cacheBefore cacheAfter=$cacheAfter storageFreed=$storageFreed"
         )
 
         ProCleanupResult(
-            closedApps = if (root) verifiedStopped else candidates.size,
+            closedApps = if (root) verifiedStopped else runningCandidates.size,
             ramFreedBytes = ramFreed,
             storageFreedBytes = storageFreed,
             rootUsed = root,
-            attemptedApps = candidates.size,
+            attemptedApps = runningCandidates.size,
             verifiedStopped = verifiedStopped,
             cacheFreedBytes = measuredCacheGain,
             summary = summary
@@ -107,8 +120,10 @@ class ShadowFoxProEngine(private val context: Context) {
 
     fun diagnosticsSummary(): String {
         val root = rootAvailable()
-        val userApps = if (root) rootThirdPartyPackages(protectedPackages()).size else 0
-        return if (root) "ROOT ACTIVE • UID 0 • $userApps eligible apps" else "ROOT NOT AVAILABLE"
+        if (!root) return "ROOT NOT AVAILABLE"
+        val eligible = rootThirdPartyPackages(protectedPackages())
+        val running = eligible.count(::isPackageRunningRoot)
+        return "ROOT ACTIVE • UID 0 • $running running • ${eligible.size} eligible"
     }
 
     fun readRecentDiagnostics(maxLines: Int = 12): List<String> = runCatching {
@@ -125,6 +140,11 @@ class ShadowFoxProEngine(private val context: Context) {
             .distinct()
             .sorted()
             .toList()
+    }
+
+    private fun isPackageRunningRoot(packageName: String): Boolean {
+        val result = runRoot("pidof ${shellQuote(packageName)}")
+        return result.output.trim().isNotEmpty()
     }
 
     private fun nonRootCandidates(protected: Set<String>): List<String> =
@@ -167,10 +187,16 @@ class ShadowFoxProEngine(private val context: Context) {
         if (packages.isEmpty()) return 0L
         var totalKb = 0L
         for (pkg in packages) {
-            val base = "/data/user/0/$pkg"
-            val cmd = "du -sk ${shellQuote("$base/cache")} ${shellQuote("$base/code_cache")} 2>/dev/null | awk '{s+=\$1} END{print s+0}'"
+            val paths = listOf(
+                "/data/user/0/$pkg/cache",
+                "/data/user/0/$pkg/code_cache",
+                "/data/data/$pkg/cache",
+                "/data/data/$pkg/code_cache"
+            )
+            val joined = paths.joinToString(" ") { shellQuote(it) }
+            val cmd = "du -sk $joined 2>/dev/null | awk '{s+=\$1} END{print s+0}'"
             val out = runRoot(cmd)
-            if (out.success) totalKb += out.output.trim().lineSequence().lastOrNull()?.toLongOrNull() ?: 0L
+            if (out.output.isNotBlank()) totalKb += out.output.trim().lineSequence().lastOrNull()?.toLongOrNull() ?: 0L
         }
         return totalKb * 1024L
     }
