@@ -29,15 +29,29 @@ object DeviceCapabilityDetector {
         )
     }
 
-    private fun hasWorkingRoot(): Boolean = runCatching {
-        val process = ProcessBuilder("su", "-c", "id").redirectErrorStream(true).start()
-        val finished = process.waitFor(5, TimeUnit.SECONDS)
-        if (!finished) {
-            process.destroyForcibly()
-            false
-        } else {
-            val output = process.inputStream.bufferedReader().use { it.readText() }
-            process.exitValue() == 0 && output.contains("uid=0")
+    private fun hasWorkingRoot(): Boolean {
+        val candidates = listOf(
+            "su",
+            "/system/bin/su",
+            "/system/xbin/su",
+            "/sbin/su",
+            "/debug_ramdisk/su",
+            "/data/adb/magisk/su"
+        )
+        for (suPath in candidates.distinct()) {
+            val rooted = runCatching {
+                val process = ProcessBuilder(suPath, "-c", "id").redirectErrorStream(true).start()
+                val finished = process.waitFor(8, TimeUnit.SECONDS)
+                if (!finished) {
+                    process.destroyForcibly()
+                    false
+                } else {
+                    val output = process.inputStream.bufferedReader().use { it.readText() }
+                    process.exitValue() == 0 && output.contains("uid=0")
+                }
+            }.getOrDefault(false)
+            if (rooted) return true
         }
-    }.getOrDefault(false)
+        return false
+    }
 }
