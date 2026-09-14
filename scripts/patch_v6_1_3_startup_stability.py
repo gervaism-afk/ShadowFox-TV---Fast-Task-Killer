@@ -7,49 +7,24 @@ p = base / 'MainActivity.kt'
 s = p.read_text()
 old = '            ping = measureLatencyMs()'
 new = '            ping = withContext(Dispatchers.IO) { runCatching { measureLatencyMs() }.getOrDefault(0) }'
-if old not in s:
+if old in s:
+    s = s.replace(old, new, 1)
+elif new not in s:
     raise SystemExit('MainActivity latency call not found')
-s = s.replace(old, new, 1)
 p.write_text(s)
 
-# 2) Updater bridge: startup/update checks must never be able to terminate the UI.
+# 2) UpdateBridge is now hardened directly in overrides. Verify the crash-safe
+# delayed updater loop survived extraction/overlay; do not rewrite it again.
 p = base / 'UpdateBridge.kt'
 s = p.read_text()
-old = '''    LaunchedEffect(Unit) {
-        val appContext = context.applicationContext
-        UpdateScheduler.schedule(appContext)
-        GitHubReleaseUpdater.start(appContext)
+required = [
+    'delay(15_000)',
+    'runCatching { UpdateScheduler.schedule(appContext) }',
+    'runCatching { GitHubReleaseUpdater.start(appContext) }',
+    'runCatching { GitHubReleaseUpdater.resumePendingInstall(appContext) }'
+]
+missing = [x for x in required if x not in s]
+if missing:
+    raise SystemExit('UpdateBridge hardening missing: ' + ', '.join(missing))
 
-        var seconds = 0
-        while (true) {
-            GitHubReleaseUpdater.resumePendingInstall(appContext)
-            if (seconds >= 60) {
-                GitHubReleaseUpdater.start(appContext)
-                seconds = 0
-            }
-            delay(1_000)
-            seconds++
-        }
-    }'''
-new = '''    LaunchedEffect(Unit) {
-        val appContext = context.applicationContext
-        runCatching { UpdateScheduler.schedule(appContext) }
-        runCatching { GitHubReleaseUpdater.start(appContext) }
-
-        var seconds = 0
-        while (true) {
-            runCatching { GitHubReleaseUpdater.resumePendingInstall(appContext) }
-            if (seconds >= 60) {
-                runCatching { GitHubReleaseUpdater.start(appContext) }
-                seconds = 0
-            }
-            delay(1_000)
-            seconds++
-        }
-    }'''
-if old not in s:
-    raise SystemExit('UpdateBridge startup block not found')
-s = s.replace(old, new, 1)
-p.write_text(s)
-
-print('Applied v6.1.3 startup stability: off-main network probe and crash-contained updater loop')
+print('Applied startup stability: off-main network probe and delayed crash-contained updater loop')
