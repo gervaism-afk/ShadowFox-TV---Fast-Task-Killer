@@ -39,8 +39,10 @@ jobs:
         run: python3 scripts/patch_v6_1_advanced.py
       - name: Apply v6.1.1 legacy root compatibility
         run: python3 scripts/patch_v6_1_1_root_compat.py
-      - name: Apply v6.1.3 startup stability
+      - name: Apply startup stability
         run: python3 scripts/patch_v6_1_3_startup_stability.py
+      - name: Apply H96-safe focus rendering
+        run: python3 scripts/patch_v6_1_3_h96_stability.py
       - name: Preserve highest-quality ShadowFox logo
         run: |
           python3 - <<'PY'
@@ -104,4 +106,4 @@ jobs:
         run: |
           TAG="v${APP_VERSION}"; ASSET="ShadowFox-TV-Optimizer-v${APP_VERSION}.apk"
           cp extracted/app/build/outputs/apk/release/app-release.apk "$ASSET"
-          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Optimizer v${APP_VERSION}" --notes "ShadowFox v6.1.3 startup stability fix: network latency checks moved off the UI thread and updater startup/pending-install checks are crash-contained. Includes H96 legacy-root compatibility and TV D-pad focus visibility."; fi
+          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Optimizer v${APP_VERSION}" --notes "H96 stability hotfix: network checks run off the UI thread, updater work is delayed and crash-contained, H96 legacy-root compatibility is preserved, and TV D-pad focus uses a simple high-contrast white/cyan focus state without GPU-heavy focus effects."; fi
