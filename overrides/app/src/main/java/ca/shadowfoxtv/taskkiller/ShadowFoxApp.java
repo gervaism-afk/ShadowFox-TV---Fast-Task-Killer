@@ -15,7 +15,8 @@ public class ShadowFoxApp extends Application implements Application.ActivityLif
     @Override
     public void onCreate() {
         super.onCreate();
-        UpdateScheduler.schedule(this);
+        // Do not schedule automatic package replacement on startup. Rooted Android TV
+        // firmware can terminate the foreground process when an APK is replaced.
         registerActivityLifecycleCallbacks(this);
     }
 
