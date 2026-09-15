@@ -104,7 +104,7 @@ jobs:
       - name: Publish release
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' && github.ref == 'refs/heads/main' }}
         env:
-          GH_TOKEN: "${{ github.token }}
+          GH_TOKEN: "${{ github.token }}"
         run: |
           TAG="v${APP_VERSION}"; ASSET="ShadowFox-TV-Optimizer-v${APP_VERSION}.apk"
           cp extracted/app/build/outputs/apk/release/app-release.apk "$ASSET"
