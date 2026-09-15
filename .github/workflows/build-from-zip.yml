@@ -3,7 +3,7 @@ name: Build & Release ShadowFox TV Optimizer
 on:
   workflow_dispatch:
   push:
-    branches: [main, shadowfox-v6-ultimate, v6.0.3-layout-final]
+    branches: [main, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build]
     paths: ["overrides/**", "scripts/**", "signing/**", ".github/workflows/build-from-zip.yml"]
 
 permissions:
@@ -102,4 +102,4 @@ jobs:
         run: |
           TAG="v${APP_VERSION}"; ASSET="ShadowFox-TV-Optimizer-v${APP_VERSION}.apk"
           cp extracted/app/build/outputs/apk/release/app-release.apk "$ASSET"
-          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Optimizer v${APP_VERSION}" --notes "ShadowFox v6.1.1 root compatibility fix for pre-rooted Android TV boxes, including H96-style legacy su shells. Root detection, optimizer, Advanced Tools and silent updater now use one shared root executor."; fi
+          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Optimizer v${APP_VERSION}" --notes "ShadowFox diagnostic build."; fi
