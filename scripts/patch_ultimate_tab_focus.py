@@ -84,11 +84,13 @@ replace_function('UltimateButton', '@Composable\nprivate fun CompactAction', ult
 replace_function('CompactAction', '@Composable\nprivate fun UltimateTabButton', compact_action)
 replace_function('UltimateTabButton', 'private fun formatUiBytes', tab_button)
 
-# Guards: no legacy Material Button implementation or pill-shaped CompactAction should survive.
-if 'Button(' in s:
-    raise SystemExit('Legacy Material Button remains in UltimateCenterActivity')
+# Guard only the three control implementations we replaced. Other Material Buttons elsewhere
+# in Ultimate Center are intentionally left alone until their behavior is audited separately.
 if 'RoundedCornerShape(50)' in s:
     raise SystemExit('Legacy pill CompactAction remains')
+for marker in ['private fun UltimateButton', 'private fun CompactAction', 'private fun UltimateTabButton']:
+    if marker not in s:
+        raise SystemExit(f'Missing unified control: {marker}')
 
 p.write_text(s)
 print('Applied unified Ultimate Center TV D-pad focus + cyan button system')
