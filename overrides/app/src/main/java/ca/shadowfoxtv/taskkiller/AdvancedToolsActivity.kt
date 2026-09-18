@@ -37,8 +37,8 @@ import java.io.File
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-private val ABG = Color(0xFF03111D)
-private val APANEL = Color(0xFF0A2637)
+private val ABG = Color(0xFF0F111A)
+private val APANEL = Color(0xFF1E2235)
 private val ACYAN = Color(0xFF00E5FF)
 private val AWHITE = Color(0xFFF7FBFF)
 private val AMUTED = Color(0xFF9AABB8)
@@ -334,6 +334,6 @@ private fun SafetyPane(manager: AdvancedManager, status: (String)->Unit) {
 }
 
 @Composable private fun ScrollPane(content: @Composable ColumnScope.()->Unit) = Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(7.dp), content = content)
-@Composable private fun ToolCard(title:String, subtitle:String, content:@Composable ColumnScope.()->Unit) { Column(Modifier.fillMaxWidth().background(APANEL, RoundedCornerShape(12.dp)).padding(12.dp)) { Text(title, color=AWHITE, fontSize=14.sp, fontWeight=FontWeight.Black); Text(subtitle,color=AMUTED,fontSize=9.sp,maxLines=2,overflow=TextOverflow.Ellipsis); Spacer(Modifier.height(7.dp)); content() } }
-@Composable private fun Action(text:String,onClick:()->Unit) { Box(Modifier.height(38.dp).background(ACYAN, RoundedCornerShape(20.dp)).clickable(onClick=onClick).focusable().padding(horizontal=13.dp), contentAlignment=Alignment.Center) { Text(text,color=ABG,fontSize=9.sp,fontWeight=FontWeight.Black,maxLines=1,overflow=TextOverflow.Ellipsis) } }
-@Composable private fun TabButton(text:String, selected:Boolean, modifier:Modifier,onClick:()->Unit) { Box(modifier.height(40.dp).background(if(selected) ACYAN else APANEL,RoundedCornerShape(10.dp)).clickable(onClick=onClick).focusable(),contentAlignment=Alignment.Center) { Text(text,color=if(selected) ABG else AWHITE,fontSize=8.sp,fontWeight=FontWeight.Black,maxLines=1) } }
+@Composable private fun ToolCard(title:String, subtitle:String, content:@Composable ColumnScope.()->Unit) { Column(Modifier.fillMaxWidth().background(APANEL, RoundedCornerShape(4.dp)).padding(12.dp)) { Text(title, color=AWHITE, fontSize=14.sp, fontWeight=FontWeight.Black); Text(subtitle,color=AMUTED,fontSize=9.sp,maxLines=2,overflow=TextOverflow.Ellipsis); Spacer(Modifier.height(7.dp)); content() } }
+@Composable private fun Action(text:String,onClick:()->Unit) { Box(Modifier.height(38.dp).background(ACYAN, RoundedCornerShape(4.dp)).clickable(onClick=onClick).focusable().padding(horizontal=13.dp), contentAlignment=Alignment.Center) { Text(text,color=ABG,fontSize=9.sp,fontWeight=FontWeight.Black,maxLines=1,overflow=TextOverflow.Ellipsis) } }
+@Composable private fun TabButton(text:String, selected:Boolean, modifier:Modifier,onClick:()->Unit) { Box(modifier.height(40.dp).background(if(selected) ACYAN else APANEL,RoundedCornerShape(4.dp)).clickable(onClick=onClick).focusable(),contentAlignment=Alignment.Center) { Text(text,color=if(selected) ABG else AWHITE,fontSize=8.sp,fontWeight=FontWeight.Black,maxLines=1) } }

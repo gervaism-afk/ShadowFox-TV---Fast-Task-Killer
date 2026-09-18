@@ -94,8 +94,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private val BG = Color(0xFF03111D)
-private val PANEL = Color(0xE60A2030)
+private val BG = Color(0xFF0F111A)
+private val PANEL = Color(0xFF1E2235)
 private val CYAN = Color(0xFF00E5FF)
 private val BLUE = Color(0xFF08AEEA)
 private val ORANGE = Color(0xFFFF7A00)
@@ -279,7 +279,7 @@ private fun BottomSystemStrip(
 
 @Composable
 private fun StatTile(label: String, value: String, modifier: Modifier, valueColor: Color = WHITE) {
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(4.dp)
     Column(
         modifier
             .shadow(6.dp, shape, false, CYAN.copy(alpha = .25f), CYAN.copy(alpha = .25f))
@@ -300,7 +300,7 @@ private fun GlowCard(
 ) {
     var focused by remember { mutableStateOf(false) }
     val focusScale by animateFloatAsState(if (focused) 1.045f else 1f, label = "focus")
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(4.dp)
     Box(
         modifier
             .scale(focusScale)
@@ -311,7 +311,7 @@ private fun GlowCard(
                 ambientColor = CYAN,
                 spotColor = CYAN
             )
-            .background(Brush.verticalGradient(listOf(Color(0xEA092337), Color(0xED04131F))), shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFF1E2235), Color(0xED04131F))), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick)
@@ -330,7 +330,7 @@ private fun GlowCard(
 @Composable
 private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabled: Boolean, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(50)
+    val shape = RoundedCornerShape(4.dp)
     Box(
         Modifier
             .width(width)
