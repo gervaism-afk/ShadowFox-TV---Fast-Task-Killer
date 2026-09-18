@@ -10,6 +10,8 @@ public class ShadowFoxApp extends Application implements Application.ActivityLif
         StartupDiagnostics.INSTANCE.begin(this);
         StartupDiagnostics.INSTANCE.installExceptionHandler(this);
         registerActivityLifecycleCallbacks(this);
+        // Scheduling only: no network or root work is performed on app startup.
+        UpdateScheduler.schedule(this);
     }
     @Override public void onActivityCreated(Activity a, Bundle b) { StartupDiagnostics.INSTANCE.stage(this, "Activity created"); }
     @Override public void onActivityStarted(Activity a) { StartupDiagnostics.INSTANCE.stage(this, "Activity started"); }
