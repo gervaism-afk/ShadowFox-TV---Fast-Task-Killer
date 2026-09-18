@@ -1,6 +1,6 @@
 from pathlib import Path
 
-# Advanced Tools UI removed in v6.1.29. Preserve only health-aware scheduled maintenance behavior.
+# Preserve health-aware scheduled maintenance behavior.
 
 # Make scheduled self-heal health-aware while preserving ordinary scheduled maintenance behavior.
 u = Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCore.kt')
