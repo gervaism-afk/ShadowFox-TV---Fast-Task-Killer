@@ -3,7 +3,7 @@ name: Build & Release ShadowFox TV Optimizer
 on:
   workflow_dispatch:
   push:
-    branches: [main, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build, h96-anr-fix-v6.1.10, ui-focus-v6.1.11, ultimate-dpad-unified-v6.1.12, accuracy-audit-v6.1.13, auto-updater-v6.1.14, production-cleanup-v6.1.16, rollback-v6.1.24-from-locked-v6.1.16, fix-v6.1.25-direct-subpage-rewrite, fix-v6.1.26-advanced-tools-direct]
+    branches: [main, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build, h96-anr-fix-v6.1.10, ui-focus-v6.1.11, ultimate-dpad-unified-v6.1.12, accuracy-audit-v6.1.13, auto-updater-v6.1.14, production-cleanup-v6.1.16, rollback-v6.1.24-from-locked-v6.1.16, fix-v6.1.25-direct-subpage-rewrite, fix-v6.1.26-advanced-tools-direct, fix-v6.1.27-final-generated-ui]
     paths: ["overrides/**", "scripts/**", "signing/**", ".github/workflows/build-from-zip.yml"]
 
 permissions:
@@ -43,6 +43,35 @@ jobs:
         run: python3 scripts/patch_h96_anr_fix.py
       - name: Apply Ultimate Center TV focus styling last
         run: python3 scripts/patch_ultimate_tab_focus.py
+      - name: Enforce final Advanced and Ultimate metallic UI
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt')
+          s=p.read_text()
+          s=s.replace('RoundedCornerShape(12.dp)','RoundedCornerShape(4.dp)')
+          s=s.replace('.background(UCYAN, shape)', '.background(Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))), shape)')
+          s=s.replace('Color(0xFF0A2637)', 'Color(0xFF1E2235)')
+          s=s.replace('Color(0xFF17465B)', 'Color(0xFF4D648D)')
+          p.write_text(s)
+          print('Final metallic UI enforcement applied after every legacy patch')
+          PY
+      - name: Verify final compiled UI sources
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          adv=Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/AdvancedToolsActivity.kt').read_text()
+          ult=Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt').read_text()
+          req_adv=['0xFF0F111A','0xFF1E2235','0xFF4D648D','0xFF3A7BD5','0xFF2A52BE','0xFF1A365D','RoundedCornerShape(4.dp)']
+          req_ult=['0xFF4D648D','0xFF3A7BD5','0xFF2A52BE','0xFF1A365D','RoundedCornerShape(4.dp)']
+          ma=[x for x in req_adv if x not in adv]
+          mu=[x for x in req_ult if x not in ult]
+          if ma:
+              raise SystemExit('Advanced UI missing: '+str(ma))
+          if mu:
+              raise SystemExit('Ultimate UI missing: '+str(mu))
+          print('FINAL UI AUDIT PASSED')
+          PY
       - name: Preserve highest-quality ShadowFox logo
         run: |
           python3 - <<'PY'
@@ -65,6 +94,8 @@ jobs:
           dst=res/'drawable-nodpi'/name; dst.parent.mkdir(parents=True,exist_ok=True); dst.write_bytes(data)
           print('Using high-resolution logo',name,len(data),'bytes')
           PY
+      - name: Build trigger v6.1.27 retry
+        run: echo "Retrying verified generated UI build"
       - name: Read version
         run: |
           VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
