@@ -311,7 +311,7 @@ private fun GlowCard(
                 ambientColor = CYAN,
                 spotColor = CYAN
             )
-            .background(Brush.verticalGradient(listOf(Color(0xFF1E2235), Color(0xED04131F))), shape)
+            .background(Color(0xFF1E2235), shape)\n            .border(1.dp, Color(0xFF4D648D), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick)
@@ -320,7 +320,7 @@ private fun GlowCard(
             drawRoundRect(
                 color = CYAN.copy(alpha = if (focused) .72f else .28f),
                 style = Stroke(if (focused) 2.5.dp.toPx() else 1.2.dp.toPx()),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx())
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())
             )
         }
         content()
@@ -337,7 +337,7 @@ private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabl
             .height(32.dp)
             .scale(if (focused) 1.08f else 1f)
             .shadow(if (focused) 20.dp else 9.dp, shape, false, CYAN, CYAN)
-            .background(Brush.horizontalGradient(listOf(Color(0xFF16E7F4), Color(0xFF08A9D4))), shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))), shape)\n            .border(1.dp, Color(0xFF4D648D), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable(enabled)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
@@ -459,17 +459,7 @@ private fun Bolt(modifier: Modifier) {
 
 @Composable
 private fun MasterBackdrop() {
-    Canvas(Modifier.fillMaxSize()) {
-        drawRect(BG)
-        drawCircle(CYAN.copy(.025f), size.width * .38f, Offset(size.width * .48f, size.height * .45f))
-        val p = Path().apply {
-            moveTo(size.width * .43f, 0f)
-            lineTo(size.width * .39f, size.height * .18f)
-            lineTo(size.width * .46f, size.height * .18f)
-            lineTo(size.width * .41f, size.height * .38f)
-        }
-        drawPath(p, CYAN.copy(.055f), style = Stroke(4.dp.toPx()))
-    }
+    Box(Modifier.fillMaxSize().background(Color(0xFF0F111A)))
 }
 
 private data class CleanupResult(
