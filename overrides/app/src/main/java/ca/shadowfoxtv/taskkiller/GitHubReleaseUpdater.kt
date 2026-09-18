@@ -46,7 +46,7 @@ object GitHubReleaseUpdater {
     @Volatile private var checkStarted = false
     @Volatile private var monitoredDownloadId = -1L
 
-    fun start(context: Context) {
+    fun start(context: Context, onStatus: ((String) -> Unit)? = null) {
         val appContext = context.applicationContext
         val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val pendingId = prefs.getLong(KEY_DOWNLOAD_ID, -1L)
@@ -57,11 +57,11 @@ object GitHubReleaseUpdater {
             return
         }
 
-        if (checkStarted) return
+        if (checkStarted) { onStatus?.invoke("Update check already running"); return }
         checkStarted = true
         scope.launch {
             try {
-                checkLatestRelease(appContext)
+                checkLatestRelease(appContext, onStatus)
             } finally {
                 checkStarted = false
             }
@@ -76,7 +76,7 @@ object GitHubReleaseUpdater {
         launchPackageInstaller(context, Uri.parse(pendingUri))
     }
 
-    private suspend fun checkLatestRelease(context: Context) = withContext(Dispatchers.IO) {
+    private suspend fun checkLatestRelease(context: Context, onStatus: ((String) -> Unit)?) = withContext(Dispatchers.IO) {
         var connection: HttpURLConnection? = null
         try {
             connection = (URL(LATEST_RELEASE_API).openConnection() as HttpURLConnection).apply {
@@ -86,12 +86,13 @@ object GitHubReleaseUpdater {
                 setRequestProperty("Accept", "application/vnd.github+json")
                 setRequestProperty("User-Agent", "ShadowFox-TV-Task-Killer/${BuildConfig.VERSION_NAME}")
             }
-            if (connection.responseCode != HttpURLConnection.HTTP_OK) return@withContext
+            if (connection.responseCode != HttpURLConnection.HTTP_OK) { withContext(Dispatchers.Main) { onStatus?.invoke("Update check failed • HTTP ${connection.responseCode}") }; return@withContext }
 
             val payload = connection.inputStream.bufferedReader().use { it.readText() }
             val release = JSONObject(payload)
             val latestVersion = release.optString("tag_name", "").replaceFirst(Regex("^[vV]"), "")
-            if (latestVersion.isBlank() || compareVersions(latestVersion, BuildConfig.VERSION_NAME) <= 0) return@withContext
+            if (latestVersion.isBlank()) { withContext(Dispatchers.Main) { onStatus?.invoke("Update check failed • invalid release") }; return@withContext }
+            if (compareVersions(latestVersion, BuildConfig.VERSION_NAME) <= 0) { withContext(Dispatchers.Main) { onStatus?.invoke("Up to date • v${BuildConfig.VERSION_NAME}") }; return@withContext }
 
             var apkUrl: String? = null
             val assets = release.optJSONArray("assets")
@@ -105,17 +106,20 @@ object GitHubReleaseUpdater {
                     }
                 }
             }
-            if (apkUrl.isNullOrBlank()) return@withContext
+            if (apkUrl.isNullOrBlank()) { withContext(Dispatchers.Main) { onStatus?.invoke("Update v$latestVersion found • APK unavailable") }; return@withContext }
 
             if (hasRoot()) {
+                withContext(Dispatchers.Main) { onStatus?.invoke("Update v$latestVersion found • downloading…") }
                 val installed = downloadAndInstallRooted(context, apkUrl!!, latestVersion)
-                if (installed) return@withContext
+                if (installed) { withContext(Dispatchers.Main) { onStatus?.invoke("Update v$latestVersion installed • reopen ShadowFox") }; return@withContext }
             }
 
             withContext(Dispatchers.Main) {
+                onStatus?.invoke("Update v$latestVersion found • downloading…")
                 startUpdateDownload(context, apkUrl!!, latestVersion)
             }
         } catch (_: Exception) {
+            withContext(Dispatchers.Main) { onStatus?.invoke("Update check failed • try again") }
             // Never block app startup because of update failures.
         } finally {
             connection?.disconnect()
