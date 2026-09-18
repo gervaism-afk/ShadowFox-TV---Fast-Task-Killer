@@ -163,7 +163,7 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         MetricGrid(
             listOf(
-                Triple("HEALTH", "${snapshot?.health ?: 0}/100", if ((snapshot?.health ?: 0) >= 75) UGREEN else UORANGE),
+                Triple("SHADOWFOX SCORE", "${snapshot?.health ?: 0}/100", if ((snapshot?.health ?: 0) >= 75) UGREEN else UORANGE),
                 Triple("RAM USED", "${snapshot?.ramUsedPercent ?: 0}%", UCYAN),
                 Triple("RUNNING", "${snapshot?.runningApps ?: 0} apps", UCYAN),
                 Triple("NETWORK", snapshot?.network ?: "...", UCYAN)
@@ -288,7 +288,7 @@ private fun NetworkScreen(manager: UltimateManager, landscape: Boolean) {
             ), landscape
         )
         Spacer(Modifier.height(10.dp))
-        UltimatePanel("CONNECTION DIAGNOSTICS", "Direct socket checks for streaming reliability.") {
+        UltimatePanel("CONNECTION DIAGNOSTICS", "Direct socket latency checks. Ratings use ShadowFox latency thresholds.") {
             Text(when (report?.verdict) {
                 "EXCELLENT" -> "Connection looks excellent for streaming."
                 "GOOD" -> "Connection looks healthy."

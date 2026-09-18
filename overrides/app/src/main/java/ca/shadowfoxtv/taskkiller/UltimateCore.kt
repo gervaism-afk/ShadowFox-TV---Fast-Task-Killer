@@ -129,9 +129,11 @@ class UltimateManager(private val context: Context) {
         }
         val before = ActivityManager.MemoryInfo().also(am::getMemoryInfo).availMem
         var stopped = 0
+        var attempted = 0
 
         if (caps.rooted) {
             val running = rootRunningPackages().filter { it !in protected && !isCritical(it) }
+            attempted = running.size
             for (pkg in running) {
                 val stop = runRoot("am force-stop --user 0 ${shellQuote(pkg)}")
                 if (stop.first) {
@@ -156,10 +158,10 @@ class UltimateManager(private val context: Context) {
             ramFreedBytes = freed,
             storageFreedBytes = 0,
             rootUsed = caps.rooted,
-            attemptedApps = if (caps.rooted) stopped else 0,
+            attemptedApps = attempted,
             verifiedStopped = stopped,
             cacheFreedBytes = 0,
-            summary = if (caps.rooted) "STREAMING MODE • $stopped stopped • +${formatBytes(freed)} RAM" else "STREAMING MODE READY • STANDARD SAFE CLEAN"
+            summary = if (caps.rooted) "STREAMING MODE • $stopped/$attempted verified stopped • +${formatBytes(freed)} measured RAM" else "STREAMING MODE • standard background clean requested • +${formatBytes(freed)} measured RAM • app stops unverified"
         )
         appendHistory(result.summary)
         if (!targetPackage.isNullOrBlank()) {

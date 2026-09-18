@@ -98,7 +98,11 @@ class AdvancedManager(private val context: Context) {
         if (isCritical(pkg)) return@withContext "Protected system component"
         if (rooted()) {
             val ok = root("am force-stop --user 0 ${q(pkg)}").first
-            if (ok) "Stopped ${label(pkg)}" else "Root stop failed"
+            if (!ok) "Root stop failed" else {
+                Thread.sleep(150)
+                val stillRunning = root("pidof ${q(pkg)}").second.trim().isNotEmpty()
+                if (!stillRunning) "Verified stopped ${label(pkg)}" else "Stop command completed, but ${label(pkg)} is still running"
+            }
         } else {
             runCatching { am.killBackgroundProcesses(pkg) }
             "Standard background clean requested for ${label(pkg)}"
@@ -138,7 +142,7 @@ class AdvancedManager(private val context: Context) {
 
     suspend fun gamingMode(pkg: String?): String {
         val result = UltimateManager(app).streamingOptimize(pkg)
-        return "GAMING MODE • ${result.closedApps} stopped • RAM optimized"
+        return if (result.rootUsed) "GAMING MODE • ${result.verifiedStopped}/${result.attemptedApps} verified stopped • +${formatMeasuredBytes(result.ramFreedBytes)} measured RAM" else "GAMING MODE • background clean requested • +${formatMeasuredBytes(result.ramFreedBytes)} measured RAM • app stops unverified"
     }
 
     suspend fun resetConnection(): String = withContext(Dispatchers.IO) {
@@ -172,6 +176,11 @@ class AdvancedManager(private val context: Context) {
         val score = (1000 - cpuMs.coerceAtMost(700) - storageMs.coerceAtMost(250)).toInt().coerceIn(100, 1000)
         if (x == Long.MIN_VALUE) prefs.edit().putLong("bench_guard", x).apply()
         BenchmarkResult(score, cpuMs, storageMs, freeMb)
+    }
+
+    private fun formatMeasuredBytes(bytes: Long): String {
+        val mb = bytes / (1024.0 * 1024.0)
+        return if (mb >= 1024.0) String.format(Locale.US, "%.2f GB", mb / 1024.0) else String.format(Locale.US, "%.0f MB", mb)
     }
 
     fun selfHealEnabled() = prefs.getBoolean("self_heal", false)
@@ -306,7 +315,7 @@ private fun ModesPane(manager: AdvancedManager, status: (String)->Unit) {
         ToolCard("CONNECTION RESET", "Root: resets Wi-Fi radio. Standard: opens Android connection controls.") { Action("RESET CONNECTION") { scope.launch { status(manager.resetConnection()) } } }
         ToolCard("LIGHTWEIGHT BENCHMARK", "Quick CPU, cache-storage and free-memory check.") {
             Action("RUN BENCHMARK") { scope.launch { bench = manager.benchmark(); status("Benchmark complete") } }
-            bench?.let { Text("Score ${it.score}/1000 • CPU ${it.cpuMs} ms • Storage ${it.storageMs} ms • Free RAM ${it.ramFreeMb} MB", color = AWHITE, fontSize = 10.sp) }
+            bench?.let { Text("ShadowFox score ${it.score}/1000 • CPU ${it.cpuMs} ms • Storage ${it.storageMs} ms • Free RAM ${it.ramFreeMb} MB", color = AWHITE, fontSize = 10.sp) }
         }
     }
 }
