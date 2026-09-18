@@ -56,3 +56,4 @@ s=s.replace('.background(UPANEL, RoundedCornerShape(3.dp)).padding',
 p.write_text(s)
 
 print('Applied ShadowFox dark blue metallic visual system to all three app surfaces')
+
