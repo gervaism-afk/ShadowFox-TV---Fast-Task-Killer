@@ -43,7 +43,9 @@ jobs:
         run: python3 scripts/patch_h96_anr_fix.py
       - name: Apply Ultimate Center TV focus styling last
         run: python3 scripts/patch_ultimate_tab_focus.py
-      - name: Apply global dark blue metallic visual system last\n        run: python3 scripts/patch_metallic_visual_theme.py\n      - name: Preserve highest-quality ShadowFox logo
+      - name: Apply global dark blue metallic visual system last
+        run: python3 scripts/patch_metallic_visual_theme.py
+      - name: Preserve highest-quality ShadowFox logo
         run: |
           python3 - <<'PY'
           from pathlib import Path
