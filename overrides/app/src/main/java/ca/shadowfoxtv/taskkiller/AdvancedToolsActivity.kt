@@ -46,7 +46,7 @@ private val AWHITE = Color(0xFFF7FBFF)
 private val AMUTED = Color(0xFFB8C3D6)
 private val AGREEN = Color(0xFF77C943)
 private val AORANGE = Color(0xFFFF7A00)
-// v6.1.28 audit trigger: Advanced Tools metallic source verified before build.
+// v6.1.28 production: Advanced Tools metallic source verified and merged.
 
 class AdvancedToolsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
