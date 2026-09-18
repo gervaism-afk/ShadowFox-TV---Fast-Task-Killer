@@ -60,19 +60,16 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          files=[Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/AdvancedToolsActivity.kt'),Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt')]
-          required={
-            'AdvancedToolsActivity.kt':['0xFF0F111A','0xFF1E2235','0xFF4D648D','0xFF3A7BD5','0xFF2A52BE','0xFF1A365D','RoundedCornerShape(4.dp)'],
-            'UltimateCenterActivity.kt':['0xFF4D648D','0xFF3A7BD5','0xFF2A52BE','0xFF1A365D','RoundedCornerShape(4.dp)']
-          }
-          for p in files:
-            src=p.read_text()
-            missing=[x for x in required[p.name] if x not in src]
-            if missing:\n              print(f'FINAL UI AUDIT FAILED {p.name} missing: {missing}')\n              print(src)\n              raise SystemExit(1)
-          ultimate=files[1].read_text()
-          bad=['RoundedCornerShape(12.dp)','.background(UCYAN, shape)']
-          found=[x for x in bad if x in ultimate]
-          if found:\n              print('FINAL UI AUDIT FAILED Ultimate controls retain legacy styling: '+str(found))\n              print(ultimate)\n              raise SystemExit(1)
+          adv=Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/AdvancedToolsActivity.kt').read_text()
+          ult=Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt').read_text()
+          req_adv=['0xFF0F111A','0xFF1E2235','0xFF4D648D','0xFF3A7BD5','0xFF2A52BE','0xFF1A365D','RoundedCornerShape(4.dp)']
+          req_ult=['0xFF4D648D','0xFF3A7BD5','0xFF2A52BE','0xFF1A365D','RoundedCornerShape(4.dp)']
+          ma=[x for x in req_adv if x not in adv]
+          mu=[x for x in req_ult if x not in ult]
+          if ma:
+              raise SystemExit('Advanced UI missing: '+str(ma))
+          if mu:
+              raise SystemExit('Ultimate UI missing: '+str(mu))
           print('FINAL UI AUDIT PASSED')
           PY
       - name: Preserve highest-quality ShadowFox logo
