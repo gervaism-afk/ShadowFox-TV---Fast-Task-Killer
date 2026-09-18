@@ -345,10 +345,6 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
             if (history.isEmpty()) Text("No maintenance history yet.", color = UMUTED, fontSize = 10.sp)
             history.take(10).forEach { Text(it, color = UWHITE, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
-        Spacer(Modifier.height(10.dp))
-        UltimatePanel("ADVANCED APP CONTROL", "Rooted devices unlock deeper controls. Standard devices keep Android-safe actions.") {
-            Text("Unsupported actions are never reported as completed.", color = UMUTED, fontSize = 10.sp)
-        }
     }
 }
 
