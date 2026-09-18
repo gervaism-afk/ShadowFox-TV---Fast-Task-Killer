@@ -85,3 +85,70 @@ u = u.replace(
 ultimate.write_text(u)
 
 print("v6.1.22 LAST-PASS: killed global blue wrappers; forced solid #0F111A canvas, #1E2235 panels + #4D648D 1dp edges, 4dp geometry, reflective 3-stop controls")
+
+
+# v6.1.23 comprehensive sub-screen/detail-view pass.
+# Runs after every legacy patch so old generated UI cannot restore flat/cyan controls.
+for p in [ROOT/"AdvancedToolsActivity.kt", ROOT/"UltimateCenterActivity.kt"]:
+    s=p.read_text()
+    # Every nested canvas is the same master charcoal.
+    s=s.replace("Modifier.fillMaxSize().background(ABG)", "Modifier.fillMaxSize().background(Color(0xFF0F111A))")
+    s=s.replace("Modifier.fillMaxSize().background(UBG)", "Modifier.fillMaxSize().background(Color(0xFF0F111A))")
+    # Premium list/detail modules: gunmetal surface, titanium edge, 4dp hardware geometry.
+    s=s.replace(".background(APANEL, RoundedCornerShape(4.dp)).padding(",
+                ".background(Color(0xFF1E2235), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFF4D648D), RoundedCornerShape(4.dp)).padding(")
+    s=s.replace(".background(UPANEL, RoundedCornerShape(4.dp)).padding(",
+                ".background(Color(0xFF1E2235), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFF4D648D), RoundedCornerShape(4.dp)).padding(")
+    # Avoid duplicate borders if a prior pass already supplied one.
+    s=s.replace(".border(1.dp, Color(0xFF4D648D), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFF4D648D), RoundedCornerShape(4.dp))",
+                ".border(1.dp, Color(0xFF4D648D), RoundedCornerShape(4.dp))")
+    p.write_text(s)
+
+u=(ROOT/"UltimateCenterActivity.kt").read_text()
+# Replace Material3 flat cyan button with the same custom reflective hardware used everywhere else.
+u=re.sub(r'''@Composable
+private fun UltimateButton\(text: String, enabled: Boolean = true, onClick: \(\) -> Unit\) \{.*?
+\}''', '''@Composable
+private fun UltimateButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
+    Box(
+        Modifier.height(36.dp)
+            .background(
+                if (enabled) Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D)))
+                else Brush.verticalGradient(listOf(Color(0xFF1E2235), Color(0xFF1E2235))),
+                RoundedCornerShape(4.dp)
+            )
+            .border(1.dp, Color(0xFF4D648D), RoundedCornerShape(4.dp))
+            .clickable(enabled = enabled, onClick = onClick).focusable(),
+        contentAlignment = Alignment.Center
+    ) { Text(text, color = UWHITE, fontSize = 9.sp, fontWeight = FontWeight.Black, maxLines = 1) }
+}''', u, count=1, flags=re.S)
+
+u=re.sub(r'''@Composable
+private fun CompactAction\(text: String, modifier: Modifier, onClick: \(\) -> Unit\) \{.*?
+\}''', '''@Composable
+private fun CompactAction(text: String, modifier: Modifier, onClick: () -> Unit) {
+    Box(
+        modifier.height(38.dp)
+            .background(Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))), RoundedCornerShape(4.dp))
+            .border(1.dp, Color(0xFF4D648D), RoundedCornerShape(4.dp))
+            .clickable(onClick = onClick).focusable(),
+        contentAlignment = Alignment.Center
+    ) { Text(text, color = UWHITE, fontSize = 9.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+}''', u, count=1, flags=re.S)
+
+u=re.sub(r'''@Composable
+private fun UltimateTabButton\(text: String, selected: Boolean, modifier: Modifier, onClick: \(\) -> Unit\) \{.*?
+\}''', '''@Composable
+private fun UltimateTabButton(text: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val fill = if (selected) Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D)))
+               else Brush.verticalGradient(listOf(Color(0xFF1E2235), Color(0xFF1E2235)))
+    Box(
+        modifier.height(42.dp).background(fill, RoundedCornerShape(4.dp))
+            .border(1.dp, Color(0xFF4D648D), RoundedCornerShape(4.dp))
+            .clickable(onClick = onClick).focusable(),
+        contentAlignment = Alignment.Center
+    ) { Text(text, color = UWHITE, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1) }
+}''', u, count=1, flags=re.S)
+(ROOT/"UltimateCenterActivity.kt").write_text(u)
+
+print("v6.1.23 SUB-SCREEN PASS: charcoal nested canvases; gunmetal 1dp modules; 4dp geometry; 3-stop metallic controls across Advanced + Ultimate detail views")
