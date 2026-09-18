@@ -84,11 +84,4 @@ u = u.replace(
 )
 ultimate.write_text(u)
 
-advanced = ROOT/"AdvancedToolsActivity.kt"
-a = advanced.read_text()
-# Guarantee Advanced Tools root is the same solid charcoal slate.
-a = re.sub(r'Modifier\.fillMaxSize\(\)\.background\([^\n]+\)',
-           'Modifier.fillMaxSize().background(Color(0xFF0F111A))', a)
-advanced.write_text(a)
-
 print("v6.1.22 LAST-PASS: killed global blue wrappers; forced solid #0F111A canvas, #1E2235 panels + #4D648D 1dp edges, 4dp geometry, reflective 3-stop controls")
