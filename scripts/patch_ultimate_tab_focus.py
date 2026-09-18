@@ -24,13 +24,13 @@ ultimate_button = '''@Composable
 private fun UltimateButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(4.dp)
-    val bg = if (enabled) Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))) else Brush.verticalGradient(listOf(Color(0xFF1E2235), Color(0xFF1E2235)))
+    val bg = if (enabled) Brush.verticalGradient(listOf(Color(0xFF2A3042), Color(0xFF1E2235), Color(0xFF141824))) else Brush.verticalGradient(listOf(Color(0xFF1E2235), Color(0xFF1E2235)))
     Box(
         Modifier.height(38.dp)
             .scale(if (focused && enabled) 1.04f else 1f)
             .shadow(if (focused && enabled) 10.dp else 0.dp, shape)
             .background(bg, shape)
-            .border(if (focused && enabled) 3.dp else 1.dp, if (focused && enabled) Color.White else Color(0xFF4D648D), shape)
+            .border(if (focused && enabled) 3.dp else 1.dp, if (focused && enabled) Color(0xFF8EBBFF) else Color(0xFF4D648D), shape)
             .onFocusChanged { focused = it.isFocused }
             .clickable(enabled = enabled, onClick = onClick)
             .focusable(enabled),
@@ -48,8 +48,8 @@ private fun CompactAction(text: String, modifier: Modifier, onClick: () -> Unit)
         modifier.height(38.dp)
             .scale(if (focused) 1.04f else 1f)
             .shadow(if (focused) 10.dp else 0.dp, shape)
-            .background(Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))), shape)
-            .border(if (focused) 3.dp else 1.dp, if (focused) Color.White else Color(0xFF4D648D), shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFF2A3042), Color(0xFF1E2235), Color(0xFF141824))), shape)
+            .border(if (focused) 3.dp else 1.dp, if (focused) Color(0xFF8EBBFF) else Color(0xFF4D648D), shape)
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
             .focusable(),
@@ -63,14 +63,14 @@ tab_button = '''@Composable
 private fun UltimateTabButton(text: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(4.dp)
-    val bg = if (selected) Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))) else Brush.verticalGradient(listOf(Color(0xFF1E2235), Color(0xFF1E2235)))
+    val bg = if (selected) Brush.verticalGradient(listOf(Color(0xFF2A3042), Color(0xFF1E2235), Color(0xFF141824))) else Brush.verticalGradient(listOf(Color(0xFF1E2235), Color(0xFF1E2235)))
     val fg = UWHITE
     Box(
         modifier.height(42.dp)
             .scale(if (focused) 1.04f else 1f)
             .shadow(if (focused) 10.dp else 0.dp, shape)
             .background(bg, shape)
-            .border(if (focused) 3.dp else 1.dp, if (focused) Color.White else Color(0xFF4D648D), shape)
+            .border(if (focused) 3.dp else 1.dp, if (focused) Color(0xFF8EBBFF) else Color(0xFF4D648D), shape)
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
             .focusable(),
