@@ -95,7 +95,7 @@ jobs:
           print('Using high-resolution logo',name,len(data),'bytes')
           PY
       - name: Build trigger v6.1.27 retry
-        run: echo "Retrying verified generated UI build"
+        run: echo "Production v6.1.27 verified UI build"
       - name: Read version
         run: |
           VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
