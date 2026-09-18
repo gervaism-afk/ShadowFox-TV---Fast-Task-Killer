@@ -98,7 +98,11 @@ class AdvancedManager(private val context: Context) {
         if (isCritical(pkg)) return@withContext "Protected system component"
         if (rooted()) {
             val ok = root("am force-stop --user 0 ${q(pkg)}").first
-            if (!ok) "Root stop failed" else {\n                Thread.sleep(150)\n                val stillRunning = root("pidof ${q(pkg)}").second.trim().isNotEmpty()\n                if (!stillRunning) "Verified stopped ${label(pkg)}" else "Stop command completed, but ${label(pkg)} is still running"\n            }
+            if (!ok) "Root stop failed" else {
+                Thread.sleep(150)
+                val stillRunning = root("pidof ${q(pkg)}").second.trim().isNotEmpty()
+                if (!stillRunning) "Verified stopped ${label(pkg)}" else "Stop command completed, but ${label(pkg)} is still running"
+            }
         } else {
             runCatching { am.killBackgroundProcesses(pkg) }
             "Standard background clean requested for ${label(pkg)}"
@@ -172,6 +176,11 @@ class AdvancedManager(private val context: Context) {
         val score = (1000 - cpuMs.coerceAtMost(700) - storageMs.coerceAtMost(250)).toInt().coerceIn(100, 1000)
         if (x == Long.MIN_VALUE) prefs.edit().putLong("bench_guard", x).apply()
         BenchmarkResult(score, cpuMs, storageMs, freeMb)
+    }
+
+    private fun formatMeasuredBytes(bytes: Long): String {
+        val mb = bytes / (1024.0 * 1024.0)
+        return if (mb >= 1024.0) String.format(Locale.US, "%.2f GB", mb / 1024.0) else String.format(Locale.US, "%.0f MB", mb)
     }
 
     fun selfHealEnabled() = prefs.getBoolean("self_heal", false)
