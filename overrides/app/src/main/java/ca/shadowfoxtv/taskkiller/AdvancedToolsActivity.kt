@@ -363,4 +363,14 @@ private fun SafetyPane(manager: AdvancedManager, status: (String)->Unit) {
     ) { Text(label, color = AWHITE, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
 }
 
-@Composable private fun TabButton(text:String, selected:Boolean, modifier:Modifier,onClick:()->Unit) { Box(modifier.height(40.dp).background(if(selected) ACYAN else APANEL,RoundedCornerShape(10.dp)).clickable(onClick=onClick).focusable(),contentAlignment=Alignment.Center) { Text(text,color=if(selected) ABG else AWHITE,fontSize=8.sp,fontWeight=FontWeight.Black,maxLines=1) } }
+@Composable private fun TabButton(text:String, selected:Boolean, modifier:Modifier,onClick:()->Unit) {
+    val shape = RoundedCornerShape(4.dp)
+    val fill = if (selected) Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))) else Brush.verticalGradient(listOf(APANEL, APANEL))
+    Box(
+        modifier.height(40.dp)
+            .background(fill, shape)
+            .border(1.dp, Color(0xFF4D648D), shape)
+            .clickable(onClick=onClick).focusable(),
+        contentAlignment=Alignment.Center
+    ) { Text(text,color=AWHITE,fontSize=8.sp,fontWeight=FontWeight.Black,maxLines=1) }
+}
