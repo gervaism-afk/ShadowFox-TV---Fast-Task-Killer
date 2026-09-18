@@ -55,11 +55,11 @@ jobs:
           for p in files:
             src=p.read_text()
             missing=[x for x in required[p.name] if x not in src]
-            if missing: raise SystemExit(f'FINAL UI AUDIT FAILED {p.name} missing: {missing}')
+            if missing:\n              print(f'FINAL UI AUDIT FAILED {p.name} missing: {missing}')\n              print(src)\n              raise SystemExit(1)
           ultimate=files[1].read_text()
           bad=['RoundedCornerShape(12.dp)','.background(UCYAN, shape)']
           found=[x for x in bad if x in ultimate]
-          if found: raise SystemExit('FINAL UI AUDIT FAILED Ultimate controls retain legacy styling: '+str(found))
+          if found:\n              print('FINAL UI AUDIT FAILED Ultimate controls retain legacy styling: '+str(found))\n              print(ultimate)\n              raise SystemExit(1)
           print('FINAL UI AUDIT PASSED')
           PY
       - name: Preserve highest-quality ShadowFox logo
