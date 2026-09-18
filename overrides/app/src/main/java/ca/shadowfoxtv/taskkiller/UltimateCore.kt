@@ -80,6 +80,7 @@ class UltimateManager(private val context: Context) {
     private val prefs = app.getSharedPreferences("shadowfox_v6", Context.MODE_PRIVATE)
 
     fun capabilities(): DeviceCapabilities = DeviceCapabilityDetector.detect(app)
+    fun appContext(): Context = app
 
     fun protectedPackages(): Set<String> = prefs.getStringSet("protected", emptySet())?.toSet().orEmpty()
 
