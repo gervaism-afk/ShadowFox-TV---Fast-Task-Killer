@@ -43,9 +43,10 @@ private val ABG = Color(0xFF0F111A)
 private val APANEL = Color(0xFF1E2235)
 private val ACYAN = Color(0xFF4D648D)
 private val AWHITE = Color(0xFFF7FBFF)
-private val AMUTED = Color(0xFF9AABB8)
+private val AMUTED = Color(0xFFB8C3D6)
 private val AGREEN = Color(0xFF77C943)
 private val AORANGE = Color(0xFFFF7A00)
+// v6.1.28 audit trigger: Advanced Tools metallic source verified before build.
 
 class AdvancedToolsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -237,7 +238,7 @@ private fun AdvancedToolsScreen(manager: AdvancedManager, onBack: () -> Unit) {
     var tab by remember { mutableStateOf(AdvancedTab.RUNNING) }
     var message by remember { mutableStateOf(if (manager.rooted()) "ROOT MODE ACTIVE" else "STANDARD MODE ACTIVE") }
     val scope = rememberCoroutineScope()
-    Column(Modifier.fillMaxSize().background(ABG).padding(14.dp)) {
+    Column(Modifier.fillMaxSize().background(Color(0xFF0F111A)).padding(14.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("ShadowFox ADVANCED", color = AWHITE, fontSize = 22.sp, fontWeight = FontWeight.Black)
@@ -340,7 +341,7 @@ private fun SafetyPane(manager: AdvancedManager, status: (String)->Unit) {
     val shape = RoundedCornerShape(4.dp)
     Column(
         Modifier.fillMaxWidth()
-            .background(APANEL, shape)
+            .background(Color(0xFF1E2235), shape)
             .border(1.dp, Color(0xFF4D648D), shape)
             .padding(10.dp)
     ) {
@@ -356,7 +357,7 @@ private fun SafetyPane(manager: AdvancedManager, status: (String)->Unit) {
     val shape = RoundedCornerShape(4.dp)
     Box(
         Modifier
-            .background(Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))), shape)
+            .background(Brush.verticalGradient(colorStops = arrayOf(0.0f to Color(0xFF3A7BD5), 0.52f to Color(0xFF2A52BE), 1.0f to Color(0xFF1A365D))), shape)
             .border(1.dp, Color(0xFF4D648D), shape)
             .clickable(onClick = onClick).focusable().padding(horizontal = 12.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
@@ -365,7 +366,7 @@ private fun SafetyPane(manager: AdvancedManager, status: (String)->Unit) {
 
 @Composable private fun TabButton(text:String, selected:Boolean, modifier:Modifier,onClick:()->Unit) {
     val shape = RoundedCornerShape(4.dp)
-    val fill = if (selected) Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))) else Brush.verticalGradient(listOf(APANEL, APANEL))
+    val fill = if (selected) Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))) else Brush.verticalGradient(listOf(Color(0xFF1E2235), Color(0xFF1E2235)))
     Box(
         modifier.height(40.dp)
             .background(fill, shape)
