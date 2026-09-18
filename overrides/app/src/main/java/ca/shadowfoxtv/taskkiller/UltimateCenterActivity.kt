@@ -95,7 +95,7 @@ private fun UltimateCenter(manager: UltimateManager, onClose: () -> Unit) {
     LaunchedEffect(Unit) { snapshot = manager.snapshot() }
 
     BoxWithConstraints(
-        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF0F111A), Color(0xFF061B29))))
+        Modifier.fillMaxSize().background(Color(0xFF0F111A))
     ) {
         val side = if (landscape) 18.dp else 20.dp
         val top = if (landscape) 8.dp else 12.dp
