@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -49,7 +50,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-private val UBG = Color(0xFF03111D)
+private val UBG = Color(0xFF0F111A)
 private val UPANEL = Color(0xEA092337)
 private val UCYAN = Color(0xFF00E5FF)
 private val UORANGE = Color(0xFFFF7A00)
@@ -95,7 +96,7 @@ private fun UltimateCenter(manager: UltimateManager, onClose: () -> Unit) {
     LaunchedEffect(Unit) { snapshot = manager.snapshot() }
 
     BoxWithConstraints(
-        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF03111D), Color(0xFF061B29))))
+        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF0F111A), Color(0xFF0F111A))))
     ) {
         val side = if (landscape) 18.dp else 20.dp
         val top = if (landscape) 8.dp else 12.dp
@@ -372,7 +373,7 @@ private fun MetricGrid(items: List<Triple<String, String, Color>>, landscape: Bo
 private fun MetricCard(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Column(
         modifier.shadow(8.dp, RoundedCornerShape(12.dp), ambientColor = UCYAN.copy(.3f), spotColor = UCYAN.copy(.3f))
-            .background(UPANEL, RoundedCornerShape(12.dp)).padding(vertical = 11.dp, horizontal = 8.dp),
+            .background(UPANEL, RoundedCornerShape(4.dp)).border(1.dp, Color(0xFF4D648D), RoundedCornerShape(4.dp)).padding(vertical = 11.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(label, color = UMUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
@@ -385,7 +386,7 @@ private fun MetricCard(label: String, value: String, color: Color, modifier: Mod
 private fun UltimatePanel(title: String, subtitle: String, content: @Composable () -> Unit) {
     Column(
         Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(12.dp), ambientColor = UCYAN.copy(.2f), spotColor = UCYAN.copy(.2f))
-            .background(UPANEL, RoundedCornerShape(12.dp)).padding(13.dp)
+            .background(UPANEL, RoundedCornerShape(4.dp)).border(1.dp, Color(0xFF4D648D), RoundedCornerShape(4.dp)).padding(13.dp)
     ) {
         Text(title, color = UWHITE, fontSize = 15.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(subtitle, color = UMUTED, fontSize = 9.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -414,7 +415,7 @@ private fun CompactAction(text: String, modifier: Modifier, onClick: () -> Unit)
 @Composable
 private fun UltimateTabButton(text: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     Box(
-        modifier.height(42.dp).background(if (selected) UCYAN else Color(0xFF0A2637), RoundedCornerShape(12.dp)).clickable(onClick = onClick).focusable(),
+        modifier.height(42.dp).background(if (selected) UCYAN else Color(0xFF1E2235), RoundedCornerShape(12.dp)).clickable(onClick = onClick).focusable(),
         contentAlignment = Alignment.Center
     ) { Text(text, color = if (selected) Color(0xFF05202A) else UWHITE, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1) }
 }
