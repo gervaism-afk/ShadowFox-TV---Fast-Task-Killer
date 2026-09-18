@@ -94,8 +94,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private val BG = Color(0xFF0F111A)
-private val PANEL = Color(0xFF1E2235)
+private val BG = Color(0xFF03111D)
+private val PANEL = Color(0xE60A2030)
 private val CYAN = Color(0xFF00E5FF)
 private val BLUE = Color(0xFF08AEEA)
 private val ORANGE = Color(0xFFFF7A00)
@@ -279,7 +279,7 @@ private fun BottomSystemStrip(
 
 @Composable
 private fun StatTile(label: String, value: String, modifier: Modifier, valueColor: Color = WHITE) {
-    val shape = RoundedCornerShape(4.dp)
+    val shape = RoundedCornerShape(10.dp)
     Column(
         modifier
             .shadow(6.dp, shape, false, CYAN.copy(alpha = .25f), CYAN.copy(alpha = .25f))
@@ -300,7 +300,7 @@ private fun GlowCard(
 ) {
     var focused by remember { mutableStateOf(false) }
     val focusScale by animateFloatAsState(if (focused) 1.045f else 1f, label = "focus")
-    val shape = RoundedCornerShape(4.dp)
+    val shape = RoundedCornerShape(12.dp)
     Box(
         modifier
             .scale(focusScale)
@@ -311,8 +311,7 @@ private fun GlowCard(
                 ambientColor = CYAN,
                 spotColor = CYAN
             )
-            .background(Color(0xFF1E2235), shape)
-            .border(1.dp, Color(0xFF4D648D), shape)
+            .background(Brush.verticalGradient(listOf(Color(0xEA092337), Color(0xED04131F))), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick)
@@ -321,7 +320,7 @@ private fun GlowCard(
             drawRoundRect(
                 color = CYAN.copy(alpha = if (focused) .72f else .28f),
                 style = Stroke(if (focused) 2.5.dp.toPx() else 1.2.dp.toPx()),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx())
             )
         }
         content()
@@ -331,15 +330,14 @@ private fun GlowCard(
 @Composable
 private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabled: Boolean, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(4.dp)
+    val shape = RoundedCornerShape(50)
     Box(
         Modifier
             .width(width)
             .height(32.dp)
             .scale(if (focused) 1.08f else 1f)
             .shadow(if (focused) 20.dp else 9.dp, shape, false, CYAN, CYAN)
-            .background(Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))), shape)
-            .border(1.dp, Color(0xFF4D648D), shape)
+            .background(Brush.horizontalGradient(listOf(Color(0xFF16E7F4), Color(0xFF08A9D4))), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable(enabled)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
@@ -461,7 +459,17 @@ private fun Bolt(modifier: Modifier) {
 
 @Composable
 private fun MasterBackdrop() {
-    Box(Modifier.fillMaxSize().background(Color(0xFF0F111A)))
+    Canvas(Modifier.fillMaxSize()) {
+        drawRect(BG)
+        drawCircle(CYAN.copy(.025f), size.width * .38f, Offset(size.width * .48f, size.height * .45f))
+        val p = Path().apply {
+            moveTo(size.width * .43f, 0f)
+            lineTo(size.width * .39f, size.height * .18f)
+            lineTo(size.width * .46f, size.height * .18f)
+            lineTo(size.width * .41f, size.height * .38f)
+        }
+        drawPath(p, CYAN.copy(.055f), style = Stroke(4.dp.toPx()))
+    }
 }
 
 private data class CleanupResult(

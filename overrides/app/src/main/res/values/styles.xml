@@ -4,10 +4,10 @@
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowActionModeOverlay">true</item>
-        <item name="android:windowBackground">#0F111A</item>
-        <item name="android:colorAccent">#4D648D</item>
-        <item name="android:statusBarColor">#0F111A</item>
-        <item name="android:navigationBarColor">#0F111A</item>
+        <item name="android:windowBackground">#121212</item>
+        <item name="android:colorAccent">#00E5FF</item>
+        <item name="android:statusBarColor">#121212</item>
+        <item name="android:navigationBarColor">#121212</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
