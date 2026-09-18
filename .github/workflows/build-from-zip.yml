@@ -3,7 +3,7 @@ name: Build & Release ShadowFox TV Optimizer
 on:
   workflow_dispatch:
   push:
-    branches: [main, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build, h96-anr-fix-v6.1.10, ui-focus-v6.1.11, ultimate-dpad-unified-v6.1.12, accuracy-audit-v6.1.13, auto-updater-v6.1.14, production-cleanup-v6.1.16, rollback-v6.1.24-from-locked-v6.1.16, fix-v6.1.25-direct-subpage-rewrite, fix-v6.1.26-advanced-tools-direct, fix-v6.1.27-final-generated-ui, fix-v6.1.28-advanced-visual-source]
+    branches: [main, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build, h96-anr-fix-v6.1.10, ui-focus-v6.1.11, ultimate-dpad-unified-v6.1.12, accuracy-audit-v6.1.13, auto-updater-v6.1.14, production-cleanup-v6.1.16, rollback-v6.1.24-from-locked-v6.1.16, fix-v6.1.25-direct-subpage-rewrite, fix-v6.1.26-advanced-tools-direct, fix-v6.1.27-final-generated-ui, fix-v6.1.28-advanced-visual-source, remove-advanced-tools-v6.1.29]
     paths: ["overrides/**", "scripts/**", "signing/**", ".github/workflows/build-from-zip.yml"]
 
 permissions:
@@ -43,43 +43,26 @@ jobs:
         run: python3 scripts/patch_h96_anr_fix.py
       - name: Apply Ultimate Center TV focus styling last
         run: python3 scripts/patch_ultimate_tab_focus.py
-      - name: Enforce final Advanced and Ultimate metallic UI
+      - name: Verify Advanced Tools removal and final Ultimate UI
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          a=Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/AdvancedToolsActivity.kt')
-          adv=a.read_text()
-          adv=adv.replace('Color(0xFF9AABB8)', 'Color(0xFFB8C3D6)')
-          adv=adv.replace('RoundedCornerShape(12.dp)', 'RoundedCornerShape(4.dp)')
-          adv=adv.replace('Color(0xFF0A2637)', 'Color(0xFF1E2235)')
-          adv=adv.replace('Color(0xFF17465B)', 'Color(0xFF4D648D)')
-          a.write_text(adv)
-          p=Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt')
-          s=p.read_text()
-          s=s.replace('RoundedCornerShape(12.dp)','RoundedCornerShape(4.dp)')
-          s=s.replace('.background(UCYAN, shape)', '.background(Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))), shape)')
-          s=s.replace('Color(0xFF0A2637)', 'Color(0xFF1E2235)')
-          s=s.replace('Color(0xFF17465B)', 'Color(0xFF4D648D)')
-          p.write_text(s)
-          print('Final metallic UI enforcement applied after every legacy patch')
-          PY
-      - name: Verify final compiled UI sources
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          adv=Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/AdvancedToolsActivity.kt').read_text()
-          ult=Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt').read_text()
-          req_adv=['0xFF0F111A','0xFF1E2235','0xFF4D648D','0xFF3A7BD5','0xFF2A52BE','0xFF1A365D','0xFFB8C3D6','RoundedCornerShape(4.dp)','colorStops = arrayOf']
-          req_ult=['0xFF4D648D','0xFF3A7BD5','0xFF2A52BE','0xFF1A365D','RoundedCornerShape(4.dp)']
-          ma=[x for x in req_adv if x not in adv]
-          mu=[x for x in req_ult if x not in ult]
-          forbidden_adv=['RoundedCornerShape(12.dp)','Color(0xFF9AABB8)','Color(0xFF0A2637)','Color(0xFF17465B)']
-          bad_adv=[x for x in forbidden_adv if x in adv]
-          if ma or bad_adv:
-              raise SystemExit('Advanced UI audit failed. missing='+str(ma)+' forbidden='+str(bad_adv))
-          if mu:
-              raise SystemExit('Ultimate UI missing: '+str(mu))
-          print('FINAL UI AUDIT PASSED')
+          base=Path('extracted/app/src/main')
+          forbidden=['AdvancedToolsActivity','ADVANCED APP CONTROL','OPEN ADVANCED TOOLS']
+          hits=[]
+          for p in base.rglob('*'):
+              if p.is_file() and p.suffix in {'.kt','.java','.xml'}:
+                  t=p.read_text(errors='ignore')
+                  for x in forbidden:
+                      if x in t: hits.append(str(p)+': '+x)
+          if hits:
+              raise SystemExit('Advanced Tools removal audit failed: '+str(hits))
+          ult=(base/'java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt').read_text()
+          req=['0xFF4D648D','0xFF3A7BD5','0xFF2A52BE','0xFF1A365D','RoundedCornerShape(4.dp)']
+          missing=[x for x in req if x not in ult]
+          if missing:
+              raise SystemExit('Ultimate UI missing: '+str(missing))
+          print('REMOVAL AUDIT PASSED: Advanced App Control and Advanced Tools absent')
           PY
       - name: Preserve highest-quality ShadowFox logo
         run: |
@@ -103,8 +86,8 @@ jobs:
           dst=res/'drawable-nodpi'/name; dst.parent.mkdir(parents=True,exist_ok=True); dst.write_bytes(data)
           print('Using high-resolution logo',name,len(data),'bytes')
           PY
-      - name: Build trigger v6.1.28 Advanced visual source rewrite
-        run: echo "Building v6.1.28 from verified Advanced Tools source"
+      - name: Build trigger v6.1.29 remove Advanced Tools
+        run: echo "Building v6.1.29 with Advanced App Control and Advanced Tools removed"
       - name: Read version
         run: |
           VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
