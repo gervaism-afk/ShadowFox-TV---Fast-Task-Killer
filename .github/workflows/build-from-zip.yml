@@ -3,7 +3,7 @@ name: Build & Release ShadowFox TV Optimizer
 on:
   workflow_dispatch:
   push:
-    branches: [main, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build, h96-anr-fix-v6.1.10, ui-focus-v6.1.11, ultimate-dpad-unified-v6.1.12, accuracy-audit-v6.1.13, auto-updater-v6.1.14, production-cleanup-v6.1.16, rollback-v6.1.24-from-locked-v6.1.16, fix-v6.1.25-direct-subpage-rewrite, fix-v6.1.26-advanced-tools-direct, fix-v6.1.27-final-generated-ui, fix-v6.1.28-advanced-visual-source, remove-advanced-tools-v6.1.29, unify-ui-v6.1.30, render-fix-v6.1.31]
+    branches: [main, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build, h96-anr-fix-v6.1.10, ui-focus-v6.1.11, ultimate-dpad-unified-v6.1.12, accuracy-audit-v6.1.13, auto-updater-v6.1.14, production-cleanup-v6.1.16, rollback-v6.1.24-from-locked-v6.1.16, fix-v6.1.25-direct-subpage-rewrite, fix-v6.1.26-advanced-tools-direct, fix-v6.1.27-final-generated-ui, fix-v6.1.28-advanced-visual-source, remove-advanced-tools-v6.1.29, unify-ui-v6.1.30, render-fix-v6.1.31, final-ui-v6.1.32]
     paths: ["overrides/**", "scripts/**", "signing/**", ".github/workflows/build-from-zip.yml"]
 
 permissions:
@@ -88,8 +88,8 @@ jobs:
           dst=res/'drawable-nodpi'/name; dst.parent.mkdir(parents=True,exist_ok=True); dst.write_bytes(data)
           print('Using high-resolution logo',name,len(data),'bytes')
           PY
-      - name: Build trigger v6.1.31 H96 render fix
-        run: echo "Building v6.1.31 dark gunmetal H96 render"
+      - name: Build trigger v6.1.32 final UI
+        run: echo "Building v6.1.32 final dark-metal UI"
       - name: Read version
         run: |
           VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)

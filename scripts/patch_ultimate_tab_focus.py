@@ -93,4 +93,15 @@ for marker in ['private fun UltimateButton', 'private fun CompactAction', 'priva
         raise SystemExit(f'Missing unified control: {marker}')
 
 p.write_text(s)
-print('Applied v6.1.27 metallic 4dp TV D-pad control system')
+# Also rewrite the actual panel/card surfaces that dominate the H96 render.
+s = p.read_text()
+s = s.replace(
+    '.shadow(8.dp, RoundedCornerShape(4.dp), ambientColor = UCYAN.copy(.3f), spotColor = UCYAN.copy(.3f))\n            .background(UPANEL, RoundedCornerShape(4.dp)).border(1.dp, Color(0xFF4D648D), RoundedCornerShape(4.dp))',
+    '.background(Brush.verticalGradient(listOf(Color(0xFF2A3042), Color(0xFF1E2235), Color(0xFF141824))), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFF4D648D), RoundedCornerShape(4.dp))'
+)
+s = s.replace(
+    '.shadow(8.dp, RoundedCornerShape(4.dp), ambientColor = UCYAN.copy(.2f), spotColor = UCYAN.copy(.2f))\n            .background(UPANEL, RoundedCornerShape(4.dp)).border(1.dp, Color(0xFF4D648D), RoundedCornerShape(4.dp))',
+    '.background(Brush.verticalGradient(listOf(Color(0xFF2A3042), Color(0xFF1E2235), Color(0xFF141824))), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFF4D648D), RoundedCornerShape(4.dp))'
+)
+p.write_text(s)
+print('Applied final dark-metal TV D-pad controls and panel surfaces')
