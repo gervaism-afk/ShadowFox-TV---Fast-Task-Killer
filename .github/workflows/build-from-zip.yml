@@ -43,6 +43,19 @@ jobs:
         run: python3 scripts/patch_h96_anr_fix.py
       - name: Apply Ultimate Center TV focus styling last
         run: python3 scripts/patch_ultimate_tab_focus.py
+      - name: Enforce final Advanced and Ultimate metallic UI
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt')
+          s=p.read_text()
+          s=s.replace('RoundedCornerShape(12.dp)','RoundedCornerShape(4.dp)')
+          s=s.replace('.background(UCYAN, shape)', '.background(Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))), shape)')
+          s=s.replace('Color(0xFF0A2637)', 'Color(0xFF1E2235)')
+          s=s.replace('Color(0xFF17465B)', 'Color(0xFF4D648D)')
+          p.write_text(s)
+          print('Final metallic UI enforcement applied after every legacy patch')
+          PY
       - name: Verify final compiled UI sources
         run: |
           python3 - <<'PY'
