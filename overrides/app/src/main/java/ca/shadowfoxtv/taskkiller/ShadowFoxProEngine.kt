@@ -99,7 +99,7 @@ class ShadowFoxProEngine(private val context: Context) {
         val summary = if (root) {
             "ROOT ✓ • $verifiedStopped/${runningCandidates.size} running apps stopped • +${formatBytes(ramFreed)} RAM • ${formatBytes(storageFreed)} cache"
         } else {
-            "STANDARD MODE • safe optimization complete • +${formatBytes(ramFreed)} RAM"
+            "STANDARD MODE • background clean requested • +${formatBytes(ramFreed)} measured RAM • app stops unverified"
         }
 
         appendDiagnostic(
@@ -107,7 +107,7 @@ class ShadowFoxProEngine(private val context: Context) {
         )
 
         ProCleanupResult(
-            closedApps = if (root) verifiedStopped else runningCandidates.size,
+            closedApps = if (root) verifiedStopped else 0,
             ramFreedBytes = ramFreed,
             storageFreedBytes = storageFreed,
             rootUsed = root,
