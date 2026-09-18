@@ -9,6 +9,12 @@ for p in files:
     s=p.read_text()
     if 'import androidx.compose.foundation.border' not in s:
         s=s.replace('import androidx.compose.foundation.background\n','import androidx.compose.foundation.background\nimport androidx.compose.foundation.border\n',1)
+    if 'import androidx.compose.ui.graphics.Brush' not in s:
+        # Some generated screens import Color but not Brush; metallic gradients require both.
+        if 'import androidx.compose.ui.graphics.Color\n' in s:
+            s=s.replace('import androidx.compose.ui.graphics.Color\n','import androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.graphics.Brush\n',1)
+        else:
+            raise SystemExit(f'Missing Color import anchor in {p}')
     # Core ShadowFox metallic palette: dark slate, steel-blue surfaces, silver-blue edges.
     reps={
       'Color(0xFF03111D)':'Color(0xFF0A0F15)',
