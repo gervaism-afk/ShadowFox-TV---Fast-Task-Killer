@@ -311,7 +311,8 @@ private fun GlowCard(
                 ambientColor = CYAN,
                 spotColor = CYAN
             )
-            .background(Color(0xFF1E2235), shape)\n            .border(1.dp, Color(0xFF4D648D), shape)
+            .background(Color(0xFF1E2235), shape)
+            .border(1.dp, Color(0xFF4D648D), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick)
@@ -337,7 +338,8 @@ private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabl
             .height(32.dp)
             .scale(if (focused) 1.08f else 1f)
             .shadow(if (focused) 20.dp else 9.dp, shape, false, CYAN, CYAN)
-            .background(Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))), shape)\n            .border(1.dp, Color(0xFF4D648D), shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D))), shape)
+            .border(1.dp, Color(0xFF4D648D), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable(enabled)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
