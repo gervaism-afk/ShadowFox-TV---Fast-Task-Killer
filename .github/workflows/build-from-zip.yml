@@ -94,7 +94,9 @@ jobs:
           dst=res/'drawable-nodpi'/name; dst.parent.mkdir(parents=True,exist_ok=True); dst.write_bytes(data)
           print('Using high-resolution logo',name,len(data),'bytes')
           PY
-      - name: Build trigger v6.1.27 retry\n        run: echo 'Retrying verified generated UI build'\n      - name: Read version
+      - name: Build trigger v6.1.27 retry
+        run: echo "Retrying verified generated UI build"
+      - name: Read version
         run: |
           VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
           echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
