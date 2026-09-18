@@ -3,7 +3,7 @@ name: Build & Release ShadowFox TV Optimizer
 on:
   workflow_dispatch:
   push:
-    branches: [main, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build, h96-anr-fix-v6.1.10, ui-focus-v6.1.11, ultimate-dpad-unified-v6.1.12, accuracy-audit-v6.1.13, auto-updater-v6.1.14, production-cleanup-v6.1.16, rollback-v6.1.24-from-locked-v6.1.16, fix-v6.1.25-direct-subpage-rewrite, fix-v6.1.26-advanced-tools-direct, fix-v6.1.27-final-generated-ui, fix-v6.1.28-advanced-visual-source, remove-advanced-tools-v6.1.29, unify-ui-v6.1.30]
+    branches: [main, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build, h96-anr-fix-v6.1.10, ui-focus-v6.1.11, ultimate-dpad-unified-v6.1.12, accuracy-audit-v6.1.13, auto-updater-v6.1.14, production-cleanup-v6.1.16, rollback-v6.1.24-from-locked-v6.1.16, fix-v6.1.25-direct-subpage-rewrite, fix-v6.1.26-advanced-tools-direct, fix-v6.1.27-final-generated-ui, fix-v6.1.28-advanced-visual-source, remove-advanced-tools-v6.1.29, unify-ui-v6.1.30, render-fix-v6.1.31]
     paths: ["overrides/**", "scripts/**", "signing/**", ".github/workflows/build-from-zip.yml"]
 
 permissions:
@@ -92,6 +92,29 @@ jobs:
           if missing or bad: raise SystemExit('Unified UI audit failed missing='+str(missing)+' forbidden='+str(bad))
           print('UNIFIED UI AUDIT PASSED')
           PY
+      - name: Enforce actual H96 dark gunmetal render
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt')
+          s=p.read_text()
+          repl={
+            'private val UPANEL = Color(0xEA092337)':'private val UPANEL = Color(0xFF1E2235)',
+            'private val UCYAN = Color(0xFF00E5FF)':'private val UCYAN = Color(0xFF4D648D)',
+            'private val UMUTED = Color(0xFF9AABB8)':'private val UMUTED = Color(0xFFB8C3D6)',
+            'Color(0xFF3A7BD5), Color(0xFF2A52BE), Color(0xFF1A365D)':'Color(0xFF2A3042), Color(0xFF1E2235), Color(0xFF141824)',
+            'RoundedCornerShape(12.dp)':'RoundedCornerShape(4.dp)',
+            'RoundedCornerShape(50)':'RoundedCornerShape(4.dp)'
+          }
+          for a,b in repl.items(): s=s.replace(a,b)
+          p.write_text(s)
+          forbidden=['AdvancedToolsActivity','ADVANCED APP CONTROL','OPEN ADVANCED TOOLS','0xFF00E5FF','0xFF3A7BD5','0xFF2A52BE','0xFF1A365D','RoundedCornerShape(12.dp)','RoundedCornerShape(50)']
+          hits=[x for x in forbidden if x in s]
+          required=['0xFF0F111A','0xFF1E2235','0xFF4D648D','0xFF2A3042','0xFF141824','RoundedCornerShape(4.dp)']
+          missing=[x for x in required if x not in s]
+          if hits or missing: raise SystemExit('H96 render audit failed forbidden='+str(hits)+' missing='+str(missing))
+          print('H96 DARK GUNMETAL RENDER AUDIT PASSED')
+          PY
       - name: Preserve highest-quality ShadowFox logo
         run: |
           python3 - <<'PY'
@@ -114,8 +137,8 @@ jobs:
           dst=res/'drawable-nodpi'/name; dst.parent.mkdir(parents=True,exist_ok=True); dst.write_bytes(data)
           print('Using high-resolution logo',name,len(data),'bytes')
           PY
-      - name: Build trigger v6.1.30 unified UI
-        run: echo "Building v6.1.30 unified main-page UI"
+      - name: Build trigger v6.1.31 H96 render fix
+        run: echo "Building v6.1.31 dark gunmetal H96 render"
       - name: Read version
         run: |
           VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
