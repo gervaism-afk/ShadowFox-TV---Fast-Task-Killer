@@ -97,8 +97,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private val BG = Color(0xFF03111D)
-private val PANEL = Color(0xE60A2030)
+private val BG = Color(0xFF010305)
+private val PANEL = Color(0xF20A0E12)
 private val CYAN = Color(0xFF00E5FF)
 private val BLUE = Color(0xFF08AEEA)
 private val ORANGE = Color(0xFFFF7A00)
@@ -183,7 +183,7 @@ private fun MasterDashboard(context: Context) {
                 }
 
                 // Left navigation rail
-                Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xEA092337), Color(0xED04131F))), RoundedCornerShape(12.dp))) {
+                Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xF20D141A), Color(0xF205090D))), RoundedCornerShape(12.dp))) {
                     Column(Modifier.fillMaxSize().padding(12.dp)) {
                         NavEntry("⌂", "OPTIMIZE", false, Modifier.fillMaxSize().weight(1f)) { optimize() }
                         NavEntry("▦", "APPS", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "APPS") }
@@ -275,7 +275,7 @@ private fun NavEntry(icon: String, label: String, selected: Boolean, modifier: M
     val shape = RoundedCornerShape(8.dp)
     Row(
         modifier
-            .background(if (focused) Color(0xFF0B2232) else Color.Transparent, shape)
+            .background(if (focused) Color(0xFF0B1821) else Color.Transparent, shape)
             .shadow(if (focused) 12.dp else 0.dp, shape, false, CYAN.copy(alpha = .75f), CYAN.copy(alpha = .75f))
             .onFocusChanged { focused = it.isFocused }
             .focusable()
@@ -364,14 +364,14 @@ private fun DisplayCard(
                 elevation = if (hero) 15.dp else 9.dp,
                 shape = shape,
                 clip = false,
-                ambientColor = CYAN.copy(alpha = .35f),
-                spotColor = CYAN.copy(alpha = .35f)
+                ambientColor = Color.Black,
+                spotColor = Color.Black
             )
-            .background(Brush.verticalGradient(listOf(Color(0xEA092337), Color(0xED04131F))), shape)
+            .background(Brush.verticalGradient(listOf(Color(0xF20D141A), Color(0xF205090D))), shape)
     ) {
         Canvas(Modifier.fillMaxSize()) {
             drawRoundRect(
-                color = CYAN.copy(alpha = .28f),
+                color = Color(0xFF35505E),
                 style = Stroke(1.2.dp.toPx()),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx())
             )
@@ -400,14 +400,14 @@ private fun GlowCard(
                 ambientColor = CYAN,
                 spotColor = CYAN
             )
-            .background(Brush.verticalGradient(listOf(Color(0xEA092337), Color(0xED04131F))), shape)
+            .background(Brush.verticalGradient(listOf(Color(0xF20D141A), Color(0xF205090D))), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick)
     ) {
         Canvas(Modifier.fillMaxSize()) {
             drawRoundRect(
-                color = CYAN.copy(alpha = if (focused) .72f else .28f),
+                color = if (focused) CYAN.copy(alpha = .90f) else Color(0xFF35505E),
                 style = Stroke(if (focused) 2.5.dp.toPx() else 1.2.dp.toPx()),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx())
             )
@@ -550,14 +550,14 @@ private fun Bolt(modifier: Modifier) {
 private fun MasterBackdrop() {
     Canvas(Modifier.fillMaxSize()) {
         drawRect(BG)
-        drawCircle(CYAN.copy(.025f), size.width * .38f, Offset(size.width * .48f, size.height * .45f))
+        drawCircle(CYAN.copy(.008f), size.width * .38f, Offset(size.width * .48f, size.height * .45f))
         val p = Path().apply {
             moveTo(size.width * .43f, 0f)
             lineTo(size.width * .39f, size.height * .18f)
             lineTo(size.width * .46f, size.height * .18f)
             lineTo(size.width * .41f, size.height * .38f)
         }
-        drawPath(p, CYAN.copy(.055f), style = Stroke(4.dp.toPx()))
+        drawPath(p, CYAN.copy(.025f), style = Stroke(3.dp.toPx()))
     }
 }
 
