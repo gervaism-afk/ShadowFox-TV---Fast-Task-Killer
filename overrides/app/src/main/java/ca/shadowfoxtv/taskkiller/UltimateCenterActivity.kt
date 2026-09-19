@@ -55,12 +55,12 @@ import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-private val UBG = Color(0xFF02070C)
-private val UPANEL = Color(0xF20A1118)
+private val UBG = Color(0xFF010305)
+private val UPANEL = Color(0xF20A0E12)
 private val UCYAN = Color(0xFF00E5FF)
 private val UORANGE = Color(0xFFFF7A00)
 private val UWHITE = Color(0xFFF7FBFF)
-private val UMUTED = Color(0xFF9AABB8)
+private val UMUTED = Color(0xFFB7C2CA)
 private val UGREEN = Color(0xFF77C943)
 
 class UltimateCenterActivity : ComponentActivity() {
@@ -102,7 +102,7 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     LaunchedEffect(Unit) { snapshot = manager.snapshot() }
 
     BoxWithConstraints(
-        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF02070C), Color(0xFF071018), Color(0xFF02070C))))
+        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF010305), Color(0xFF070B0F), Color(0xFF010305))))
     ) {
         val side = if (landscape) 18.dp else 20.dp
         val top = if (landscape) 8.dp else 12.dp
@@ -387,7 +387,7 @@ private fun MetricGrid(items: List<Triple<String, String, Color>>, landscape: Bo
 private fun MetricCard(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Column(
         modifier.shadow(3.dp, RoundedCornerShape(8.dp), ambientColor = Color.Black, spotColor = Color.Black)
-            .background(Brush.verticalGradient(listOf(Color(0xFF101A22), Color(0xFF071018))), RoundedCornerShape(8.dp)).padding(vertical = 11.dp, horizontal = 8.dp),
+            .background(Brush.verticalGradient(listOf(Color(0xFF101418), Color(0xFF05090C))), RoundedCornerShape(8.dp)).padding(vertical = 11.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(label, color = UMUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
@@ -400,7 +400,7 @@ private fun MetricCard(label: String, value: String, color: Color, modifier: Mod
 private fun UltimatePanel(title: String, subtitle: String, content: @Composable () -> Unit) {
     Column(
         Modifier.fillMaxWidth().shadow(3.dp, RoundedCornerShape(8.dp), ambientColor = Color.Black, spotColor = Color.Black)
-            .background(Brush.verticalGradient(listOf(Color(0xFF101A22), Color(0xFF071018))), RoundedCornerShape(8.dp)).padding(13.dp)
+            .background(Brush.verticalGradient(listOf(Color(0xFF101418), Color(0xFF05090C))), RoundedCornerShape(8.dp)).padding(13.dp)
     ) {
         Text(title, color = UWHITE, fontSize = 15.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(subtitle, color = UMUTED, fontSize = 9.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -416,7 +416,7 @@ private fun UltimateButton(text: String, enabled: Boolean = true, onClick: () ->
     Box(
         Modifier.height(38.dp).scale(zoom)
             .shadow(if (focused) 14.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = UCYAN.copy(alpha = .8f), spotColor = UCYAN.copy(alpha = .8f))
-            .background(if (!enabled) Color(0xFF18252D) else if (focused) Color(0xFF123A50) else Color(0xFF0B1821), RoundedCornerShape(6.dp))
+            .background(if (!enabled) Color(0xFF18252D) else if (focused) Color(0xFF102B38) else Color(0xFF0B1821), RoundedCornerShape(6.dp))
             .onFocusChanged { focused = it.isFocused }.focusable(enabled).clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
@@ -430,7 +430,7 @@ private fun CompactAction(text: String, modifier: Modifier, onClick: () -> Unit)
     Box(
         modifier.height(38.dp).scale(zoom)
             .shadow(if (focused) 14.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = UCYAN.copy(alpha = .8f), spotColor = UCYAN.copy(alpha = .8f))
-            .background(if (focused) Color(0xFF123A50) else Color(0xFF0B1821), RoundedCornerShape(6.dp))
+            .background(if (focused) Color(0xFF102B38) else Color(0xFF0B1821), RoundedCornerShape(6.dp))
             .onFocusChanged { focused = it.isFocused }.focusable().clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Text(text, color = UWHITE, fontSize = 9.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis) }
@@ -443,7 +443,7 @@ private fun UltimateTabButton(text: String, selected: Boolean, modifier: Modifie
     Box(
         modifier.height(42.dp).scale(zoom)
             .shadow(if (focused) 14.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = UCYAN.copy(alpha = .8f), spotColor = UCYAN.copy(alpha = .8f))
-            .background(if (focused) Color(0xFF123A50) else if (selected) Color(0xFF0D2533) else Color(0xFF09131B), RoundedCornerShape(6.dp))
+            .background(if (focused) Color(0xFF102B38) else if (selected) Color(0xFF0B1820) else Color(0xFF060A0E), RoundedCornerShape(6.dp))
             .onFocusChanged { focused = it.isFocused }.focusable().clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Text(text, color = if (selected || focused) UWHITE else UMUTED, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1) }
