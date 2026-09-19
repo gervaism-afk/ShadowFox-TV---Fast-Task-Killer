@@ -352,7 +352,7 @@ private fun MobileDashboard(
             }
         }
         Spacer(Modifier.height(10.dp))
-        DisplayCard(Modifier.fillMaxWidth().height(72.dp)) {
+        DisplayCard(Modifier.fillMaxWidth().height(86.dp)) {
             Row(Modifier.fillMaxSize().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                 MobileMetric("RAM FREED", formatBytes(ramFreed), Modifier.weight(1f))
                 MobileMetric("CLOSED", closedApps.toString(), Modifier.weight(1f))
@@ -515,8 +515,8 @@ private fun GlowCard(
                 elevation = if (focused) 25.dp else if (hero) 15.dp else 9.dp,
                 shape = shape,
                 clip = false,
-                ambientColor = CYAN,
-                spotColor = CYAN
+                ambientColor = if (focused) CYAN else Color.Black,
+                spotColor = if (focused) CYAN else Color.Black
             )
             .background(Brush.verticalGradient(listOf(Color(0xF20D141A), Color(0xF205090D))), shape)
             .onFocusChanged { focused = it.isFocused }
@@ -537,20 +537,20 @@ private fun GlowCard(
 @Composable
 private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabled: Boolean, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(50)
+    val shape = RoundedCornerShape(6.dp)
     Box(
         Modifier
             .width(width)
             .height(32.dp)
             .scale(if (focused) 1.08f else 1f)
-            .shadow(if (focused) 20.dp else 9.dp, shape, false, CYAN, CYAN)
-            .background(Brush.horizontalGradient(listOf(Color(0xFF16E7F4), Color(0xFF08A9D4))), shape)
+            .shadow(if (focused) 16.dp else 2.dp, shape, false, if (focused) CYAN else Color.Black, if (focused) CYAN else Color.Black)
+            .background(Brush.horizontalGradient(listOf(Color(0xFF101820), Color(0xFF071015))), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable(enabled)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = Color(0xFF05202A), fontSize = 10.sp, fontWeight = FontWeight.Black)
+        Text(text, color = if (focused) CYAN else WHITE, fontSize = 10.sp, fontWeight = FontWeight.Black)
     }
 }
 
