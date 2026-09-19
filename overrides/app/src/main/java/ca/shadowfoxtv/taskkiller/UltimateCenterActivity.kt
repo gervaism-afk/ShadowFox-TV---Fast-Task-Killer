@@ -4,6 +4,8 @@ import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -35,10 +37,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -64,7 +70,7 @@ class UltimateCenterActivity : ComponentActivity() {
         hideBars()
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(background = UBG, surface = UPANEL)) {
-                UltimateCenter(UltimateManager(applicationContext), onClose = { finish() })
+                UltimateCenter(UltimateManager(applicationContext), intent.getStringExtra("shadowfox_tab"), onClose = { finish() })
             }
         }
     }
@@ -85,8 +91,9 @@ class UltimateCenterActivity : ComponentActivity() {
 private enum class UltimateTab { OPTIMIZE, APPS, NETWORK, SYSTEM }
 
 @Composable
-private fun UltimateCenter(manager: UltimateManager, onClose: () -> Unit) {
-    var tab by remember { mutableStateOf(UltimateTab.OPTIMIZE) }
+private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onClose: () -> Unit) {
+    val initialTab = remember(requestedTab) { runCatching { UltimateTab.valueOf(requestedTab ?: "OPTIMIZE") }.getOrDefault(UltimateTab.OPTIMIZE) }
+    var tab by remember { mutableStateOf(initialTab) }
     var snapshot by remember { mutableStateOf<UltimateSnapshot?>(null) }
     val scope = rememberCoroutineScope()
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -142,15 +149,23 @@ private fun UltimateCenter(manager: UltimateManager, onClose: () -> Unit) {
 
 @Composable
 private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact: Boolean) {
-    Column(modifier) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text("ShadowFox", color = UWHITE, fontSize = if (compact) 22.sp else 26.sp, fontWeight = FontWeight.Black, maxLines = 1)
-            Spacer(Modifier.width(5.dp))
-            Text("ULTIMATE", color = UORANGE, fontSize = if (compact) 14.sp else 16.sp, fontWeight = FontWeight.Black, maxLines = 1)
-            Spacer(Modifier.width(4.dp))
-            Text("v${BuildConfig.VERSION_NAME}", color = UCYAN, fontSize = if (compact) 9.sp else 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Image(
+            painter = painterResource(R.drawable.shadowfox_logo),
+            contentDescription = "ShadowFox TV",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.width(if (compact) 150.dp else 170.dp).height(if (compact) 48.dp else 54.dp)
+        )
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text("ULTIMATE CENTER", color = UWHITE, fontSize = if (compact) 16.sp else 18.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                Spacer(Modifier.width(7.dp))
+                Text("v${BuildConfig.VERSION_NAME}", color = UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            }
+            Text("ADVANCED CONTROL • ANDROID TV", color = UMUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+            Text(snapshot?.mode ?: "DETECTING DEVICE...", color = if (snapshot?.root == true) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
-        Text(snapshot?.mode ?: "DETECTING DEVICE...", color = if (snapshot?.root == true) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }
 
@@ -396,27 +411,42 @@ private fun UltimatePanel(title: String, subtitle: String, content: @Composable 
 
 @Composable
 private fun UltimateButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
-    Button(
-        onClick = onClick, enabled = enabled,
-        colors = ButtonDefaults.buttonColors(containerColor = UCYAN, contentColor = Color(0xFF05202A), disabledContainerColor = Color(0xFF31505A)),
-        modifier = Modifier.height(36.dp).focusable()
-    ) { Text(text, fontSize = 9.sp, fontWeight = FontWeight.Black, maxLines = 1) }
+    var focused by remember { mutableStateOf(false) }
+    val zoom by animateFloatAsState(if (focused) 1.05f else 1f, label = "ultimateButtonFocus")
+    Box(
+        Modifier.height(38.dp).scale(zoom)
+            .shadow(if (focused) 18.dp else 6.dp, RoundedCornerShape(9.dp), ambientColor = UCYAN, spotColor = UCYAN)
+            .background(if (enabled) if (focused) Color.White.copy(alpha = .92f) else UCYAN else Color(0xFF31505A), RoundedCornerShape(9.dp))
+            .onFocusChanged { focused = it.isFocused }.focusable(enabled).clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center
+    ) { Text(text, color = Color(0xFF05202A), fontSize = 9.sp, fontWeight = FontWeight.Black, maxLines = 1) }
 }
 
 @Composable
 private fun CompactAction(text: String, modifier: Modifier, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val zoom by animateFloatAsState(if (focused) 1.04f else 1f, label = "compactFocus")
     Box(
-        modifier.height(38.dp).background(UCYAN, RoundedCornerShape(50)).clickable(onClick = onClick).focusable(),
+        modifier.height(38.dp).scale(zoom)
+            .shadow(if (focused) 16.dp else 4.dp, RoundedCornerShape(9.dp), ambientColor = UCYAN, spotColor = UCYAN)
+            .background(if (focused) Color.White.copy(alpha = .92f) else UCYAN, RoundedCornerShape(9.dp))
+            .onFocusChanged { focused = it.isFocused }.focusable().clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Text(text, color = Color(0xFF05202A), fontSize = 9.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis) }
 }
 
 @Composable
 private fun UltimateTabButton(text: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val zoom by animateFloatAsState(if (focused) 1.035f else 1f, label = "tabFocus")
     Box(
-        modifier.height(42.dp).background(if (selected) UCYAN else Color(0xFF0A2637), RoundedCornerShape(12.dp)).clickable(onClick = onClick).focusable(),
+        modifier.height(42.dp).scale(zoom)
+            .shadow(if (focused) 16.dp else 4.dp, RoundedCornerShape(10.dp), ambientColor = UCYAN, spotColor = UCYAN)
+            .background(if (focused) Color.White.copy(alpha = .14f) else if (selected) UCYAN.copy(alpha = .20f) else Color(0xFF0A2637), RoundedCornerShape(10.dp))
+            .onFocusChanged { focused = it.isFocused }.focusable().clickable(onClick = onClick),
         contentAlignment = Alignment.Center
-    ) { Text(text, color = if (selected) Color(0xFF05202A) else UWHITE, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1) }
+    ) { Text(text, color = if (selected || focused) UWHITE else UMUTED, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1) }
 }
 
 private fun formatUiBytes(bytes: Long): String {
