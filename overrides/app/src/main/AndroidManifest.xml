@@ -52,6 +52,13 @@
             android:screenOrientation="unspecified"
             android:theme="@style/Theme.ShadowFox" />
 
+        <activity
+            android:name=".AdvancedToolsActivity"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
+            android:exported="false"
+            android:screenOrientation="unspecified"
+            android:theme="@style/Theme.ShadowFox" />
+
         <receiver android:name=".UpdateCheckReceiver" android:enabled="true" android:exported="false" />
 
         <receiver android:name=".UpdateBootReceiver" android:enabled="true" android:exported="true">

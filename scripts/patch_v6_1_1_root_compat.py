@@ -32,7 +32,20 @@ replacement = '''    private fun runRoot(command: String): Pair<Boolean, String>
 s = s[:start] + replacement + s[end:]
 p.write_text(s)
 
-# Advanced Tools UI removed in v6.1.29; no AdvancedToolsActivity patching remains.
+# Advanced tools: same root executor, so root detection and actual actions agree.
+p = base / 'AdvancedToolsActivity.kt'
+s = p.read_text()
+start = s.find('    private fun root(cmd: String): Pair<Boolean,String> = runCatching {')
+end = s.find('\n    private fun q(v: String)', start)
+if start == -1 or end == -1:
+    raise SystemExit('AdvancedTools root block not found')
+replacement = '''    private fun root(cmd: String): Pair<Boolean,String> {
+        val r = RootShell.exec(cmd)
+        return r.success to r.output
+    }
+'''
+s = s[:start] + replacement + s[end:]
+p.write_text(s)
 
 # Updater: detect root through the same layer and install with the compatible shell.
 p = base / 'GitHubReleaseUpdater.kt'
