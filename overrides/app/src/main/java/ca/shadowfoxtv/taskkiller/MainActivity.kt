@@ -183,12 +183,12 @@ private fun MasterDashboard(context: Context) {
                 }
 
                 // Left navigation rail
-                GlowCard(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp), onClick = {}) {
+                Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xEA092337), Color(0xED04131F))), RoundedCornerShape(12.dp))) {
                     Column(Modifier.fillMaxSize().padding(12.dp)) {
-                        NavEntry("⚡", "OPTIMIZE", true, Modifier.fillMaxSize().weight(1f))
-                        NavEntry("▦", "APPS", false, Modifier.fillMaxSize().weight(1f))
-                        NavEntry("⌁", "NETWORK", false, Modifier.fillMaxSize().weight(1f))
-                        NavEntry("⚙", "SYSTEM", false, Modifier.fillMaxSize().weight(1f))
+                        NavEntry("⚡", "OPTIMIZE", true, Modifier.fillMaxSize().weight(1f)) { optimize() }
+                        NavEntry("▦", "APPS", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "APPS") }
+                        NavEntry("⌁", "NETWORK", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "NETWORK") }
+                        NavEntry("⚙", "SYSTEM", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "SYSTEM") }
                         Image(
                             painter = painterResource(R.drawable.shadowfox_logo),
                             contentDescription = null,
@@ -233,7 +233,7 @@ private fun MasterDashboard(context: Context) {
                 }
 
                 GlowCard(Modifier.offset(668.dp, 305.dp).size(274.dp, 103.dp), onClick = {
-                    context.startActivity(Intent(context, UltimateCenterActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    openUltimate(context, "OPTIMIZE")
                 }) {
                     Column(Modifier.fillMaxSize().padding(15.dp)) {
                         Text("ULTIMATE CENTER", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
@@ -270,16 +270,30 @@ private fun MasterDashboard(context: Context) {
 }
 
 @Composable
-private fun NavEntry(icon: String, label: String, selected: Boolean, modifier: Modifier) {
+private fun NavEntry(icon: String, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(8.dp)
     Row(
-        modifier.background(if (selected) CYAN.copy(alpha = .16f) else Color.Transparent, shape).padding(horizontal = 9.dp),
+        modifier
+            .background(if (focused) Color.White.copy(alpha = .14f) else if (selected) CYAN.copy(alpha = .14f) else Color.Transparent, shape)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(icon, color = if (selected) CYAN else MUTED, fontSize = 16.sp)
+        Text(icon, color = if (focused || selected) CYAN else MUTED, fontSize = 16.sp)
         Spacer(Modifier.width(9.dp))
-        Text(label, color = if (selected) WHITE else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
+        Text(label, color = if (focused || selected) WHITE else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
     }
+}
+
+private fun openUltimate(context: Context, tab: String) {
+    context.startActivity(
+        Intent(context, UltimateCenterActivity::class.java)
+            .putExtra("shadowfox_tab", tab)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    )
 }
 
 @Composable
