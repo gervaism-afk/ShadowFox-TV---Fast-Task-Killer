@@ -255,7 +255,7 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean) {
                 UltimatePanel(item.label, "${item.packageName} • ${if (item.running) "RUNNING" else "IDLE"}${if (item.system) " • SYSTEM" else ""}") {
                     if (landscape) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            AppActions(manager, item, load, { message = it }, scope)
+                            AppActions(manager, item, { load() }, { message = it }, scope)
                         }
                     } else {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
