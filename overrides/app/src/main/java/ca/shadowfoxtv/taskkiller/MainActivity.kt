@@ -23,6 +23,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -63,6 +66,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -148,6 +152,17 @@ private fun MasterDashboard(context: Context) {
             closedApps = result.closedApps
             busy = false
         }
+    }
+
+    val configuration = LocalConfiguration.current
+    val mobilePortrait = configuration.screenWidthDp < 700 && configuration.screenHeightDp > configuration.screenWidthDp
+    if (mobilePortrait) {
+        MobileDashboard(
+            context = context, ram = ram, apps = apps, mbps = mbps, ping = ping, busy = busy,
+            rootAvailable = rootAvailable, ramFreed = ramFreed, storageFreed = storageFreed,
+            closedApps = closedApps, clock = clock, onOptimize = { optimize() }
+        )
+        return
     }
 
     BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
@@ -266,6 +281,109 @@ private fun MasterDashboard(context: Context) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun MobileDashboard(
+    context: Context,
+    ram: Float,
+    apps: Int,
+    mbps: Float,
+    ping: Int,
+    busy: Boolean,
+    rootAvailable: Boolean,
+    ramFreed: Long,
+    storageFreed: Long,
+    closedApps: Int,
+    clock: Date,
+    onOptimize: () -> Unit
+) {
+    Column(
+        Modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(Color(0xFF010305), Color(0xFF070B0F), Color(0xFF010305)))
+        ).padding(horizontal = 18.dp, vertical = 14.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Image(painterResource(R.drawable.shadowfox_logo), "ShadowFox TV", contentScale = ContentScale.Fit, modifier = Modifier.size(150.dp, 54.dp))
+            Spacer(Modifier.weight(1f))
+            Column(horizontalAlignment = Alignment.End) {
+                Text(SimpleDateFormat("h:mm a", Locale.getDefault()).format(clock), color = WHITE, fontSize = 16.sp, fontWeight = FontWeight.Black)
+                Text(if (rootAvailable) "ROOTED PRO • v" + BuildConfig.VERSION_NAME else "MOBILE • v" + BuildConfig.VERSION_NAME, color = if (rootAvailable) CYAN else MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        Text("OPTIMIZE • CLEAN • PERFORM", color = MUTED, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(14.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            MobileMetric("SCORE", scoreFor(ram, ping).toString(), Modifier.weight(1f))
+            MobileMetric("RAM", ram.toInt().toString() + "%", Modifier.weight(1f))
+            MobileMetric("APPS", apps.toString(), Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(10.dp))
+        DisplayCard(Modifier.fillMaxWidth().height(238.dp), hero = true) {
+            Column(Modifier.fillMaxSize().padding(18.dp)) {
+                Text("SMART OPTIMIZE", color = WHITE, fontSize = 21.sp, fontWeight = FontWeight.Black)
+                Text("One-touch performance optimization", color = MUTED, fontSize = 10.sp)
+                Row(Modifier.fillMaxWidth().weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    RamGauge(ram, Modifier.size(142.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(if (busy) "OPTIMIZING…" else "READY", color = CYAN, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                        Text(if (rootAvailable) "Root access active" else "Android safe mode", color = MUTED, fontSize = 9.sp)
+                        Spacer(Modifier.height(12.dp))
+                        MasterButton(if (busy) "WORKING…" else "OPTIMIZE NOW", 150.dp, !busy, onOptimize)
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            GlowCard(Modifier.weight(1f).height(92.dp), onClick = { openUltimate(context, "SYSTEM") }) {
+                Column(Modifier.padding(13.dp)) {
+                    Text("CACHE CLEANER", color = WHITE, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Text(if (storageFreed > 0) formatBytes(storageFreed) + " CLEARED" else "READY", color = CYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            GlowCard(Modifier.weight(1f).height(92.dp), onClick = { openUltimate(context, "OPTIMIZE") }) {
+                Column(Modifier.padding(13.dp)) {
+                    Text("ULTIMATE CENTER", color = WHITE, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Text("ADVANCED TOOLS", color = CYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        DisplayCard(Modifier.fillMaxWidth().height(72.dp)) {
+            Row(Modifier.fillMaxSize().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+                MobileMetric("RAM FREED", formatBytes(ramFreed), Modifier.weight(1f))
+                MobileMetric("CLOSED", closedApps.toString(), Modifier.weight(1f))
+                MobileMetric("NETWORK", String.format("%.1fM", mbps), Modifier.weight(1f))
+            }
+        }
+        Spacer(Modifier.weight(1f))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            MobileNav("OPTIMIZE") { onOptimize() }
+            MobileNav("APPS") { openUltimate(context, "APPS") }
+            MobileNav("NETWORK") { openUltimate(context, "NETWORK") }
+            MobileNav("SYSTEM") { openUltimate(context, "SYSTEM") }
+        }
+        Spacer(Modifier.height(8.dp))
+        Text("SHADOWFOX TV  |  OPTIMIZED FOR PERFORMANCE", color = MUTED, fontSize = 7.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
+    }
+}
+
+@Composable
+private fun MobileMetric(label: String, value: String, modifier: Modifier) {
+    val shape = RoundedCornerShape(6.dp)
+    Column(modifier.background(Color(0xFF090E12), shape).padding(horizontal = 9.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(value, color = WHITE, fontSize = 14.sp, fontWeight = FontWeight.Black, maxLines = 1)
+    }
+}
+
+@Composable
+private fun MobileNav(label: String, onClick: () -> Unit) {
+    Box(Modifier.height(42.dp).width(82.dp).background(Color(0xFF080D12), RoundedCornerShape(6.dp)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        Text(label, color = WHITE, fontSize = 8.sp, fontWeight = FontWeight.Black)
     }
 }
 
