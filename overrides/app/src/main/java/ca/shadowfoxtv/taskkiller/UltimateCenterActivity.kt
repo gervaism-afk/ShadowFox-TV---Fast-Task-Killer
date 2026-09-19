@@ -60,7 +60,7 @@ private val UPANEL = Color(0xF20A0E12)
 private val UCYAN = Color(0xFF00E5FF)
 private val UORANGE = Color(0xFFFF7A00)
 private val UWHITE = Color(0xFFF7FBFF)
-private val UMUTED = Color(0xFF9AABB8)
+private val UMUTED = Color(0xFFB7C2CA)
 private val UGREEN = Color(0xFF77C943)
 
 class UltimateCenterActivity : ComponentActivity() {
