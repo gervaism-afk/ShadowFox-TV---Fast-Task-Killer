@@ -103,7 +103,7 @@ private val CYAN = Color(0xFF00E5FF)
 private val BLUE = Color(0xFF08AEEA)
 private val ORANGE = Color(0xFFFF7A00)
 private val WHITE = Color(0xFFF7FBFF)
-private val MUTED = Color(0xFF9AABB8)
+private val MUTED = Color(0xFFB7C2CA)
 private val GREEN = Color(0xFF77C943)
 
 @Composable
@@ -183,7 +183,7 @@ private fun MasterDashboard(context: Context) {
                 }
 
                 // Left navigation rail
-                Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xF20D141A), Color(0xF205090D))), RoundedCornerShape(12.dp))) {
+                Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xFF080D12), Color(0xFF020406))), RoundedCornerShape(6.dp))) {
                     Column(Modifier.fillMaxSize().padding(12.dp)) {
                         NavEntry("⌂", "OPTIMIZE", false, Modifier.fillMaxSize().weight(1f)) { optimize() }
                         NavEntry("▦", "APPS", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "APPS") }
@@ -357,7 +357,7 @@ private fun DisplayCard(
     hero: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(6.dp)
     Box(
         modifier
             .shadow(
@@ -373,7 +373,7 @@ private fun DisplayCard(
             drawRoundRect(
                 color = Color(0xFF35505E),
                 style = Stroke(1.2.dp.toPx()),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx())
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
             )
         }
         content()
@@ -409,7 +409,7 @@ private fun GlowCard(
             drawRoundRect(
                 color = if (focused) CYAN.copy(alpha = .90f) else Color(0xFF35505E),
                 style = Stroke(if (focused) 2.5.dp.toPx() else 1.2.dp.toPx()),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx())
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
             )
         }
         content()
