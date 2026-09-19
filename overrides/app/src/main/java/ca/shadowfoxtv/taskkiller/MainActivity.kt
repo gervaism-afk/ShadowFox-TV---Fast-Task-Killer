@@ -185,7 +185,7 @@ private fun MasterDashboard(context: Context) {
                 // Left navigation rail
                 Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xEA092337), Color(0xED04131F))), RoundedCornerShape(12.dp))) {
                     Column(Modifier.fillMaxSize().padding(12.dp)) {
-                        NavEntry("⚡", "OPTIMIZE", true, Modifier.fillMaxSize().weight(1f)) { optimize() }
+                        NavEntry("⌂", "OPTIMIZE", false, Modifier.fillMaxSize().weight(1f)) { optimize() }
                         NavEntry("▦", "APPS", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "APPS") }
                         NavEntry("⌁", "NETWORK", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "NETWORK") }
                         NavEntry("⚙", "SYSTEM", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "SYSTEM") }
@@ -275,16 +275,17 @@ private fun NavEntry(icon: String, label: String, selected: Boolean, modifier: M
     val shape = RoundedCornerShape(8.dp)
     Row(
         modifier
-            .background(if (focused) Color.White.copy(alpha = .14f) else if (selected) CYAN.copy(alpha = .14f) else Color.Transparent, shape)
+            .background(if (focused) Color(0xFF0B2232) else Color.Transparent, shape)
+            .shadow(if (focused) 12.dp else 0.dp, shape, false, CYAN.copy(alpha = .75f), CYAN.copy(alpha = .75f))
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick)
             .padding(horizontal = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(icon, color = if (focused || selected) CYAN else MUTED, fontSize = 16.sp)
+        Text(icon, color = if (focused) CYAN else MUTED, fontSize = 16.sp)
         Spacer(Modifier.width(9.dp))
-        Text(label, color = if (focused || selected) WHITE else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
+        Text(label, color = if (focused) WHITE else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
     }
 }
 
