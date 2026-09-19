@@ -23,26 +23,10 @@ jobs:
         run: |
           cp -R overrides/. extracted/.
           rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java
-      - name: Apply responsive build patch
-        run: python3 scripts/patch_build.py
-      - name: Apply final mobile layout correction
-        run: python3 scripts/fix_layout_5_2_19.py
-      - name: Apply TV bottom and root cleanup fixes
-        run: python3 scripts/patch_tv_root.py
-      - name: Apply v5.3 Pro Engine integration
-        run: python3 scripts/patch_v5_3_pro_engine.py
-      - name: Apply v6 Ultimate Center integration
-        run: python3 scripts/patch_v6_ultimate.py
-      - name: Apply locked v6.0.4 main dashboard layouts
-        run: python3 scripts/patch_v6_0_4_final_main_layout.py
-      - name: Apply v6.1 advanced feature integration
-        run: python3 scripts/patch_v6_1_advanced.py
-      - name: Apply v6.1.1 legacy root compatibility
-        run: python3 scripts/patch_v6_1_1_root_compat.py
-      - name: Apply H96 ANR main-thread fix last
-        run: python3 scripts/patch_h96_anr_fix.py
-      - name: Apply Ultimate Center TV focus styling last
-        run: python3 scripts/patch_ultimate_tab_focus.py
+      - name: Preserve Android TV reference source
+        run: |
+          test -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+          grep -q 'SMART OPTIMIZE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
       - name: Install Android TV reference presentation layer
         run: |
           cp final-ui/UltimateCenterActivity.kt extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
