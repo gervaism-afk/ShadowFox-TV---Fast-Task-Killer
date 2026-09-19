@@ -43,6 +43,15 @@ jobs:
         run: python3 scripts/patch_h96_anr_fix.py
       - name: Apply Ultimate Center TV focus styling last
         run: python3 scripts/patch_ultimate_tab_focus.py
+      - name: Install deterministic v6.2.2 presentation layer
+        run: |
+          cp final-ui/MainActivity.kt extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+          cp final-ui/UltimateCenterActivity.kt extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
+          grep -q 'SHADOWFOX_V622_UI' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+          grep -q 'SHADOWFOX_V622_UI' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
+          grep -q 'CHECK UPDATE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
+          ! grep -q 'ADVANCED APP CONTROL' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
+          ! grep -q 'MasterBackdrop' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
       - name: Preserve highest-quality ShadowFox logo
         run: |
           python3 - <<'PY'
