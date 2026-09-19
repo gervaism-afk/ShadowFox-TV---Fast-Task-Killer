@@ -350,7 +350,7 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
                 Spacer(Modifier.height(6.dp))
                 CompactAction(if (maintenance) "AUTO MAINTENANCE: ON" else "AUTO MAINTENANCE: OFF", Modifier.fillMaxWidth()) { maintenance = !maintenance; manager.scheduleMaintenance(maintenance) }
                 Spacer(Modifier.height(6.dp))
-                CompactAction("REFRESH SYSTEM", Modifier.fillMaxWidth()) { refresh(); message = "System refreshed" }
+                CompactAction("CHECK UPDATE", Modifier.fillMaxWidth()) { message = "Checking for update…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status } }
             }
         }
         Spacer(Modifier.height(10.dp))
