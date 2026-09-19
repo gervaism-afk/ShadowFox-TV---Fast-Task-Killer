@@ -169,7 +169,7 @@ private fun MasterDashboard(context: Context) {
                     )
                     Column(Modifier.width(190.dp)) {
                         Text("OPTIMIZE • CLEAN • PERFORM", color = MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                        Text(if (rootAvailable) "ROOTED PRO MODE" else "STANDARD MODE", color = if (rootAvailable) CYAN else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                        Text((if (rootAvailable) "ROOTED PRO MODE" else "STANDARD MODE") + "  •  v" + BuildConfig.VERSION_NAME, color = if (rootAvailable) CYAN else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
                     }
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("BUILT FOR ANDROID TV", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
@@ -183,12 +183,12 @@ private fun MasterDashboard(context: Context) {
                 }
 
                 // Left navigation rail
-                GlowCard(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp), onClick = {}) {
+                Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xEA092337), Color(0xED04131F))), RoundedCornerShape(12.dp))) {
                     Column(Modifier.fillMaxSize().padding(12.dp)) {
-                        NavEntry("⚡", "OPTIMIZE", true, Modifier.fillMaxSize().weight(1f))
-                        NavEntry("▦", "APPS", false, Modifier.fillMaxSize().weight(1f))
-                        NavEntry("⌁", "NETWORK", false, Modifier.fillMaxSize().weight(1f))
-                        NavEntry("⚙", "SYSTEM", false, Modifier.fillMaxSize().weight(1f))
+                        NavEntry("⚡", "OPTIMIZE", true, Modifier.fillMaxSize().weight(1f)) { optimize() }
+                        NavEntry("▦", "APPS", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "APPS") }
+                        NavEntry("⌁", "NETWORK", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "NETWORK") }
+                        NavEntry("⚙", "SYSTEM", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "SYSTEM") }
                         Image(
                             painter = painterResource(R.drawable.shadowfox_logo),
                             contentDescription = null,
@@ -205,7 +205,7 @@ private fun MasterDashboard(context: Context) {
                 MetricCard("NETWORK", String.format("%.1f Mbps", mbps), if (ping > 0) "$ping ms PING" else "CHECKING", Modifier.offset(750.dp, 88.dp).size(192.dp, 86.dp))
 
                 // Smart Optimize hero
-                GlowCard(Modifier.offset(174.dp, 188.dp).size(480.dp, 220.dp), onClick = { optimize() }, hero = true) {
+                DisplayCard(Modifier.offset(174.dp, 188.dp).size(480.dp, 220.dp), hero = true) {
                     Column(Modifier.fillMaxSize().padding(22.dp)) {
                         Text("SMART OPTIMIZE", color = WHITE, fontSize = 22.sp, fontWeight = FontWeight.Black)
                         Text("One-touch performance optimization", color = MUTED, fontSize = 9.sp)
@@ -223,17 +223,17 @@ private fun MasterDashboard(context: Context) {
                     }
                 }
 
-                GlowCard(Modifier.offset(668.dp, 188.dp).size(274.dp, 103.dp), onClick = { optimize() }) {
+                GlowCard(Modifier.offset(668.dp, 188.dp).size(274.dp, 103.dp), onClick = { openUltimate(context, "SYSTEM") }) {
                     Column(Modifier.fillMaxSize().padding(15.dp)) {
                         Text("CACHE CLEANER", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
-                        Text("Clear temporary cache safely", color = MUTED, fontSize = 8.sp)
+                        Text("Manage ShadowFox cache safely", color = MUTED, fontSize = 8.sp)
                         Spacer(Modifier.height(8.dp))
                         Text(if (storageFreed > 0) formatBytes(storageFreed) + " CLEARED" else "READY", color = CYAN, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
                 GlowCard(Modifier.offset(668.dp, 305.dp).size(274.dp, 103.dp), onClick = {
-                    context.startActivity(Intent(context, UltimateCenterActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    openUltimate(context, "OPTIMIZE")
                 }) {
                     Column(Modifier.fillMaxSize().padding(15.dp)) {
                         Text("ULTIMATE CENTER", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
@@ -243,7 +243,7 @@ private fun MasterDashboard(context: Context) {
                     }
                 }
 
-                GlowCard(Modifier.offset(174.dp, 422.dp).size(768.dp, 72.dp), onClick = {}) {
+                DisplayCard(Modifier.offset(174.dp, 422.dp).size(768.dp, 72.dp)) {
                     Row(Modifier.fillMaxSize().padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.width(235.dp)) {
                             Text("THERMAL + PERFORMANCE", color = WHITE, fontSize = 12.sp, fontWeight = FontWeight.Black)
@@ -270,21 +270,35 @@ private fun MasterDashboard(context: Context) {
 }
 
 @Composable
-private fun NavEntry(icon: String, label: String, selected: Boolean, modifier: Modifier) {
+private fun NavEntry(icon: String, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(8.dp)
     Row(
-        modifier.background(if (selected) CYAN.copy(alpha = .16f) else Color.Transparent, shape).padding(horizontal = 9.dp),
+        modifier
+            .background(if (focused) Color.White.copy(alpha = .14f) else if (selected) CYAN.copy(alpha = .14f) else Color.Transparent, shape)
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(icon, color = if (selected) CYAN else MUTED, fontSize = 16.sp)
+        Text(icon, color = if (focused || selected) CYAN else MUTED, fontSize = 16.sp)
         Spacer(Modifier.width(9.dp))
-        Text(label, color = if (selected) WHITE else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
+        Text(label, color = if (focused || selected) WHITE else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
     }
+}
+
+private fun openUltimate(context: Context, tab: String) {
+    context.startActivity(
+        Intent(context, UltimateCenterActivity::class.java)
+            .putExtra("shadowfox_tab", tab)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    )
 }
 
 @Composable
 private fun MetricCard(title: String, value: String, detail: String, modifier: Modifier) {
-    GlowCard(modifier, onClick = {}) {
+    DisplayCard(modifier) {
         Column(Modifier.fillMaxSize().padding(12.dp)) {
             Text(title, color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
             Text(value, color = WHITE, fontSize = 21.sp, fontWeight = FontWeight.Black)
@@ -333,6 +347,35 @@ private fun StatTile(label: String, value: String, modifier: Modifier, valueColo
     ) {
         Text(label, color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
         Text(value, color = valueColor, fontSize = 11.sp, fontWeight = FontWeight.Black, maxLines = 1)
+    }
+}
+
+@Composable
+private fun DisplayCard(
+    modifier: Modifier,
+    hero: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    val shape = RoundedCornerShape(12.dp)
+    Box(
+        modifier
+            .shadow(
+                elevation = if (hero) 15.dp else 9.dp,
+                shape = shape,
+                clip = false,
+                ambientColor = CYAN.copy(alpha = .35f),
+                spotColor = CYAN.copy(alpha = .35f)
+            )
+            .background(Brush.verticalGradient(listOf(Color(0xEA092337), Color(0xED04131F))), shape)
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            drawRoundRect(
+                color = CYAN.copy(alpha = .28f),
+                style = Stroke(1.2.dp.toPx()),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx())
+            )
+        }
+        content()
     }
 }
 

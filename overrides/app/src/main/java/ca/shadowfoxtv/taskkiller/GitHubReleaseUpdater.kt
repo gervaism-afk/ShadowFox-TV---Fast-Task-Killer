@@ -84,6 +84,8 @@ object GitHubReleaseUpdater {
                 readTimeout = 8_000
                 requestMethod = "GET"
                 setRequestProperty("Accept", "application/vnd.github+json")
+                setRequestProperty("Cache-Control", "no-cache, no-store")
+                setRequestProperty("Pragma", "no-cache")
                 setRequestProperty("User-Agent", "ShadowFox-TV-Task-Killer/${BuildConfig.VERSION_NAME}")
             }
             if (connection.responseCode != HttpURLConnection.HTTP_OK) { withContext(Dispatchers.Main) { onStatus?.invoke("Update check failed • HTTP ${connection.responseCode}") }; return@withContext }

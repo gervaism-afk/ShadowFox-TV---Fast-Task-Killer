@@ -3,7 +3,7 @@ name: Build & Release ShadowFox TV Optimizer
 on:
   workflow_dispatch:
   push:
-    branches: [main, android-tv-reference-ui, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build, h96-anr-fix-v6.1.10, ui-focus-v6.1.11, ultimate-dpad-unified-v6.1.12, accuracy-audit-v6.1.13, auto-updater-v6.1.14, production-cleanup-v6.1.16, rollback-v6.2.1-to-v6.1.16, true-ui-rebuild-v6.2.2]
+    branches: [main, v6.2.4-tv-navigation-polish, android-tv-reference-ui, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build, h96-anr-fix-v6.1.10, ui-focus-v6.1.11, ultimate-dpad-unified-v6.1.12, accuracy-audit-v6.1.13, auto-updater-v6.1.14, production-cleanup-v6.1.16, rollback-v6.2.1-to-v6.1.16, true-ui-rebuild-v6.2.2]
     paths: ["overrides/**", "scripts/**", "signing/**", ".github/workflows/build-from-zip.yml"]
 
 permissions:
@@ -27,15 +27,13 @@ jobs:
         run: |
           test -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
           grep -q 'SMART OPTIMIZE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
-      - name: Install Android TV reference presentation layer
+      - name: Verify Android TV presentation layer
         run: |
-          cp final-ui/UltimateCenterActivity.kt extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
           grep -q 'SMART OPTIMIZE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
           grep -q 'ULTIMATE CENTER' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
           grep -q 'THERMAL + PERFORMANCE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
-          grep -q 'SHADOWFOX_V622_UI' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
           grep -q 'CHECK UPDATE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
-          ! grep -q 'ADVANCED APP CONTROL' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
+          grep -q 'shadowfox_tab' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
       - name: Preserve highest-quality ShadowFox logo
         run: |
           python3 - <<'PY'
