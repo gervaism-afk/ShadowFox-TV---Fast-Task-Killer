@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -72,6 +73,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
@@ -114,6 +118,7 @@ private fun MasterDashboard(context: Context) {
     var ramFreed by remember { mutableStateOf(0L) }
     var storageFreed by remember { mutableStateOf(0L) }
     var closedApps by remember { mutableIntStateOf(0) }
+    var clock by remember { mutableStateOf(Date()) }
     val optimizer = remember { AppOptimizer(context) }
     val scope = rememberCoroutineScope()
 
@@ -127,6 +132,7 @@ private fun MasterDashboard(context: Context) {
             ping = measureLatencyMs()
             ram = memoryUsedPercent(context)
             apps = runningProcessCount(context)
+            clock = Date()
         }
     }
 
@@ -170,9 +176,10 @@ private fun MasterDashboard(context: Context) {
                         Text("BUILT FOR ANDROID TV", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
                         Text("FASTER • SMOOTHER • BETTER", color = CYAN, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                     }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(deviceLabel(), color = WHITE, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                        Text("ANDROID " + Build.VERSION.RELEASE.orEmpty(), color = MUTED, fontSize = 8.sp)
+                    Column(Modifier.width(150.dp), horizontalAlignment = Alignment.End) {
+                        Text(SimpleDateFormat("h:mm a", Locale.getDefault()).format(clock).uppercase(Locale.getDefault()), color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                        Text(SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(clock).uppercase(Locale.getDefault()), color = CYAN, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                        Text(deviceLabel() + "  •  ANDROID " + Build.VERSION.RELEASE.orEmpty(), color = MUTED, fontSize = 6.sp, maxLines = 1)
                     }
                 }
 
@@ -226,7 +233,9 @@ private fun MasterDashboard(context: Context) {
                     }
                 }
 
-                GlowCard(Modifier.offset(668.dp, 305.dp).size(274.dp, 103.dp), onClick = {}) {
+                GlowCard(Modifier.offset(668.dp, 305.dp).size(274.dp, 103.dp), onClick = {
+                    context.startActivity(Intent(context, UltimateCenterActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }) {
                     Column(Modifier.fillMaxSize().padding(15.dp)) {
                         Text("ULTIMATE CENTER", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
                         Text("Advanced ShadowFox controls", color = MUTED, fontSize = 8.sp)
