@@ -3,7 +3,7 @@ name: Build & Release ShadowFox TV Optimizer
 on:
   workflow_dispatch:
   push:
-    branches: [main, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build, h96-anr-fix-v6.1.10, ui-focus-v6.1.11, ultimate-dpad-unified-v6.1.12, accuracy-audit-v6.1.13, auto-updater-v6.1.14, production-cleanup-v6.1.16, rollback-v6.2.1-to-v6.1.16, true-ui-rebuild-v6.2.2]
+    branches: [main, android-tv-reference-ui, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build, h96-anr-fix-v6.1.10, ui-focus-v6.1.11, ultimate-dpad-unified-v6.1.12, accuracy-audit-v6.1.13, auto-updater-v6.1.14, production-cleanup-v6.1.16, rollback-v6.2.1-to-v6.1.16, true-ui-rebuild-v6.2.2]
     paths: ["overrides/**", "scripts/**", "signing/**", ".github/workflows/build-from-zip.yml"]
 
 permissions:
@@ -23,35 +23,19 @@ jobs:
         run: |
           cp -R overrides/. extracted/.
           rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java
-      - name: Apply responsive build patch
-        run: python3 scripts/patch_build.py
-      - name: Apply final mobile layout correction
-        run: python3 scripts/fix_layout_5_2_19.py
-      - name: Apply TV bottom and root cleanup fixes
-        run: python3 scripts/patch_tv_root.py
-      - name: Apply v5.3 Pro Engine integration
-        run: python3 scripts/patch_v5_3_pro_engine.py
-      - name: Apply v6 Ultimate Center integration
-        run: python3 scripts/patch_v6_ultimate.py
-      - name: Apply locked v6.0.4 main dashboard layouts
-        run: python3 scripts/patch_v6_0_4_final_main_layout.py
-      - name: Apply v6.1 advanced feature integration
-        run: python3 scripts/patch_v6_1_advanced.py
-      - name: Apply v6.1.1 legacy root compatibility
-        run: python3 scripts/patch_v6_1_1_root_compat.py
-      - name: Apply H96 ANR main-thread fix last
-        run: python3 scripts/patch_h96_anr_fix.py
-      - name: Apply Ultimate Center TV focus styling last
-        run: python3 scripts/patch_ultimate_tab_focus.py
-      - name: Install deterministic v6.2.2 presentation layer
+      - name: Preserve Android TV reference source
         run: |
-          cp final-ui/MainActivity.kt extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+          test -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+          grep -q 'SMART OPTIMIZE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+      - name: Install Android TV reference presentation layer
+        run: |
           cp final-ui/UltimateCenterActivity.kt extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
-          grep -q 'SHADOWFOX_V622_UI' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+          grep -q 'SMART OPTIMIZE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+          grep -q 'ULTIMATE CENTER' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+          grep -q 'THERMAL + PERFORMANCE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
           grep -q 'SHADOWFOX_V622_UI' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
           grep -q 'CHECK UPDATE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
           ! grep -q 'ADVANCED APP CONTROL' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
-          ! grep -q 'MasterBackdrop' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
       - name: Preserve highest-quality ShadowFox logo
         run: |
           python3 - <<'PY'

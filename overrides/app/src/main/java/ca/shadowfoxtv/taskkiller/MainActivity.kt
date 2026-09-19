@@ -72,6 +72,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
@@ -114,32 +117,29 @@ private fun MasterDashboard(context: Context) {
     var ramFreed by remember { mutableStateOf(0L) }
     var storageFreed by remember { mutableStateOf(0L) }
     var closedApps by remember { mutableIntStateOf(0) }
-    val graph = remember { mutableStateListOf<Int>() }
+    var clock by remember { mutableStateOf(Date()) }
     val optimizer = remember { AppOptimizer(context) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
+        rootAvailable = withContext(Dispatchers.IO) { rootShellAvailable() }
         while (true) {
             val before = totalTrafficBytes()
             delay(1000)
             val after = totalTrafficBytes()
             if (before >= 0 && after >= before) mbps = (after - before) * 8f / 1_000_000f
             ping = measureLatencyMs()
-            if (ping > 0) {
-                graph.add(ping)
-                while (graph.size > 18) graph.removeAt(0)
-            }
             ram = memoryUsedPercent(context)
             apps = runningProcessCount(context)
+            clock = Date()
         }
     }
 
-    fun clean() {
+    fun optimize() {
         if (busy) return
         scope.launch {
             busy = true
             val result = optimizer.optimize()
-            delay(450)
             ram = memoryUsedPercent(context)
             apps = runningProcessCount(context)
             rootAvailable = result.rootUsed
@@ -153,105 +153,150 @@ private fun MasterDashboard(context: Context) {
     BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
         val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
         Box(Modifier.size(960.dp * scale, 540.dp * scale).align(Alignment.Center)) {
-            Box(
-                Modifier
-                    .size(960.dp, 540.dp)
-                    .scale(scale)
-                    .align(Alignment.Center)
-                    .background(BG)
-            ) {
+            Box(Modifier.size(960.dp, 540.dp).scale(scale).align(Alignment.Center).background(BG)) {
                 MasterBackdrop()
 
-                Column(Modifier.offset(44.dp, 42.dp)) {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text("ShadowFox", color = WHITE, fontSize = 29.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
-                        Spacer(Modifier.width(4.dp))
-                        Text("TV", color = ORANGE, fontSize = 29.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
-                    }
-                    Text("www.shadowfoxtv.ca", color = MUTED, fontSize = 9.sp)
-                }
-
-                Image(
-                    painter = painterResource(R.drawable.shadowfox_logo),
-                    contentDescription = "ShadowFox TV",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.offset(790.dp, 18.dp).size(122.dp, 98.dp)
-                )
-
-                GlowCard(Modifier.offset(45.dp, 145.dp).size(205.dp, 265.dp), onClick = { clean() }) {
-                    Box(Modifier.fillMaxSize()) {
-                        ScanDial(Modifier.align(Alignment.TopCenter).padding(top = 26.dp).size(135.dp))
-                        Column(
-                            Modifier.align(Alignment.BottomCenter).padding(bottom = 22.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text("SYSTEM SCAN", color = WHITE, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                            Text("$apps ACTIVE PROCESSES", color = MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(10.dp))
-                            MasterButton(if (busy) "SCANNING..." else "SCAN NOW", 105.dp, !busy) { clean() }
-                        }
-                    }
-                }
-
-                GlowCard(
-                    modifier = Modifier.offset(268.dp, 116.dp).size(300.dp, 323.dp),
-                    onClick = { clean() },
-                    hero = true
+                // Header
+                Row(
+                    Modifier.offset(18.dp, 12.dp).size(924.dp, 64.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(Modifier.fillMaxSize()) {
-                        RamGauge(ram, Modifier.align(Alignment.TopCenter).padding(top = 22.dp).size(240.dp))
-                        Column(
-                            Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text("RAM BOOSTER", color = WHITE, fontSize = 19.sp, fontWeight = FontWeight.Black)
-                            Spacer(Modifier.height(10.dp))
-                            MasterButton(if (busy) "BOOSTING..." else "BOOST", 150.dp, !busy) { clean() }
+                    Image(
+                        painter = painterResource(R.drawable.shadowfox_logo),
+                        contentDescription = "ShadowFox TV",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(154.dp, 56.dp)
+                    )
+                    Column(Modifier.width(190.dp)) {
+                        Text("OPTIMIZE • CLEAN • PERFORM", color = MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                        Text(if (rootAvailable) "ROOTED PRO MODE" else "STANDARD MODE", color = if (rootAvailable) CYAN else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                    }
+                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("BUILT FOR ANDROID TV", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                        Text("FASTER • SMOOTHER • BETTER", color = CYAN, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Column(Modifier.width(150.dp), horizontalAlignment = Alignment.End) {
+                        Text(SimpleDateFormat("h:mm a", Locale.getDefault()).format(clock).uppercase(Locale.getDefault()), color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                        Text(SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(clock).uppercase(Locale.getDefault()), color = CYAN, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                        Text(deviceLabel() + "  •  ANDROID " + Build.VERSION.RELEASE.orEmpty(), color = MUTED, fontSize = 6.sp, maxLines = 1)
+                    }
+                }
+
+                // Left navigation rail
+                GlowCard(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp), onClick = {}) {
+                    Column(Modifier.fillMaxSize().padding(12.dp)) {
+                        NavEntry("⚡", "OPTIMIZE", true, Modifier.fillMaxSize().weight(1f))
+                        NavEntry("▦", "APPS", false, Modifier.fillMaxSize().weight(1f))
+                        NavEntry("⌁", "NETWORK", false, Modifier.fillMaxSize().weight(1f))
+                        NavEntry("⚙", "SYSTEM", false, Modifier.fillMaxSize().weight(1f))
+                        Image(
+                            painter = painterResource(R.drawable.shadowfox_logo),
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.height(88.dp).width(118.dp)
+                        )
+                    }
+                }
+
+                // Four live metric cards
+                MetricCard("SHADOWFOX SCORE", scoreFor(ram, ping).toString(), "SYSTEM HEALTH", Modifier.offset(174.dp, 88.dp).size(182.dp, 86.dp))
+                MetricCard("RAM USED", ram.toInt().toString() + "%", formatBytes(availableMemoryBytes(context)) + " FREE", Modifier.offset(366.dp, 88.dp).size(182.dp, 86.dp))
+                MetricCard("RUNNING APPS", apps.toString(), if (apps == 1) "1 APP" else "$apps APPS", Modifier.offset(558.dp, 88.dp).size(182.dp, 86.dp))
+                MetricCard("NETWORK", String.format("%.1f Mbps", mbps), if (ping > 0) "$ping ms PING" else "CHECKING", Modifier.offset(750.dp, 88.dp).size(192.dp, 86.dp))
+
+                // Smart Optimize hero
+                GlowCard(Modifier.offset(174.dp, 188.dp).size(480.dp, 220.dp), onClick = { optimize() }, hero = true) {
+                    Column(Modifier.fillMaxSize().padding(22.dp)) {
+                        Text("SMART OPTIMIZE", color = WHITE, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                        Text("One-touch performance optimization", color = MUTED, fontSize = 9.sp)
+                        Spacer(Modifier.height(18.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            RamGauge(ram, Modifier.size(148.dp))
+                            Spacer(Modifier.width(20.dp))
+                            Column {
+                                Text(if (busy) "OPTIMIZING…" else "READY TO OPTIMIZE", color = CYAN, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                                Text("Closes background apps and trims cache", color = MUTED, fontSize = 8.sp)
+                                Spacer(Modifier.height(13.dp))
+                                MasterButton(if (busy) "WORKING…" else "OPTIMIZE NOW", 150.dp, !busy) { optimize() }
+                            }
                         }
                     }
                 }
 
-                GlowCard(Modifier.offset(592.dp, 133.dp).size(320.dp, 133.dp), onClick = { clean() }) {
-                    Row(Modifier.fillMaxSize().padding(17.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Broom(Modifier.size(64.dp))
-                        Spacer(Modifier.width(14.dp))
-                        Column {
-                            Text("CACHE CLEANER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
-                            Text("Trim app cache without deleting data.", color = MUTED, fontSize = 8.sp)
-                            Spacer(Modifier.height(9.dp))
-                            MasterButton(if (busy) "CLEANING..." else "CLEAN NOW", 105.dp, !busy) { clean() }
-                        }
+                GlowCard(Modifier.offset(668.dp, 188.dp).size(274.dp, 103.dp), onClick = { optimize() }) {
+                    Column(Modifier.fillMaxSize().padding(15.dp)) {
+                        Text("CACHE CLEANER", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                        Text("Clear temporary cache safely", color = MUTED, fontSize = 8.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Text(if (storageFreed > 0) formatBytes(storageFreed) + " CLEARED" else "READY", color = CYAN, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
-                GlowCard(Modifier.offset(592.dp, 282.dp).size(320.dp, 128.dp), onClick = {}) {
-                    Row(Modifier.fillMaxSize().padding(17.dp), verticalAlignment = Alignment.CenterVertically) {
-                        NetworkIcon(Modifier.size(62.dp))
-                        Spacer(Modifier.width(14.dp))
-                        Column {
-                            Text("NETWORK MONITOR", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
-                            Text(
-                                if (ping > 0) "${String.format("%.1f", mbps)} Mbps • ${ping} ms" else "LIVE CONNECTION MONITOR",
-                                color = MUTED,
-                                fontSize = 8.sp
-                            )
-                            Spacer(Modifier.height(7.dp))
-                            Bars(graph, Modifier.size(175.dp, 43.dp))
-                        }
+                GlowCard(Modifier.offset(668.dp, 305.dp).size(274.dp, 103.dp), onClick = {
+                    context.startActivity(Intent(context, UltimateCenterActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }) {
+                    Column(Modifier.fillMaxSize().padding(15.dp)) {
+                        Text("ULTIMATE CENTER", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                        Text("Advanced ShadowFox controls", color = MUTED, fontSize = 8.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Text(if (rootAvailable) "ROOT ACCESS ACTIVE" else "SYSTEM TOOLS", color = if (rootAvailable) GREEN else CYAN, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
-                BottomSystemStrip(
-                    root = rootAvailable,
-                    ramFreed = ramFreed,
-                    storageFreed = storageFreed,
-                    closedApps = closedApps,
-                    modifier = Modifier.offset(45.dp, 454.dp).size(867.dp, 58.dp)
+                GlowCard(Modifier.offset(174.dp, 422.dp).size(768.dp, 72.dp), onClick = {}) {
+                    Row(Modifier.fillMaxSize().padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.width(235.dp)) {
+                            Text("THERMAL + PERFORMANCE", color = WHITE, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                            Text("Live system performance status", color = MUTED, fontSize = 8.sp)
+                        }
+                        StatTile("RAM FREED", formatBytes(ramFreed), Modifier.size(120.dp, 46.dp))
+                        Spacer(Modifier.width(8.dp))
+                        StatTile("APPS CLOSED", closedApps.toString(), Modifier.size(112.dp, 46.dp))
+                        Spacer(Modifier.width(8.dp))
+                        StatTile("ROOT", if (rootAvailable) "ACTIVE" else "READY", Modifier.size(105.dp, 46.dp), if (rootAvailable) GREEN else MUTED)
+                    }
+                }
+
+                Text(
+                    "SHADOWFOX TV  |  OPTIMIZED FOR PERFORMANCE",
+                    color = MUTED,
+                    fontSize = 7.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 7.dp)
                 )
-                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))
             }
         }
     }
+}
+
+@Composable
+private fun NavEntry(icon: String, label: String, selected: Boolean, modifier: Modifier) {
+    val shape = RoundedCornerShape(8.dp)
+    Row(
+        modifier.background(if (selected) CYAN.copy(alpha = .16f) else Color.Transparent, shape).padding(horizontal = 9.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(icon, color = if (selected) CYAN else MUTED, fontSize = 16.sp)
+        Spacer(Modifier.width(9.dp))
+        Text(label, color = if (selected) WHITE else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
+    }
+}
+
+@Composable
+private fun MetricCard(title: String, value: String, detail: String, modifier: Modifier) {
+    GlowCard(modifier, onClick = {}) {
+        Column(Modifier.fillMaxSize().padding(12.dp)) {
+            Text(title, color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
+            Text(value, color = WHITE, fontSize = 21.sp, fontWeight = FontWeight.Black)
+            Text(detail, color = CYAN, fontSize = 7.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+private fun scoreFor(ram: Float, ping: Int): Int {
+    val ramScore = (100f - ram).coerceIn(0f, 100f)
+    val networkScore = if (ping <= 0) 80f else (100f - ping.coerceAtMost(100)).coerceAtLeast(0f)
+    return (ramScore * .7f + networkScore * .3f).toInt().coerceIn(0, 100)
 }
 
 @Composable
