@@ -248,20 +248,24 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
     val scope = rememberCoroutineScope()
     var apps by remember { mutableStateOf<List<ManagedApp>>(emptyList()) }
     var message by remember { mutableStateOf("Loading apps...") }
+    var showSystem by remember { mutableStateOf(!isPhone) }
     fun load() { scope.launch {
         val all = manager.apps()
-        apps = if (isPhone) all.sortedWith(compareBy<ManagedApp> { it.system }.thenBy { it.label.lowercase(Locale.getDefault()) }) else all
+        apps = all.sortedWith(compareBy<ManagedApp> { it.system }.thenBy { it.label.lowercase(Locale.getDefault()) })
         val userCount = all.count { !it.system }
-        message = if (isPhone) "$userCount user apps • ${all.size} launchable" else "${all.size} launchable apps"
+        message = if (isPhone) "$userCount user apps • ${all.size - userCount} system apps" else "${all.size} launchable apps"
     } }
     LaunchedEffect(Unit) { load() }
 
     Column(Modifier.fillMaxSize()) {
-        Text(message, color = UMUTED, fontSize = 10.sp)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(message, color = UMUTED, fontSize = 10.sp, modifier = Modifier.weight(1f))
+            if (isPhone && apps.any { it.system }) CompactAction(if (showSystem) "HIDE SYSTEM" else "SHOW SYSTEM", Modifier.width(112.dp)) { showSystem = !showSystem }
+        }
         Spacer(Modifier.height(6.dp))
         val appsScroll = remember(landscape) { ScrollState(0) }
         Column(Modifier.fillMaxSize().verticalScroll(appsScroll)) {
-            apps.forEach { item ->
+            apps.filter { showSystem || !it.system }.forEach { item ->
                 UltimatePanel(item.label, "${if (item.system) "SYSTEM • " else ""}${if (item.running) "RUNNING" else "IDLE"} • ${item.packageName}") {
                     if (landscape) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -314,7 +318,7 @@ private fun NetworkScreen(manager: UltimateManager, landscape: Boolean) {
             ), landscape
         )
         Spacer(Modifier.height(10.dp))
-        UltimatePanel("CONNECTION DIAGNOSTICS", "Direct socket latency checks. Ratings use ShadowFox latency thresholds.") {
+        UltimatePanel("CONNECTION DIAGNOSTICS", "Live connectivity, DNS and latency checks using ShadowFox streaming thresholds.") {
             Text(when (report?.verdict) {
                 "EXCELLENT" -> "Connection looks excellent for streaming."
                 "GOOD" -> "Connection looks healthy."
@@ -350,6 +354,7 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
         UltimatePanel("DEVICE CENTER", "${device.manufacturer} ${device.model} • ${device.abi}") {
             Text("Storage: ${formatUiBytes(storage.usedBytes)} used / ${formatUiBytes(storage.totalBytes)} total • ${formatUiBytes(storage.freeBytes)} free", color = UWHITE, fontSize = 10.sp)
             Text("ShadowFox cache: ${formatUiBytes(storage.appCacheBytes)}", color = UMUTED, fontSize = 9.sp)
+            Text("Android ${device.android} • SDK ${device.sdk} • Thermal ${device.thermal}", color = UMUTED, fontSize = 9.sp)
             Spacer(Modifier.height(8.dp))
             if (landscape) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
