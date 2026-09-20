@@ -96,7 +96,9 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     var tab by remember { mutableStateOf(initialTab) }
     var snapshot by remember { mutableStateOf<UltimateSnapshot?>(null) }
     val scope = rememberCoroutineScope()
-    val configuration = LocalConfiguration.current\n    val landscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE\n    val isPhone = configuration.smallestScreenWidthDp < 600
+    val configuration = LocalConfiguration.current
+    val landscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isPhone = configuration.smallestScreenWidthDp < 600
 
     fun refresh() { scope.launch { snapshot = manager.snapshot() } }
     LaunchedEffect(Unit) { snapshot = manager.snapshot() }
@@ -244,7 +246,12 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
     val scope = rememberCoroutineScope()
     var apps by remember { mutableStateOf<List<ManagedApp>>(emptyList()) }
     var message by remember { mutableStateOf("Loading apps...") }
-    fun load() { scope.launch {\n        val all = manager.apps()\n        apps = if (isPhone) all.sortedWith(compareBy<ManagedApp> { it.system }.thenBy { it.label.lowercase(Locale.getDefault()) }) else all\n        val userCount = all.count { !it.system }\n        message = if (isPhone) "$userCount user apps • ${all.size} launchable" else "${all.size} launchable apps"\n    } }
+    fun load() { scope.launch {
+        val all = manager.apps()
+        apps = if (isPhone) all.sortedWith(compareBy<ManagedApp> { it.system }.thenBy { it.label.lowercase(Locale.getDefault()) }) else all
+        val userCount = all.count { !it.system }
+        message = if (isPhone) "$userCount user apps • ${all.size} launchable" else "${all.size} launchable apps"
+    } }
     LaunchedEffect(Unit) { load() }
 
     Column(Modifier.fillMaxSize()) {
