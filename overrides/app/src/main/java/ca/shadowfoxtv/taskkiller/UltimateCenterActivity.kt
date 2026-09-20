@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -156,7 +157,7 @@ private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact
             painter = painterResource(R.drawable.shadowfox_logo),
             contentDescription = "ShadowFox TV",
             contentScale = ContentScale.Fit,
-            modifier = Modifier.width(if (compact) 150.dp else 170.dp).height(if (compact) 48.dp else 54.dp)
+            modifier = Modifier.width(if (isPhone) { if (compact) 120.dp else 100.dp } else { if (compact) 150.dp else 170.dp }).height(if (isPhone) { if (compact) 44.dp else 46.dp } else { if (compact) 48.dp else 54.dp })
         )
         Spacer(Modifier.width(12.dp))
         Column {
@@ -177,7 +178,8 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
     var status by remember { mutableStateOf("READY") }
     var busy by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    val optimizeScroll = remember(landscape) { ScrollState(0) }
+    Column(Modifier.fillMaxSize().verticalScroll(optimizeScroll)) {
         MetricGrid(
             listOf(
                 Triple("SHADOWFOX SCORE", "${snapshot?.health ?: 0}/100", if ((snapshot?.health ?: 0) >= 75) UGREEN else UORANGE),
@@ -257,7 +259,8 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
     Column(Modifier.fillMaxSize()) {
         Text(message, color = UMUTED, fontSize = 10.sp)
         Spacer(Modifier.height(6.dp))
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        val appsScroll = remember(landscape) { ScrollState(0) }
+        Column(Modifier.fillMaxSize().verticalScroll(appsScroll)) {
             apps.forEach { item ->
                 UltimatePanel(item.label, "${if (item.system) "SYSTEM • " else ""}${if (item.running) "RUNNING" else "IDLE"} • ${item.packageName}") {
                     if (landscape) {
@@ -300,7 +303,8 @@ private fun NetworkScreen(manager: UltimateManager, landscape: Boolean) {
     fun test() { scope.launch { testing = true; report = manager.networkReport(); testing = false } }
     LaunchedEffect(Unit) { test() }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    val networkScroll = remember(landscape) { ScrollState(0) }
+    Column(Modifier.fillMaxSize().verticalScroll(networkScroll)) {
         MetricGrid(
             listOf(
                 Triple("STATUS", report?.verdict ?: "TESTING", if (report?.connected == true) UGREEN else UORANGE),
@@ -332,7 +336,8 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
     var maintenance by remember { mutableStateOf(manager.maintenanceEnabled()) }
     var message by remember { mutableStateOf("SYSTEM READY") }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    val systemScroll = remember(landscape) { ScrollState(0) }
+    Column(Modifier.fillMaxSize().verticalScroll(systemScroll)) {
         MetricGrid(
             listOf(
                 Triple("MODE", device.rootMode, if (snapshot?.root == true) UGREEN else UCYAN),
@@ -436,8 +441,8 @@ private fun CompactAction(text: String, modifier: Modifier, onClick: () -> Unit)
     val zoom by animateFloatAsState(if (focused) 1.04f else 1f, label = "compactFocus")
     Box(
         modifier.height(38.dp).scale(zoom)
-            .shadow(if (focused) 14.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = UCYAN.copy(alpha = .8f), spotColor = UCYAN.copy(alpha = .8f))
-            .background(if (focused) Color(0xFF102B38) else Color(0xFF0B1821), RoundedCornerShape(6.dp))
+            .shadow(if (focused) 12.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black, spotColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black)
+            .background(if (focused) Color(0xFF102B38) else Color(0xFF0B1116), RoundedCornerShape(6.dp))
             .onFocusChanged { focused = it.isFocused }.focusable().clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Text(text, color = UWHITE, fontSize = 9.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis) }
