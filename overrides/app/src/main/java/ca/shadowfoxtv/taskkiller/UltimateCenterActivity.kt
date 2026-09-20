@@ -96,7 +96,7 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     var tab by remember { mutableStateOf(initialTab) }
     var snapshot by remember { mutableStateOf<UltimateSnapshot?>(null) }
     val scope = rememberCoroutineScope()
-    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val configuration = LocalConfiguration.current\n    val landscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE\n    val isPhone = configuration.smallestScreenWidthDp < 600
 
     fun refresh() { scope.launch { snapshot = manager.snapshot() } }
     LaunchedEffect(Unit) { snapshot = manager.snapshot() }
@@ -114,13 +114,13 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
         ) {
             if (landscape) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    BrandHeader(snapshot, Modifier.weight(1f), compact = true)
+                    BrandHeader(snapshot, Modifier.weight(1f), compact = true, isPhone = isPhone)
                     UltimateButton("REFRESH") { refresh() }
                     Spacer(Modifier.width(8.dp))
                     UltimateButton("BACK") { onClose() }
                 }
             } else {
-                BrandHeader(snapshot, Modifier.fillMaxWidth(), compact = false)
+                BrandHeader(snapshot, Modifier.fillMaxWidth(), compact = false, isPhone = isPhone)
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     UltimateButton("REFRESH") { refresh() }
@@ -139,7 +139,7 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
 
             when (tab) {
                 UltimateTab.OPTIMIZE -> OptimizeScreen(manager, snapshot, ::refresh, landscape)
-                UltimateTab.APPS -> AppsScreen(manager, landscape)
+                UltimateTab.APPS -> AppsScreen(manager, landscape, isPhone)
                 UltimateTab.NETWORK -> NetworkScreen(manager, landscape)
                 UltimateTab.SYSTEM -> SystemScreen(manager, snapshot, ::refresh, landscape)
             }
@@ -148,7 +148,7 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
 }
 
 @Composable
-private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact: Boolean) {
+private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact: Boolean, isPhone: Boolean) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Image(
             painter = painterResource(R.drawable.shadowfox_logo),
@@ -163,7 +163,7 @@ private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact
                 Spacer(Modifier.width(7.dp))
                 Text("v${BuildConfig.VERSION_NAME}", color = UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
-            Text("ADVANCED CONTROL • ANDROID TV", color = UMUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+            Text(if (isPhone) "ADVANCED CONTROL • MOBILE" else "ADVANCED CONTROL • ANDROID TV", color = UMUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
             Text(snapshot?.mode ?: "DETECTING DEVICE...", color = if (snapshot?.root == true) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
@@ -240,11 +240,11 @@ private fun ThermalPanel(snapshot: UltimateSnapshot?) {
 }
 
 @Composable
-private fun AppsScreen(manager: UltimateManager, landscape: Boolean) {
+private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Boolean) {
     val scope = rememberCoroutineScope()
     var apps by remember { mutableStateOf<List<ManagedApp>>(emptyList()) }
     var message by remember { mutableStateOf("Loading apps...") }
-    fun load() { scope.launch { apps = manager.apps(); message = "${apps.size} launchable apps" } }
+    fun load() { scope.launch {\n        val all = manager.apps()\n        apps = if (isPhone) all.sortedWith(compareBy<ManagedApp> { it.system }.thenBy { it.label.lowercase(Locale.getDefault()) }) else all\n        val userCount = all.count { !it.system }\n        message = if (isPhone) "$userCount user apps • ${all.size} launchable" else "${all.size} launchable apps"\n    } }
     LaunchedEffect(Unit) { load() }
 
     Column(Modifier.fillMaxSize()) {
@@ -252,7 +252,7 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean) {
         Spacer(Modifier.height(6.dp))
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             apps.forEach { item ->
-                UltimatePanel(item.label, "${item.packageName} • ${if (item.running) "RUNNING" else "IDLE"}${if (item.system) " • SYSTEM" else ""}") {
+                UltimatePanel(item.label, "${if (item.system) "SYSTEM • " else ""}${if (item.running) "RUNNING" else "IDLE"} • ${item.packageName}") {
                     if (landscape) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             AppActions(manager, item, { load() }, { message = it }, scope)
@@ -415,7 +415,7 @@ private fun UltimateButton(text: String, enabled: Boolean = true, onClick: () ->
     val zoom by animateFloatAsState(if (focused) 1.05f else 1f, label = "ultimateButtonFocus")
     Box(
         Modifier.height(38.dp).scale(zoom)
-            .shadow(if (focused) 14.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = UCYAN.copy(alpha = .8f), spotColor = UCYAN.copy(alpha = .8f))
+            .shadow(if (focused) 12.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black, spotColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black)
             .background(if (!enabled) Color(0xFF18252D) else if (focused) Color(0xFF102B38) else Color(0xFF0B1821), RoundedCornerShape(6.dp))
             .onFocusChanged { focused = it.isFocused }.focusable(enabled).clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp),
