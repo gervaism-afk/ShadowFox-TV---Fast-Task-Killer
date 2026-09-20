@@ -318,7 +318,7 @@ private fun NetworkScreen(manager: UltimateManager, landscape: Boolean) {
             ), landscape
         )
         Spacer(Modifier.height(10.dp))
-        UltimatePanel("CONNECTION DIAGNOSTICS", "Direct socket latency checks. Ratings use ShadowFox latency thresholds.") {
+        UltimatePanel("CONNECTION DIAGNOSTICS", "Live connectivity, DNS and latency checks using ShadowFox streaming thresholds.") {
             Text(when (report?.verdict) {
                 "EXCELLENT" -> "Connection looks excellent for streaming."
                 "GOOD" -> "Connection looks healthy."
@@ -354,6 +354,7 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
         UltimatePanel("DEVICE CENTER", "${device.manufacturer} ${device.model} • ${device.abi}") {
             Text("Storage: ${formatUiBytes(storage.usedBytes)} used / ${formatUiBytes(storage.totalBytes)} total • ${formatUiBytes(storage.freeBytes)} free", color = UWHITE, fontSize = 10.sp)
             Text("ShadowFox cache: ${formatUiBytes(storage.appCacheBytes)}", color = UMUTED, fontSize = 9.sp)
+            Text("Android ${device.android} • SDK ${device.sdk} • Thermal ${device.thermal}", color = UMUTED, fontSize = 9.sp)
             Spacer(Modifier.height(8.dp))
             if (landscape) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
