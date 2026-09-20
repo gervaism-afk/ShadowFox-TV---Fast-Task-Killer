@@ -99,4 +99,5 @@ jobs:
           cp extracted/app/build/outputs/apk/release/app-release.apk "$ASSET"
           if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Optimizer v${APP_VERSION}" --notes "ShadowFox H96 ANR fix build."; fi
 
-# v6.4.0 validation retry
+
+# validate corrected v6.4.0 source
