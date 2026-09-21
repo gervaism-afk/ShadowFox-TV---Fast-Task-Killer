@@ -158,17 +158,17 @@ private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact
             painter = painterResource(R.drawable.shadowfox_logo),
             contentDescription = "ShadowFox TV",
             contentScale = ContentScale.Fit,
-            modifier = Modifier.width(if (isPhone) { if (compact) 120.dp else 100.dp } else { if (compact) 150.dp else 170.dp }).height(if (isPhone) { if (compact) 44.dp else 46.dp } else { if (compact) 48.dp else 54.dp })
+            modifier = Modifier.width(if (isPhone) { if (compact) 120.dp else 100.dp } else 190.dp).height(if (isPhone) { if (compact) 44.dp else 46.dp } else 60.dp)
         )
         Spacer(Modifier.width(12.dp))
         Column {
             Row(verticalAlignment = Alignment.Bottom) {
-                Text("ULTIMATE CENTER", color = UWHITE, fontSize = if (compact) 16.sp else 18.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                Text("ULTIMATE CENTER", color = UWHITE, fontSize = if (isPhone) { if (compact) 16.sp else 18.sp } else 21.sp, fontWeight = FontWeight.Black, maxLines = 1)
                 Spacer(Modifier.width(7.dp))
                 Text("v${BuildConfig.VERSION_NAME}", color = UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
-            Text(if (isPhone) "ADVANCED CONTROL • MOBILE" else "ADVANCED CONTROL • ANDROID TV", color = UMUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-            Text(snapshot?.mode ?: "DETECTING DEVICE...", color = if (snapshot?.root == true) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(if (isPhone) "ADVANCED CONTROL • MOBILE" else "ADVANCED CONTROL • ANDROID TV", color = UMUTED, fontSize = if (isPhone) 8.sp else 10.sp, fontWeight = FontWeight.Bold)
+            Text(snapshot?.mode ?: "DETECTING DEVICE...", color = if (snapshot?.root == true) UGREEN else UCYAN, fontSize = if (isPhone) 9.sp else 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
 }
@@ -460,7 +460,7 @@ private fun UltimateTabButton(text: String, selected: Boolean, modifier: Modifie
     val zoom by animateFloatAsState(if (focused) 1.035f else 1f, label = "tabFocus")
     Box(
         modifier.height(42.dp).scale(zoom)
-            .shadow(if (focused) 14.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = UCYAN.copy(alpha = .8f), spotColor = UCYAN.copy(alpha = .8f))
+            .shadow(if (focused) 14.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = if (focused) UWHITE.copy(alpha = .35f) else Color.Black, spotColor = if (focused) UWHITE.copy(alpha = .35f) else Color.Black)
             .background(if (focused) Color(0xFF11171B) else if (selected) Color(0xFF090D10) else Color(0xFF030507), RoundedCornerShape(6.dp))
             .onFocusChanged { focused = it.isFocused }.focusable().clickable(onClick = onClick),
         contentAlignment = Alignment.Center
