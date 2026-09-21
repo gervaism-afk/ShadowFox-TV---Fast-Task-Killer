@@ -122,6 +122,7 @@ private fun MasterDashboard(context: Context) {
     var ramFreed by remember { mutableStateOf(0L) }
     var storageFreed by remember { mutableStateOf(0L) }
     var closedApps by remember { mutableIntStateOf(0) }
+    var optimizeHasRun by remember { mutableStateOf(false) }
     var clock by remember { mutableStateOf(Date()) }
     val optimizer = remember { AppOptimizer(context) }
     val scope = rememberCoroutineScope()
@@ -151,6 +152,7 @@ private fun MasterDashboard(context: Context) {
             ramFreed = result.ramFreedBytes
             storageFreed = result.storageFreedBytes
             closedApps = result.closedApps
+            optimizeHasRun = true
             busy = false
         }
     }
@@ -221,7 +223,7 @@ private fun MasterDashboard(context: Context) {
                 MetricCard("NETWORK", if (ping in 1..90) "EXCELLENT" else String.format("%.1f Mbps", mbps), if (ping > 0) "$ping ms PING" else "CHECKING", Modifier.offset(760.dp, 92.dp).size(188.dp, 78.dp))
 
                 // Large reference Smart Optimize module
-                GlowCard(Modifier.offset(166.dp, 182.dp).size(338.dp, 250.dp), onClick = { optimize() }) {
+                DisplayCard(Modifier.offset(166.dp, 182.dp).size(338.dp, 250.dp)) {
                     Column(Modifier.fillMaxSize().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         RamGauge(ram, Modifier.size(108.dp))
                         Text("SMART OPTIMIZE", color = WHITE, fontSize = 18.sp, fontWeight = FontWeight.Black)
@@ -230,7 +232,7 @@ private fun MasterDashboard(context: Context) {
                         Spacer(Modifier.height(12.dp))
                         MasterButton(if (busy) "WORKING…" else "⚡  ONE-TAP SMART OPTIMIZE", 245.dp, !busy) { optimize() }
                         Spacer(Modifier.height(9.dp))
-                        Text(if (busy) "●  OPTIMIZING" else "✓  READY     |     Last run: " + if (ramFreed > 0 || closedApps > 0) "Complete" else "Never", color = if (busy) CYAN else GREEN, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Text(when { busy -> "●  OPTIMIZING…" ; optimizeHasRun -> "✓  COMPLETE  •  $closedApps apps closed  •  ${formatBytes(ramFreed)} RAM  •  ${formatBytes(storageFreed)} cache" ; else -> "✓  READY  •  Last run: Never" }, color = if (busy) CYAN else GREEN, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
