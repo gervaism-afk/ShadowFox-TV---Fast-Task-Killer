@@ -209,7 +209,7 @@ private fun MasterDashboard(context: Context) {
                 }
 
                 // Left navigation rail
-                Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xFF24282C), Color(0xFF090B0D), Color(0xFF171A1D), Color(0xFF050607))), RoundedCornerShape(6.dp))) {
+                Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xFF15181B), Color(0xFF030405), Color(0xFF0D1012), Color(0xFF010203))), RoundedCornerShape(6.dp))) {
                     Column(Modifier.fillMaxSize().padding(12.dp)) {
                         NavEntry("⌂", "OPTIMIZE", false, Modifier.fillMaxSize().weight(1f)) { optimize() }
                         NavEntry("▦", "APPS", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "APPS") }
@@ -572,7 +572,7 @@ private fun DisplayCard(
                 ambientColor = Color.Black,
                 spotColor = Color.Black
             )
-            .background(Brush.verticalGradient(listOf(Color(0xFA24282C), Color(0xFA0A0C0E), Color(0xFA171A1D), Color(0xFA050607))), shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFC171A1D), Color(0xFC030405), Color(0xFC0E1113), Color(0xFC010203))), shape)
     ) {
         Canvas(Modifier.fillMaxSize()) {
             drawRoundRect(
@@ -605,14 +605,14 @@ private fun GlowCard(
                 ambientColor = if (focused) CYAN else Color.Black,
                 spotColor = if (focused) CYAN else Color.Black
             )
-            .background(Brush.verticalGradient(listOf(Color(0xFA24282C), Color(0xFA0A0C0E), Color(0xFA171A1D), Color(0xFA050607))), shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFC171A1D), Color(0xFC030405), Color(0xFC0E1113), Color(0xFC010203))), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick)
     ) {
         Canvas(Modifier.fillMaxSize()) {
             drawRoundRect(
-                color = if (focused) WHITE.copy(alpha = .78f) else Color(0xFF555B60),
+                color = if (focused) WHITE.copy(alpha = .78f) else Color(0xFF343A3F),
                 style = Stroke(if (focused) 1.8.dp.toPx() else 1.dp.toPx()),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
             )
@@ -631,7 +631,7 @@ private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabl
             .height(32.dp)
             .scale(if (focused) 1.08f else 1f)
             .shadow(if (focused) 16.dp else 2.dp, shape, false, if (focused) CYAN else Color.Black, if (focused) CYAN else Color.Black)
-            .background(Brush.horizontalGradient(listOf(Color(0xFF252A2E), Color(0xFF090B0D), Color(0xFF1A1D20))), shape)
+            .background(Brush.horizontalGradient(listOf(Color(0xFF171A1D), Color(0xFF030405), Color(0xFF0E1113))), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable(enabled)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
@@ -855,7 +855,16 @@ private class AppOptimizer(private val context: Context) {
 
 private data class RootResult(val success: Boolean, val output: String)
 
-private fun rootShellAvailable(): Boolean = runRoot("id").let { it.success && it.output.contains("uid=0") }
+private fun rootShellAvailable(): Boolean {
+    val primary = runRoot("id")
+    if (primary.success && primary.output.contains("uid=0")) return true
+    val fallback = runCatching {
+        val process = ProcessBuilder("su", "-c", "whoami").redirectErrorStream(true).start()
+        val output = process.inputStream.bufferedReader().use { it.readText() }.trim()
+        process.waitFor() == 0 && output.equals("root", ignoreCase = true)
+    }.getOrDefault(false)
+    return fallback
+}
 
 private fun runRoot(command: String): RootResult = runCatching {
     val process = ProcessBuilder("su", "-c", command).redirectErrorStream(true).start()
