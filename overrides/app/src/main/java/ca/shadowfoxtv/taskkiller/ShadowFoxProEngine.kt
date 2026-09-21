@@ -47,7 +47,8 @@ class ShadowFoxProEngine(private val context: Context) {
         val protected = protectedPackages()
 
         val allEligible = if (root) rootThirdPartyPackages(protected) else nonRootCandidates(protected)
-        val runningCandidates = if (root) allEligible.filter(::isPackageRunningRoot) else allEligible
+        val runningBefore = if (root) rootProcessNames() else emptySet()
+        val runningCandidates = if (root) allEligible.filter { it.isRunningIn(runningBefore) } else allEligible
 
         var verifiedStopped = 0
         var cacheBefore = 0L
@@ -61,21 +62,16 @@ class ShadowFoxProEngine(private val context: Context) {
                 var stillRunning = true
                 for (attempt in 0 until 6) {
                     Thread.sleep(100)
-                    stillRunning = isPackageRunningRoot(pkg)
+                    stillRunning = pkg.isRunningIn(rootProcessNames())
                     if (!stillRunning) break
                 }
                 if (!stillRunning) verifiedStopped++
             }
 
             for (pkg in allEligible) {
-                val paths = listOf(
-                    "/data/user/0/$pkg/cache",
-                    "/data/user/0/$pkg/code_cache",
-                    "/data/data/$pkg/cache",
-                    "/data/data/$pkg/code_cache"
-                )
+                val paths = cachePaths(pkg)
                 val joined = paths.joinToString(" ") { shellQuote(it) }
-                runRoot("for d in $joined; do [ -d \"\$d\" ] && find \"\$d\" -mindepth 1 -exec rm -rf -- {} + 2>/dev/null; done")
+                runRoot("for d in $joined; do if [ -d \"\$d\" ]; then rm -rf \"\$d\"/* \"\$d\"/.[!.]* \"\$d\"/..?* 2>/dev/null; fi; done")
             }
 
             runRoot("pm trim-caches 999999999999")
@@ -122,8 +118,15 @@ class ShadowFoxProEngine(private val context: Context) {
         val root = rootAvailable()
         if (!root) return "STANDARD MODE • ROOT NOT GRANTED"
         val eligible = rootThirdPartyPackages(protectedPackages())
-        val running = eligible.count(::isPackageRunningRoot)
+        val processes = rootProcessNames()
+        val running = eligible.count { it.isRunningIn(processes) }
         return "ROOT ACTIVE • UID 0 • $running running • ${eligible.size} eligible"
+    }
+
+    fun runningThirdPartyCount(): Int {
+        if (!rootAvailable()) return nonRootCandidates(protectedPackages()).size
+        val processes = rootProcessNames()
+        return rootThirdPartyPackages(protectedPackages()).count { it.isRunningIn(processes) }
     }
 
     fun readRecentDiagnostics(maxLines: Int = 12): List<String> = runCatching {
@@ -142,10 +145,21 @@ class ShadowFoxProEngine(private val context: Context) {
             .toList()
     }
 
-    private fun isPackageRunningRoot(packageName: String): Boolean {
-        val result = runRoot("pidof ${shellQuote(packageName)}")
-        return result.output.trim().isNotEmpty()
+    /**
+     * Reads /proc directly because several rooted Android TV firmwares ship a
+     * pidof/ps variant that cannot resolve Android package process names.
+     */
+    private fun rootProcessNames(): Set<String> {
+        val result = runRoot("for f in /proc/[0-9]*/cmdline; do cat \"\$f\" 2>/dev/null; echo; done")
+        if (!result.success && result.output.isBlank()) return emptySet()
+        return result.output.lineSequence()
+            .map { it.substringBefore('\u0000').trim() }
+            .filter { it.isNotBlank() }
+            .toSet()
     }
+
+    private fun String.isRunningIn(processes: Set<String>): Boolean =
+        processes.any { it == this || it.startsWith("${this}:") }
 
     private fun nonRootCandidates(protected: Set<String>): List<String> =
         activityManager.runningAppProcesses.orEmpty()
@@ -187,12 +201,7 @@ class ShadowFoxProEngine(private val context: Context) {
         if (packages.isEmpty()) return 0L
         var totalKb = 0L
         for (pkg in packages) {
-            val paths = listOf(
-                "/data/user/0/$pkg/cache",
-                "/data/user/0/$pkg/code_cache",
-                "/data/data/$pkg/cache",
-                "/data/data/$pkg/code_cache"
-            )
+            val paths = cachePaths(pkg)
             val joined = paths.joinToString(" ") { shellQuote(it) }
             val cmd = "du -sk $joined 2>/dev/null | awk '{s+=\$1} END{print s+0}'"
             val out = runRoot(cmd)
@@ -200,6 +209,11 @@ class ShadowFoxProEngine(private val context: Context) {
         }
         return totalKb * 1024L
     }
+
+    private fun cachePaths(pkg: String): List<String> = listOf(
+        "/data/user/0/$pkg/cache",
+        "/data/user/0/$pkg/code_cache"
+    )
 
     private fun isSystemPackage(packageName: String): Boolean = runCatching {
         val appInfo = packageManager.getApplicationInfo(packageName, 0)
@@ -260,6 +274,7 @@ class ShadowFoxProEngine(private val context: Context) {
 
     private fun formatBytes(bytes: Long): String {
         if (bytes <= 0L) return "0 MB"
+        if (bytes < 1024L * 1024L) return "${(bytes / 1024L).coerceAtLeast(1L)} KB"
         val mb = bytes / (1024.0 * 1024.0)
         return if (mb >= 1024.0) String.format(Locale.US, "%.2f GB", mb / 1024.0) else String.format(Locale.US, "%.0f MB", mb)
     }
