@@ -99,7 +99,8 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     val scope = rememberCoroutineScope()
     val configuration = LocalConfiguration.current
     val landscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val isPhone = configuration.smallestScreenWidthDp < 600
+    val hasTelevisionUi = configuration.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
+    val isPhone = !hasTelevisionUi && configuration.smallestScreenWidthDp < 600
 
     fun refresh() { scope.launch { snapshot = manager.snapshot() } }
     LaunchedEffect(Unit) { snapshot = manager.snapshot() }
@@ -404,7 +405,7 @@ private fun MetricGrid(items: List<Triple<String, String, Color>>, landscape: Bo
 private fun MetricCard(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Column(
         modifier.shadow(3.dp, RoundedCornerShape(8.dp), ambientColor = Color.Black, spotColor = Color.Black)
-            .background(Brush.verticalGradient(listOf(Color(0xFF101418), Color(0xFF05090C))), RoundedCornerShape(8.dp)).padding(vertical = 11.dp, horizontal = 8.dp),
+            .background(Brush.verticalGradient(listOf(Color(0xFF0B0D0F), Color(0xFF020304))), RoundedCornerShape(8.dp)).padding(vertical = 11.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(label, color = UMUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
@@ -433,7 +434,7 @@ private fun UltimateButton(text: String, enabled: Boolean = true, onClick: () ->
     Box(
         Modifier.height(38.dp).scale(zoom)
             .shadow(if (focused) 12.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black, spotColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black)
-            .background(if (!enabled) Color(0xFF18252D) else if (focused) Color(0xFF102B38) else Color(0xFF0B1821), RoundedCornerShape(6.dp))
+            .background(if (!enabled) Color(0xFF18252D) else if (focused) Color(0xFF11171B) else Color(0xFF07090B), RoundedCornerShape(6.dp))
             .onFocusChanged { focused = it.isFocused }.focusable(enabled).clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
@@ -447,7 +448,7 @@ private fun CompactAction(text: String, modifier: Modifier, onClick: () -> Unit)
     Box(
         modifier.height(38.dp).scale(zoom)
             .shadow(if (focused) 12.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black, spotColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black)
-            .background(if (focused) Color(0xFF102B38) else Color(0xFF0B1116), RoundedCornerShape(6.dp))
+            .background(if (focused) Color(0xFF11171B) else Color(0xFF07090B), RoundedCornerShape(6.dp))
             .onFocusChanged { focused = it.isFocused }.focusable().clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Text(text, color = UWHITE, fontSize = 9.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis) }
@@ -460,7 +461,7 @@ private fun UltimateTabButton(text: String, selected: Boolean, modifier: Modifie
     Box(
         modifier.height(42.dp).scale(zoom)
             .shadow(if (focused) 14.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = UCYAN.copy(alpha = .8f), spotColor = UCYAN.copy(alpha = .8f))
-            .background(if (focused) Color(0xFF102B38) else if (selected) Color(0xFF0B1820) else Color(0xFF060A0E), RoundedCornerShape(6.dp))
+            .background(if (focused) Color(0xFF11171B) else if (selected) Color(0xFF090D10) else Color(0xFF030507), RoundedCornerShape(6.dp))
             .onFocusChanged { focused = it.isFocused }.focusable().clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Text(text, color = if (selected || focused) UWHITE else UMUTED, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1) }
