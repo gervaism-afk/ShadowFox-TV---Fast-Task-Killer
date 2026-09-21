@@ -638,7 +638,8 @@ private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabl
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(Modifier.fillMaxSize()) { drawRoundRect(color = if (focused) WHITE.copy(alpha = .62f) else Color(0xFF343A3F), style = Stroke(if (focused) 1.25.dp.toPx() else 1.dp.toPx()), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())) }\n        Text(text, color = if (focused) WHITE else MUTED, fontSize = 10.sp, fontWeight = FontWeight.Black)
+        Canvas(Modifier.fillMaxSize()) { drawRoundRect(color = if (focused) WHITE.copy(alpha = .62f) else Color(0xFF343A3F), style = Stroke(if (focused) 1.25.dp.toPx() else 1.dp.toPx()), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())) }
+        Text(text, color = if (focused) WHITE else MUTED, fontSize = 10.sp, fontWeight = FontWeight.Black)
     }
 }
 
