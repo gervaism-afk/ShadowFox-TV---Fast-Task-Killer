@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.TrafficStats
 import android.net.VpnService
 import android.os.Build
@@ -155,7 +156,8 @@ private fun MasterDashboard(context: Context) {
     }
 
     val configuration = LocalConfiguration.current
-    val isPhone = configuration.smallestScreenWidthDp < 600
+    val hasTelevisionUi = configuration.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
+    val isPhone = !hasTelevisionUi && configuration.smallestScreenWidthDp < 600
     val mobilePortrait = isPhone && configuration.screenHeightDp > configuration.screenWidthDp
     if (isPhone) {
         if (mobilePortrait) {
@@ -189,15 +191,15 @@ private fun MasterDashboard(context: Context) {
                         painter = painterResource(R.drawable.shadowfox_logo),
                         contentDescription = "ShadowFox TV",
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier.size(154.dp, 56.dp)
+                        modifier = Modifier.size(174.dp, 60.dp)
                     )
-                    Column(Modifier.width(190.dp)) {
+                    Column(Modifier.width(205.dp)) {
                         Text("OPTIMIZE • CLEAN • PERFORM", color = MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                        Text((if (rootAvailable) "ROOTED PRO MODE" else "STANDARD MODE") + "  •  v" + BuildConfig.VERSION_NAME, color = if (rootAvailable) CYAN else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                        Text((if (rootAvailable) "ROOTED PRO MODE" else "STANDARD MODE") + "  •  v" + BuildConfig.VERSION_NAME, color = if (rootAvailable) CYAN else MUTED, fontSize = 10.sp, fontWeight = FontWeight.Black)
                     }
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("BUILT FOR ANDROID TV", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
-                        Text("FASTER • SMOOTHER • BETTER", color = CYAN, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                        Text("BUILT FOR ANDROID TV", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
+                        Text("FASTER • SMOOTHER • BETTER", color = CYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     }
                     Column(Modifier.width(150.dp), horizontalAlignment = Alignment.End) {
                         Text(SimpleDateFormat("h:mm a", Locale.getDefault()).format(clock).uppercase(Locale.getDefault()), color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
@@ -207,7 +209,7 @@ private fun MasterDashboard(context: Context) {
                 }
 
                 // Left navigation rail
-                Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xFF080D12), Color(0xFF020406))), RoundedCornerShape(6.dp))) {
+                Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xFF07090B), Color(0xFF010203))), RoundedCornerShape(6.dp))) {
                     Column(Modifier.fillMaxSize().padding(12.dp)) {
                         NavEntry("⌂", "OPTIMIZE", false, Modifier.fillMaxSize().weight(1f)) { optimize() }
                         NavEntry("▦", "APPS", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "APPS") }
@@ -231,8 +233,8 @@ private fun MasterDashboard(context: Context) {
                 // Smart Optimize hero
                 DisplayCard(Modifier.offset(174.dp, 188.dp).size(480.dp, 220.dp), hero = true) {
                     Column(Modifier.fillMaxSize().padding(22.dp)) {
-                        Text("SMART OPTIMIZE", color = WHITE, fontSize = 22.sp, fontWeight = FontWeight.Black)
-                        Text("One-touch performance optimization", color = MUTED, fontSize = 9.sp)
+                        Text("SMART OPTIMIZE", color = WHITE, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                        Text("One-touch performance optimization", color = MUTED, fontSize = 11.sp)
                         Spacer(Modifier.height(18.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RamGauge(ram, Modifier.size(148.dp))
@@ -249,7 +251,7 @@ private fun MasterDashboard(context: Context) {
 
                 GlowCard(Modifier.offset(668.dp, 188.dp).size(274.dp, 103.dp), onClick = { openUltimate(context, "SYSTEM") }) {
                     Column(Modifier.fillMaxSize().padding(15.dp)) {
-                        Text("CACHE CLEANER", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                        Text("CACHE CLEANER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
                         Text("Manage ShadowFox cache safely", color = MUTED, fontSize = 8.sp)
                         Spacer(Modifier.height(8.dp))
                         Text(if (storageFreed > 0) formatBytes(storageFreed) + " CLEARED" else "READY", color = CYAN, fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -260,7 +262,7 @@ private fun MasterDashboard(context: Context) {
                     openUltimate(context, "OPTIMIZE")
                 }) {
                     Column(Modifier.fillMaxSize().padding(15.dp)) {
-                        Text("ULTIMATE CENTER", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                        Text("ULTIMATE CENTER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
                         Text("Advanced ShadowFox controls", color = MUTED, fontSize = 8.sp)
                         Spacer(Modifier.height(8.dp))
                         Text(if (rootAvailable) "ROOT ACCESS ACTIVE" else "SYSTEM TOOLS", color = if (rootAvailable) GREEN else CYAN, fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -478,8 +480,8 @@ private fun NavEntry(icon: String, label: String, selected: Boolean, modifier: M
     val shape = RoundedCornerShape(8.dp)
     Row(
         modifier
-            .background(if (focused) Color(0xFF0B1821) else Color.Transparent, shape)
-            .shadow(if (focused) 12.dp else 0.dp, shape, false, CYAN.copy(alpha = .75f), CYAN.copy(alpha = .75f))
+            .background(if (focused) Color(0xFF0C1013) else Color.Transparent, shape)
+            .shadow(if (focused) 8.dp else 0.dp, shape, false, WHITE.copy(alpha = .35f), WHITE.copy(alpha = .35f))
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick)
@@ -610,8 +612,8 @@ private fun GlowCard(
     ) {
         Canvas(Modifier.fillMaxSize()) {
             drawRoundRect(
-                color = if (focused) CYAN.copy(alpha = .90f) else Color(0xFF35505E),
-                style = Stroke(if (focused) 2.5.dp.toPx() else 1.2.dp.toPx()),
+                color = if (focused) WHITE.copy(alpha = .78f) else Color(0xFF26333A),
+                style = Stroke(if (focused) 1.8.dp.toPx() else 1.dp.toPx()),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
             )
         }
