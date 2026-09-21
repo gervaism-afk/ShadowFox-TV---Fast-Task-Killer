@@ -361,14 +361,20 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     UltimateButton("CLEAR SHADOWFOX CACHE") { val freed = manager.clearOwnCache(); storage = manager.storageReport(); message = "${formatUiBytes(freed)} cleared" }
                     UltimateButton(if (maintenance) "AUTO MAINTENANCE: ON" else "AUTO MAINTENANCE: OFF") { maintenance = !maintenance; manager.scheduleMaintenance(maintenance) }
-                    UltimateButton("CHECK UPDATE") { message = "Checking for update…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status } }
+                    Column {
+                    UltimateButton("CHECK UPDATE") { message = "CHECKING FOR UPDATE…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } }
+                    Spacer(Modifier.height(5.dp))
+                    Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 2)
+                }
                 }
             } else {
                 CompactAction("CLEAR SHADOWFOX CACHE", Modifier.fillMaxWidth()) { val freed = manager.clearOwnCache(); storage = manager.storageReport(); message = "${formatUiBytes(freed)} cleared" }
                 Spacer(Modifier.height(6.dp))
                 CompactAction(if (maintenance) "AUTO MAINTENANCE: ON" else "AUTO MAINTENANCE: OFF", Modifier.fillMaxWidth()) { maintenance = !maintenance; manager.scheduleMaintenance(maintenance) }
                 Spacer(Modifier.height(6.dp))
-                CompactAction("CHECK UPDATE", Modifier.fillMaxWidth()) { message = "Checking for update…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status } }
+                CompactAction("CHECK UPDATE", Modifier.fillMaxWidth()) { message = "CHECKING FOR UPDATE…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } }
+                Spacer(Modifier.height(5.dp))
+                Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 2)
             }
         }
         Spacer(Modifier.height(10.dp))
