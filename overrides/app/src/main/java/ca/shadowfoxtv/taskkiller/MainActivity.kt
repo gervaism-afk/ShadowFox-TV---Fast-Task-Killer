@@ -240,7 +240,7 @@ private fun MasterDashboard(context: Context) {
                         Text("Automatically chooses the safest", color = MUTED, fontSize = 9.sp)
                         Text("cleanup supported by this device.", color = MUTED, fontSize = 9.sp)
                         Spacer(Modifier.height(12.dp))
-                        MasterButton(if (busy) "WORKING…" else "⚡  ONE-TAP SMART OPTIMIZE", 245.dp, !busy) { optimize() }
+                        MasterButton(when { busy -> "WORKING…"; optimizeHasRun -> "✓  OPTIMIZATION COMPLETE"; else -> "⚡  ONE-TAP SMART OPTIMIZE" }, 245.dp, !busy) { optimize() }
                         Spacer(Modifier.height(9.dp))
                         Text(when { busy -> "●  OPTIMIZING…" ; optimizeHasRun -> "✓  COMPLETE  •  $closedApps apps closed  •  ${formatBytes(ramFreed)} RAM  •  ${formatBytes(storageFreed)} cache" ; else -> "✓  READY  •  Last run: Never" }, color = if (busy) CYAN else GREEN, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                     }
