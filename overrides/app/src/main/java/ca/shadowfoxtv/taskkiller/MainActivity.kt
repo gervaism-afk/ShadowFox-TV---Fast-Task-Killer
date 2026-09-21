@@ -136,10 +136,12 @@ private fun MasterDashboard(context: Context) {
         }
     }
     val optimizer = remember { AppOptimizer(context) }
+    val proEngine = remember { ShadowFoxProEngine(context.applicationContext) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         rootAvailable = withContext(Dispatchers.IO) { rootShellAvailable() }
+        var processRefreshTick = 0
         while (true) {
             val before = totalTrafficBytes()
             delay(1000)
@@ -147,7 +149,12 @@ private fun MasterDashboard(context: Context) {
             if (before >= 0 && after >= before) mbps = (after - before) * 8f / 1_000_000f
             ping = measureLatencyMs()
             ram = memoryUsedPercent(context)
-            apps = runningProcessCount(context)
+            if (processRefreshTick % 5 == 0) {
+                apps = withContext(Dispatchers.IO) {
+                    if (rootAvailable) proEngine.runningThirdPartyCount() else runningProcessCount(context)
+                }
+            }
+            processRefreshTick++
             clock = Date()
         }
     }
@@ -174,7 +181,9 @@ private fun MasterDashboard(context: Context) {
                     .putString("summary", result.summary)
                     .commit()
                 ram = memoryUsedPercent(context)
-                apps = runningProcessCount(context)
+                apps = withContext(Dispatchers.IO) {
+                    if (rootAvailable) proEngine.runningThirdPartyCount() else runningProcessCount(context)
+                }
             } finally {
                 busy = false
             }
@@ -272,7 +281,7 @@ private fun MasterDashboard(context: Context) {
                         Spacer(Modifier.height(5.dp))
                         if (optimizeHasRun) {
                             Column(
-                                Modifier.width(275.dp).height(49.dp)
+                                Modifier.width(275.dp).height(57.dp)
                                     .border(1.dp, CYAN.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
                                     .padding(horizontal = 8.dp, vertical = 3.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
@@ -970,6 +979,7 @@ private fun deviceLabel(): String {
 
 private fun formatBytes(bytes: Long): String {
     if (bytes <= 0L) return "0 MB"
+    if (bytes < 1024L * 1024L) return "${(bytes / 1024L).coerceAtLeast(1L)} KB"
     val mb = bytes / (1024.0 * 1024.0)
     return if (mb >= 1024.0) String.format("%.2f GB", mb / 1024.0) else String.format("%.0f MB", mb)
 }
