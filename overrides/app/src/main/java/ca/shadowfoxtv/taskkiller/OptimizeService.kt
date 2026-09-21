@@ -14,7 +14,6 @@ class OptimizeService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val prefs = getSharedPreferences("shadowfox_optimizer", MODE_PRIVATE)
-        if (prefs.getBoolean("in_progress", false)) return START_NOT_STICKY
         prefs.edit().putBoolean("in_progress", true).commit()
         scope.launch {
             try {
