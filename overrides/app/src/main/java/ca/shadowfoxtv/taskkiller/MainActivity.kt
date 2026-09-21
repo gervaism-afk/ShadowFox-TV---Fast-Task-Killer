@@ -153,6 +153,7 @@ private fun MasterDashboard(context: Context) {
         if (busy) return
         scope.launch {
             busy = true
+            optimizePrefs.edit().putBoolean("in_progress", true).commit()
             val result = optimizer.optimize()
             ram = memoryUsedPercent(context)
             apps = runningProcessCount(context)
@@ -161,7 +162,7 @@ private fun MasterDashboard(context: Context) {
             storageFreed = result.storageFreedBytes
             closedApps = result.closedApps
             optimizeHasRun = true
-            optimizePrefs.edit().putBoolean("has_run", true).putInt("closed_apps", result.closedApps).putLong("ram_freed", result.ramFreedBytes).putLong("storage_freed", result.storageFreedBytes).apply()
+            optimizePrefs.edit().putBoolean("has_run", true).putInt("closed_apps", result.closedApps).putLong("ram_freed", result.ramFreedBytes).putLong("storage_freed", result.storageFreedBytes).putBoolean("in_progress", false).commit()
             busy = false
         }
     }
@@ -814,8 +815,9 @@ private class AppOptimizer(private val context: Context) {
 
         var closed = 0
         if (root && packages.isNotEmpty()) {
-            val command = packages.joinToString(" ; ") { pkg -> "am force-stop '$pkg'" }
-            if (runRoot(command).success) closed = packages.size
+            packages.forEach { pkg ->
+                if (runRoot("am force-stop '$pkg'").success) closed++
+            }
             runRoot("pm trim-caches 999999999999")
             runRoot("sync")
         } else {
