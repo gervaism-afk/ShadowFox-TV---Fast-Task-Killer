@@ -209,7 +209,7 @@ private fun MasterDashboard(context: Context) {
                 }
 
                 // Left navigation rail
-                Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xFF07090B), Color(0xFF010203))), RoundedCornerShape(6.dp))) {
+                Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xFF24282C), Color(0xFF090B0D), Color(0xFF171A1D), Color(0xFF050607))), RoundedCornerShape(6.dp))) {
                     Column(Modifier.fillMaxSize().padding(12.dp)) {
                         NavEntry("⌂", "OPTIMIZE", false, Modifier.fillMaxSize().weight(1f)) { optimize() }
                         NavEntry("▦", "APPS", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "APPS") }
@@ -312,7 +312,7 @@ private fun MobileDashboard(
 ) {
     Column(
         Modifier.fillMaxSize().background(
-            Brush.verticalGradient(listOf(Color(0xFF010305), Color(0xFF070B0F), Color(0xFF010305)))
+            Brush.verticalGradient(listOf(Color(0xFF050607), Color(0xFF1A1E21), Color(0xFF080A0C), Color(0xFF020303)))
         ).padding(horizontal = 18.dp, vertical = 14.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -390,7 +390,7 @@ private fun MobileLandscapeDashboard(
 ) {
     Column(
         Modifier.fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF010305), Color(0xFF070B0F), Color(0xFF010305))))
+            .background(Brush.verticalGradient(listOf(Color(0xFF050607), Color(0xFF1A1E21), Color(0xFF080A0C), Color(0xFF020303))))
             .padding(horizontal = 18.dp, vertical = 10.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -572,7 +572,7 @@ private fun DisplayCard(
                 ambientColor = Color.Black,
                 spotColor = Color.Black
             )
-            .background(Brush.verticalGradient(listOf(Color(0xF20D141A), Color(0xF205090D))), shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFA24282C), Color(0xFA0A0C0E), Color(0xFA171A1D), Color(0xFA050607))), shape)
     ) {
         Canvas(Modifier.fillMaxSize()) {
             drawRoundRect(
@@ -605,14 +605,14 @@ private fun GlowCard(
                 ambientColor = if (focused) CYAN else Color.Black,
                 spotColor = if (focused) CYAN else Color.Black
             )
-            .background(Brush.verticalGradient(listOf(Color(0xF20D141A), Color(0xF205090D))), shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFA24282C), Color(0xFA0A0C0E), Color(0xFA171A1D), Color(0xFA050607))), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick)
     ) {
         Canvas(Modifier.fillMaxSize()) {
             drawRoundRect(
-                color = if (focused) WHITE.copy(alpha = .78f) else Color(0xFF26333A),
+                color = if (focused) WHITE.copy(alpha = .78f) else Color(0xFF555B60),
                 style = Stroke(if (focused) 1.8.dp.toPx() else 1.dp.toPx()),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
             )
@@ -631,7 +631,7 @@ private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabl
             .height(32.dp)
             .scale(if (focused) 1.08f else 1f)
             .shadow(if (focused) 16.dp else 2.dp, shape, false, if (focused) CYAN else Color.Black, if (focused) CYAN else Color.Black)
-            .background(Brush.horizontalGradient(listOf(Color(0xFF101820), Color(0xFF071015))), shape)
+            .background(Brush.horizontalGradient(listOf(Color(0xFF252A2E), Color(0xFF090B0D), Color(0xFF1A1D20))), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable(enabled)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
