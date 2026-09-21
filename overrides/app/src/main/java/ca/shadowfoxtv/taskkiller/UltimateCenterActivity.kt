@@ -411,7 +411,7 @@ private fun MetricGrid(items: List<Triple<String, String, Color>>, landscape: Bo
 private fun MetricCard(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Column(
         modifier.shadow(3.dp, RoundedCornerShape(8.dp), ambientColor = Color.Black, spotColor = Color.Black)
-            .background(Brush.verticalGradient(listOf(Color(0xFF24282C), Color(0xFF090B0D), Color(0xFF171A1D), Color(0xFF050607))), RoundedCornerShape(8.dp)).padding(vertical = 11.dp, horizontal = 8.dp),
+            .background(Brush.verticalGradient(listOf(Color(0xFF15181B), Color(0xFF030405), Color(0xFF0D1012), Color(0xFF010203))), RoundedCornerShape(8.dp)).padding(vertical = 11.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(label, color = UMUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
@@ -424,7 +424,7 @@ private fun MetricCard(label: String, value: String, color: Color, modifier: Mod
 private fun UltimatePanel(title: String, subtitle: String, content: @Composable () -> Unit) {
     Column(
         Modifier.fillMaxWidth().shadow(3.dp, RoundedCornerShape(8.dp), ambientColor = Color.Black, spotColor = Color.Black)
-            .background(Brush.verticalGradient(listOf(Color(0xFF252A2E), Color(0xFF0A0C0E), Color(0xFF171A1D), Color(0xFF050607))), RoundedCornerShape(8.dp)).padding(13.dp)
+            .background(Brush.verticalGradient(listOf(Color(0xFF171A1D), Color(0xFF030405), Color(0xFF0E1113), Color(0xFF010203))), RoundedCornerShape(8.dp)).padding(13.dp)
     ) {
         Text(title, color = UWHITE, fontSize = 15.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(subtitle, color = UMUTED, fontSize = 9.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
