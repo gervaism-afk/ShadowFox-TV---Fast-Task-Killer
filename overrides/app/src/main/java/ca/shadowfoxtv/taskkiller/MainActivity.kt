@@ -150,19 +150,19 @@ private fun MasterDashboard(context: Context) {
     }
 
     fun optimize() {
-        if (busy) return
+        if (busy || optimizePrefs.getBoolean("in_progress", false)) return
+        busy = true
+        optimizePrefs.edit().putBoolean("in_progress", true).commit()
+        context.startService(Intent(context, OptimizeService::class.java))
         scope.launch {
-            busy = true
-            optimizePrefs.edit().putBoolean("in_progress", true).commit()
-            val result = optimizer.optimize()
+            while (optimizePrefs.getBoolean("in_progress", true)) delay(250)
+            optimizeHasRun = optimizePrefs.getBoolean("has_run", false)
+            closedApps = optimizePrefs.getInt("closed_apps", 0)
+            ramFreed = optimizePrefs.getLong("ram_freed", 0L)
+            storageFreed = optimizePrefs.getLong("storage_freed", 0L)
+            rootAvailable = optimizePrefs.getBoolean("root_used", rootAvailable)
             ram = memoryUsedPercent(context)
             apps = runningProcessCount(context)
-            rootAvailable = result.rootUsed
-            ramFreed = result.ramFreedBytes
-            storageFreed = result.storageFreedBytes
-            closedApps = result.closedApps
-            optimizeHasRun = true
-            optimizePrefs.edit().putBoolean("has_run", true).putInt("closed_apps", result.closedApps).putLong("ram_freed", result.ramFreedBytes).putLong("storage_freed", result.storageFreedBytes).putBoolean("in_progress", false).commit()
             busy = false
         }
     }
@@ -780,14 +780,14 @@ private fun MasterBackdrop() {
     }
 }
 
-private data class CleanupResult(
+internal data class CleanupResult(
     val closedApps: Int,
     val ramFreedBytes: Long,
     val storageFreedBytes: Long,
     val rootUsed: Boolean
 )
 
-private class AppOptimizer(private val context: Context) {
+internal class AppOptimizer(private val context: Context) {
     private val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     private val packageManager = context.packageManager
 
