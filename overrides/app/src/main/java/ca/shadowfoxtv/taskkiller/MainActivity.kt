@@ -482,7 +482,7 @@ private fun NavEntry(icon: String, label: String, selected: Boolean, modifier: M
     Row(
         modifier
             .background(if (focused) Color(0xFF0C1013) else Color.Transparent, shape)
-            .shadow(if (focused) 8.dp else 0.dp, shape, false, WHITE.copy(alpha = .35f), WHITE.copy(alpha = .35f))
+            .shadow(if (focused) 2.dp else 0.dp, shape, false, WHITE.copy(alpha = .16f), WHITE.copy(alpha = .16f))
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick)
@@ -594,17 +594,17 @@ private fun GlowCard(
     content: @Composable () -> Unit
 ) {
     var focused by remember { mutableStateOf(false) }
-    val focusScale by animateFloatAsState(if (focused) 1.045f else 1f, label = "focus")
+    val focusScale = if (focused) 1.012f else 1f
     val shape = RoundedCornerShape(12.dp)
     Box(
         modifier
             .scale(focusScale)
             .shadow(
-                elevation = if (focused) 25.dp else if (hero) 15.dp else 9.dp,
+                elevation = if (focused) 5.dp else if (hero) 8.dp else 3.dp,
                 shape = shape,
                 clip = false,
-                ambientColor = if (focused) CYAN else Color.Black,
-                spotColor = if (focused) CYAN else Color.Black
+                ambientColor = if (focused) WHITE.copy(alpha = .18f) else Color.Black,
+                spotColor = if (focused) WHITE.copy(alpha = .18f) else Color.Black
             )
             .background(Brush.verticalGradient(listOf(Color(0xFC171A1D), Color(0xFC030405), Color(0xFC0E1113), Color(0xFC010203))), shape)
             .onFocusChanged { focused = it.isFocused }
@@ -613,8 +613,8 @@ private fun GlowCard(
     ) {
         Canvas(Modifier.fillMaxSize()) {
             drawRoundRect(
-                color = if (focused) WHITE.copy(alpha = .78f) else Color(0xFF343A3F),
-                style = Stroke(if (focused) 1.8.dp.toPx() else 1.dp.toPx()),
+                color = if (focused) WHITE.copy(alpha = .62f) else Color(0xFF343A3F),
+                style = Stroke(if (focused) 1.35.dp.toPx() else 1.dp.toPx()),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
             )
         }
@@ -630,15 +630,16 @@ private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabl
         Modifier
             .width(width)
             .height(32.dp)
-            .scale(if (focused) 1.08f else 1f)
-            .shadow(if (focused) 16.dp else 2.dp, shape, false, if (focused) CYAN else Color.Black, if (focused) CYAN else Color.Black)
+            .scale(if (focused) 1.015f else 1f)
+            .shadow(if (focused) 3.dp else 1.dp, shape, false, if (focused) WHITE.copy(alpha = .18f) else Color.Black, if (focused) WHITE.copy(alpha = .18f) else Color.Black)
             .background(Brush.horizontalGradient(listOf(Color(0xFF171A1D), Color(0xFF030405), Color(0xFF0E1113))), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable(enabled)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = if (focused) CYAN else WHITE, fontSize = 10.sp, fontWeight = FontWeight.Black)
+        Canvas(Modifier.fillMaxSize()) { drawRoundRect(color = if (focused) WHITE.copy(alpha = .62f) else Color(0xFF343A3F), style = Stroke(if (focused) 1.25.dp.toPx() else 1.dp.toPx()), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())) }
+        Text(text, color = if (focused) WHITE else MUTED, fontSize = 10.sp, fontWeight = FontWeight.Black)
     }
 }
 
