@@ -17,7 +17,7 @@ class OptimizeService : Service() {
         prefs.edit().putBoolean("in_progress", true).commit()
         scope.launch {
             try {
-                val result = AppOptimizer(applicationContext).optimize()
+                val result = ShadowFoxProEngine(applicationContext).optimize()
                 prefs.edit()
                     .putBoolean("has_run", true)
                     .putInt("closed_apps", result.closedApps)
