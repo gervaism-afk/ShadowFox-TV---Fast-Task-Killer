@@ -122,8 +122,16 @@ private fun MasterDashboard(context: Context) {
     var ramFreed by remember { mutableStateOf(0L) }
     var storageFreed by remember { mutableStateOf(0L) }
     var closedApps by remember { mutableIntStateOf(0) }
-    var optimizeHasRun by remember { mutableStateOf(false) }
+    val optimizePrefs = remember { context.getSharedPreferences("shadowfox_optimizer", Context.MODE_PRIVATE) }
+    var optimizeHasRun by remember { mutableStateOf(optimizePrefs.getBoolean("has_run", false)) }
     var clock by remember { mutableStateOf(Date()) }
+    LaunchedEffect(optimizeHasRun) {
+        if (optimizeHasRun) {
+            closedApps = optimizePrefs.getInt("closed_apps", closedApps)
+            ramFreed = optimizePrefs.getLong("ram_freed", ramFreed)
+            storageFreed = optimizePrefs.getLong("storage_freed", storageFreed)
+        }
+    }
     val optimizer = remember { AppOptimizer(context) }
     val scope = rememberCoroutineScope()
 
@@ -153,6 +161,7 @@ private fun MasterDashboard(context: Context) {
             storageFreed = result.storageFreedBytes
             closedApps = result.closedApps
             optimizeHasRun = true
+            optimizePrefs.edit().putBoolean("has_run", true).putInt("closed_apps", result.closedApps).putLong("ram_freed", result.ramFreedBytes).putLong("storage_freed", result.storageFreedBytes).apply()
             busy = false
         }
     }
