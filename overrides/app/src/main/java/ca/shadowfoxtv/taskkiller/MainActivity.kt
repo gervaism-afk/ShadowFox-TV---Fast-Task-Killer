@@ -480,8 +480,8 @@ private fun NavEntry(icon: String, label: String, selected: Boolean, modifier: M
     val shape = RoundedCornerShape(8.dp)
     Row(
         modifier
-            .background(if (focused) Color(0xFF0B1821) else Color.Transparent, shape)
-            .shadow(if (focused) 12.dp else 0.dp, shape, false, CYAN.copy(alpha = .75f), CYAN.copy(alpha = .75f))
+            .background(if (focused) Color(0xFF0C1013) else Color.Transparent, shape)
+            .shadow(if (focused) 8.dp else 0.dp, shape, false, WHITE.copy(alpha = .35f), WHITE.copy(alpha = .35f))
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick)
@@ -612,8 +612,8 @@ private fun GlowCard(
     ) {
         Canvas(Modifier.fillMaxSize()) {
             drawRoundRect(
-                color = if (focused) CYAN.copy(alpha = .90f) else Color(0xFF35505E),
-                style = Stroke(if (focused) 2.5.dp.toPx() else 1.2.dp.toPx()),
+                color = if (focused) WHITE.copy(alpha = .78f) else Color(0xFF26333A),
+                style = Stroke(if (focused) 1.8.dp.toPx() else 1.dp.toPx()),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
             )
         }
