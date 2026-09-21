@@ -114,16 +114,17 @@ private val GREEN = Color(0xFF77C943)
 
 @Composable
 private fun MasterDashboard(context: Context) {
+    val optimizePrefs = remember { context.getSharedPreferences("shadowfox_optimizer", Context.MODE_PRIVATE) }
     var ram by remember { mutableFloatStateOf(memoryUsedPercent(context)) }
     var apps by remember { mutableIntStateOf(runningProcessCount(context)) }
     var mbps by remember { mutableFloatStateOf(0f) }
     var ping by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf(false) }
     var rootAvailable by remember { mutableStateOf(false) }
+    var optimizationRootUsed by remember { mutableStateOf(optimizePrefs.getBoolean("root_used", false)) }
     var ramFreed by remember { mutableStateOf(0L) }
     var storageFreed by remember { mutableStateOf(0L) }
     var closedApps by remember { mutableIntStateOf(0) }
-    val optimizePrefs = remember { context.getSharedPreferences("shadowfox_optimizer", Context.MODE_PRIVATE) }
     var optimizeHasRun by remember { mutableStateOf(optimizePrefs.getBoolean("has_run", false)) }
     var clock by remember { mutableStateOf(Date()) }
     LaunchedEffect(optimizeHasRun) {
@@ -131,6 +132,7 @@ private fun MasterDashboard(context: Context) {
             closedApps = optimizePrefs.getInt("closed_apps", closedApps)
             ramFreed = optimizePrefs.getLong("ram_freed", ramFreed)
             storageFreed = optimizePrefs.getLong("storage_freed", storageFreed)
+            optimizationRootUsed = optimizePrefs.getBoolean("root_used", optimizationRootUsed)
         }
     }
     val optimizer = remember { AppOptimizer(context) }
@@ -161,6 +163,7 @@ private fun MasterDashboard(context: Context) {
                 ramFreed = result.ramFreedBytes
                 storageFreed = result.storageFreedBytes
                 rootAvailable = result.rootUsed
+                optimizationRootUsed = result.rootUsed
                 optimizeHasRun = true
                 optimizePrefs.edit()
                     .putBoolean("has_run", true)
@@ -251,13 +254,22 @@ private fun MasterDashboard(context: Context) {
                         Text("Automatically chooses the safest", color = MUTED, fontSize = 9.sp)
                         Text("cleanup supported by this device.", color = MUTED, fontSize = 9.sp)
                         Spacer(Modifier.height(7.dp))
-                        if (busy) {
-                            MasterButton("WORKING…", 245.dp, false) { }
-                        } else if (optimizeHasRun) {
+                        MasterButton(
+                            text = when {
+                                busy -> "WORKING…"
+                                optimizeHasRun -> "⚡  RUN SMART OPTIMIZE AGAIN"
+                                else -> "⚡  ONE-TAP SMART OPTIMIZE"
+                            },
+                            width = 245.dp,
+                            enabled = true,
+                            onClick = { if (!busy) optimize() }
+                        )
+                        Spacer(Modifier.height(5.dp))
+                        if (optimizeHasRun) {
                             Column(
-                                Modifier.width(275.dp).height(54.dp)
+                                Modifier.width(275.dp).height(49.dp)
                                     .border(1.dp, CYAN.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    .padding(horizontal = 8.dp, vertical = 3.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text("✓  OPTIMIZATION COMPLETE", color = GREEN, fontSize = 9.sp, fontWeight = FontWeight.Black)
@@ -266,10 +278,12 @@ private fun MasterDashboard(context: Context) {
                                     Text(formatBytes(ramFreed) + " RAM", color = WHITE, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                     Text(formatBytes(storageFreed) + " CACHE", color = WHITE, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                 }
-                                Text(if (rootAvailable) "ROOT ✓ VERIFIED" else "STANDARD MODE", color = if (rootAvailable) CYAN else MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                                Text(if (optimizationRootUsed) "ROOT ✓ VERIFIED" else "STANDARD MODE", color = if (optimizationRootUsed) CYAN else MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
                             }
+                        } else if (!busy) {
+                            Text("✓  READY  •  Last run: Never", color = GREEN, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                         } else {
-                            MasterButton("⚡  ONE-TAP SMART OPTIMIZE", 245.dp, true) { optimize() }
+                            Text("●  OPTIMIZING…", color = CYAN, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
