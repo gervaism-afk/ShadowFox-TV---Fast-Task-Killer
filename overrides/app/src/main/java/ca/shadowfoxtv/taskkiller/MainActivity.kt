@@ -191,15 +191,15 @@ private fun MasterDashboard(context: Context) {
                         painter = painterResource(R.drawable.shadowfox_logo),
                         contentDescription = "ShadowFox TV",
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier.size(154.dp, 56.dp)
+                        modifier = Modifier.size(174.dp, 60.dp)
                     )
-                    Column(Modifier.width(190.dp)) {
+                    Column(Modifier.width(205.dp)) {
                         Text("OPTIMIZE • CLEAN • PERFORM", color = MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                        Text((if (rootAvailable) "ROOTED PRO MODE" else "STANDARD MODE") + "  •  v" + BuildConfig.VERSION_NAME, color = if (rootAvailable) CYAN else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                        Text((if (rootAvailable) "ROOTED PRO MODE" else "STANDARD MODE") + "  •  v" + BuildConfig.VERSION_NAME, color = if (rootAvailable) CYAN else MUTED, fontSize = 10.sp, fontWeight = FontWeight.Black)
                     }
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("BUILT FOR ANDROID TV", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
-                        Text("FASTER • SMOOTHER • BETTER", color = CYAN, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                        Text("BUILT FOR ANDROID TV", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
+                        Text("FASTER • SMOOTHER • BETTER", color = CYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     }
                     Column(Modifier.width(150.dp), horizontalAlignment = Alignment.End) {
                         Text(SimpleDateFormat("h:mm a", Locale.getDefault()).format(clock).uppercase(Locale.getDefault()), color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
@@ -233,8 +233,8 @@ private fun MasterDashboard(context: Context) {
                 // Smart Optimize hero
                 DisplayCard(Modifier.offset(174.dp, 188.dp).size(480.dp, 220.dp), hero = true) {
                     Column(Modifier.fillMaxSize().padding(22.dp)) {
-                        Text("SMART OPTIMIZE", color = WHITE, fontSize = 22.sp, fontWeight = FontWeight.Black)
-                        Text("One-touch performance optimization", color = MUTED, fontSize = 9.sp)
+                        Text("SMART OPTIMIZE", color = WHITE, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                        Text("One-touch performance optimization", color = MUTED, fontSize = 11.sp)
                         Spacer(Modifier.height(18.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RamGauge(ram, Modifier.size(148.dp))
@@ -251,7 +251,7 @@ private fun MasterDashboard(context: Context) {
 
                 GlowCard(Modifier.offset(668.dp, 188.dp).size(274.dp, 103.dp), onClick = { openUltimate(context, "SYSTEM") }) {
                     Column(Modifier.fillMaxSize().padding(15.dp)) {
-                        Text("CACHE CLEANER", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                        Text("CACHE CLEANER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
                         Text("Manage ShadowFox cache safely", color = MUTED, fontSize = 8.sp)
                         Spacer(Modifier.height(8.dp))
                         Text(if (storageFreed > 0) formatBytes(storageFreed) + " CLEARED" else "READY", color = CYAN, fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -262,7 +262,7 @@ private fun MasterDashboard(context: Context) {
                     openUltimate(context, "OPTIMIZE")
                 }) {
                     Column(Modifier.fillMaxSize().padding(15.dp)) {
-                        Text("ULTIMATE CENTER", color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                        Text("ULTIMATE CENTER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
                         Text("Advanced ShadowFox controls", color = MUTED, fontSize = 8.sp)
                         Spacer(Modifier.height(8.dp))
                         Text(if (rootAvailable) "ROOT ACCESS ACTIVE" else "SYSTEM TOOLS", color = if (rootAvailable) GREEN else CYAN, fontSize = 10.sp, fontWeight = FontWeight.Bold)
