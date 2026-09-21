@@ -245,7 +245,7 @@ private fun MasterDashboard(context: Context) {
                 // Large reference Smart Optimize module
                 DisplayCard(Modifier.offset(166.dp, 182.dp).size(338.dp, 250.dp)) {
                     Column(Modifier.fillMaxSize().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        RamGauge(ram, Modifier.size(108.dp))
+                        RamGauge(ram, Modifier.size(if (optimizeHasRun) 82.dp else 108.dp))
                         Text("SMART OPTIMIZE", color = WHITE, fontSize = 18.sp, fontWeight = FontWeight.Black)
                         Text("Automatically chooses the safest", color = MUTED, fontSize = 9.sp)
                         Text("cleanup supported by this device.", color = MUTED, fontSize = 9.sp)
