@@ -245,35 +245,30 @@ private fun MasterDashboard(context: Context) {
                 // Large reference Smart Optimize module
                 DisplayCard(Modifier.offset(166.dp, 182.dp).size(338.dp, 250.dp)) {
                     Column(Modifier.fillMaxSize().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        RamGauge(ram, Modifier.size(if (optimizeHasRun) 82.dp else 108.dp))
+                        RamGauge(ram, Modifier.size(108.dp))
                         Text("SMART OPTIMIZE", color = WHITE, fontSize = 18.sp, fontWeight = FontWeight.Black)
                         Text("Automatically chooses the safest", color = MUTED, fontSize = 9.sp)
                         Text("cleanup supported by this device.", color = MUTED, fontSize = 9.sp)
-                        Spacer(Modifier.height(12.dp))
-                        MasterButton(when { busy -> "WORKING…"; optimizeHasRun -> "✓  OPTIMIZATION COMPLETE"; else -> "⚡  ONE-TAP SMART OPTIMIZE" }, 245.dp, !busy) { optimize() }
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(7.dp))
                         if (busy) {
-                            Text("●  OPTIMIZING…", color = CYAN, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            MasterButton("WORKING…", 245.dp, false) { }
                         } else if (optimizeHasRun) {
-                            Text("✓  OPTIMIZATION COMPLETE", color = GREEN, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                            Spacer(Modifier.height(4.dp))
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(closedApps.toString(), color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Black)
-                                    Text("APPS STOPPED", color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                            Column(
+                                Modifier.width(275.dp).height(54.dp)
+                                    .border(1.dp, CYAN.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("✓  OPTIMIZATION COMPLETE", color = GREEN, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                    Text("$closedApps APPS", color = WHITE, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    Text(formatBytes(ramFreed) + " RAM", color = WHITE, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    Text(formatBytes(storageFreed) + " CACHE", color = WHITE, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                 }
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(formatBytes(ramFreed), color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Black)
-                                    Text("RAM FREED", color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
-                                }
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(formatBytes(storageFreed), color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Black)
-                                    Text("CACHE CLEARED", color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
-                                }
+                                Text(if (rootAvailable) "ROOT ✓ VERIFIED" else "STANDARD MODE", color = if (rootAvailable) CYAN else MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
                             }
-                            Text(if (rootAvailable) "ROOT ✓  VERIFIED RESULTS" else "STANDARD MODE", color = if (rootAvailable) CYAN else MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
                         } else {
-                            Text("✓  READY  •  Last run: Never", color = GREEN, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                            MasterButton("⚡  ONE-TAP SMART OPTIMIZE", 245.dp, true) { optimize() }
                         }
                     }
                 }
