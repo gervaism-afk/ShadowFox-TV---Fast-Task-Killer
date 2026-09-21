@@ -150,9 +150,9 @@ private fun MasterDashboard(context: Context) {
     }
 
     fun optimize() {
-        if (busy || optimizePrefs.getBoolean("in_progress", false)) return
+        if (busy) return
         busy = true
-        optimizePrefs.edit().putBoolean("in_progress", true).commit()
+        optimizePrefs.edit().putBoolean("in_progress", false).commit()
         context.startService(Intent(context, OptimizeService::class.java))
         scope.launch {
             while (optimizePrefs.getBoolean("in_progress", true)) delay(250)
