@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.TrafficStats
 import android.net.VpnService
 import android.os.Build
@@ -155,7 +156,8 @@ private fun MasterDashboard(context: Context) {
     }
 
     val configuration = LocalConfiguration.current
-    val isPhone = configuration.smallestScreenWidthDp < 600
+    val hasTelevisionUi = configuration.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
+    val isPhone = !hasTelevisionUi && configuration.smallestScreenWidthDp < 600
     val mobilePortrait = isPhone && configuration.screenHeightDp > configuration.screenWidthDp
     if (isPhone) {
         if (mobilePortrait) {
@@ -207,7 +209,7 @@ private fun MasterDashboard(context: Context) {
                 }
 
                 // Left navigation rail
-                Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xFF080D12), Color(0xFF020406))), RoundedCornerShape(6.dp))) {
+                Box(Modifier.offset(18.dp, 88.dp).size(142.dp, 406.dp).background(Brush.verticalGradient(listOf(Color(0xFF07090B), Color(0xFF010203))), RoundedCornerShape(6.dp))) {
                     Column(Modifier.fillMaxSize().padding(12.dp)) {
                         NavEntry("⌂", "OPTIMIZE", false, Modifier.fillMaxSize().weight(1f)) { optimize() }
                         NavEntry("▦", "APPS", false, Modifier.fillMaxSize().weight(1f)) { openUltimate(context, "APPS") }
