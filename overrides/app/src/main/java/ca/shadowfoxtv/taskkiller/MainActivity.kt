@@ -251,8 +251,30 @@ private fun MasterDashboard(context: Context) {
                         Text("cleanup supported by this device.", color = MUTED, fontSize = 9.sp)
                         Spacer(Modifier.height(12.dp))
                         MasterButton(when { busy -> "WORKING…"; optimizeHasRun -> "✓  OPTIMIZATION COMPLETE"; else -> "⚡  ONE-TAP SMART OPTIMIZE" }, 245.dp, !busy) { optimize() }
-                        Spacer(Modifier.height(9.dp))
-                        Text(when { busy -> "●  OPTIMIZING…" ; optimizeHasRun -> "✓  COMPLETE  •  $closedApps apps closed  •  ${formatBytes(ramFreed)} RAM  •  ${formatBytes(storageFreed)} cache" ; else -> "✓  READY  •  Last run: Never" }, color = if (busy) CYAN else GREEN, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(8.dp))
+                        if (busy) {
+                            Text("●  OPTIMIZING…", color = CYAN, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        } else if (optimizeHasRun) {
+                            Text("✓  OPTIMIZATION COMPLETE", color = GREEN, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                            Spacer(Modifier.height(4.dp))
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(closedApps.toString(), color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Black)
+                                    Text("APPS STOPPED", color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(formatBytes(ramFreed), color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Black)
+                                    Text("RAM FREED", color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(formatBytes(storageFreed), color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Black)
+                                    Text("CACHE CLEARED", color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                            Text(if (rootAvailable) "ROOT ✓  VERIFIED RESULTS" else "STANDARD MODE", color = if (rootAvailable) CYAN else MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                        } else {
+                            Text("✓  READY  •  Last run: Never", color = GREEN, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
 
