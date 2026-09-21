@@ -152,18 +152,28 @@ private fun MasterDashboard(context: Context) {
     fun optimize() {
         if (busy) return
         busy = true
-        optimizePrefs.edit().putBoolean("in_progress", true).commit()
-        context.startService(Intent(context, OptimizeService::class.java))
+        optimizeHasRun = false
         scope.launch {
-            while (optimizePrefs.getBoolean("in_progress", true)) delay(250)
-            optimizeHasRun = optimizePrefs.getBoolean("has_run", false)
-            closedApps = optimizePrefs.getInt("closed_apps", 0)
-            ramFreed = optimizePrefs.getLong("ram_freed", 0L)
-            storageFreed = optimizePrefs.getLong("storage_freed", 0L)
-            rootAvailable = optimizePrefs.getBoolean("root_used", rootAvailable)
-            ram = memoryUsedPercent(context)
-            apps = runningProcessCount(context)
-            busy = false
+            try {
+                val result = ShadowFoxProEngine(context.applicationContext).optimize()
+                closedApps = result.closedApps
+                ramFreed = result.ramFreedBytes
+                storageFreed = result.storageFreedBytes
+                rootAvailable = result.rootUsed
+                optimizeHasRun = true
+                optimizePrefs.edit()
+                    .putBoolean("has_run", true)
+                    .putInt("closed_apps", result.closedApps)
+                    .putLong("ram_freed", result.ramFreedBytes)
+                    .putLong("storage_freed", result.storageFreedBytes)
+                    .putBoolean("root_used", result.rootUsed)
+                    .putString("summary", result.summary)
+                    .commit()
+                ram = memoryUsedPercent(context)
+                apps = runningProcessCount(context)
+            } finally {
+                busy = false
+            }
         }
     }
 
