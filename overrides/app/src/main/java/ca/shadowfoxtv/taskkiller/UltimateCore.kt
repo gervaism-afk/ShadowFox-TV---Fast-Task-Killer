@@ -189,7 +189,16 @@ class UltimateManager(private val context: Context) {
 
     suspend fun apps(): List<ManagedApp> = withContext(Dispatchers.IO) {
         val protected = protectedPackages()
-        val running = ShadowFoxProEngine(app).runningThirdPartyPackages().toSet()
+        // Never block the Apps tab on a root shell/process enumeration. PackageManager
+        // can build the launchable-app list immediately; lightweight Android process
+        // state is sufficient for the visual RUNNING badge. Root verification remains
+        // in optimizer/streaming actions where it is actually required.
+        val running = am.runningAppProcesses
+            ?.asSequence()
+            ?.filter { it.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_SERVICE }
+            ?.flatMap { it.pkgList.asSequence() }
+            ?.toSet()
+            .orEmpty()
         pm.getInstalledApplications(PackageManager.GET_META_DATA)
             .asSequence()
             .filter { pm.getLaunchIntentForPackage(it.packageName) != null }
