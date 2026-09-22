@@ -19,10 +19,18 @@ jobs:
       - uses: actions/checkout@v4
       - name: Extract project
         run: mkdir extracted && unzip -q ShadowFoxTV-FastTaskKiller-Project-v3.0.4-NON-ROOT.zip -d extracted
-      - name: Apply ShadowFox Compose source
+      - name: Apply authoritative ShadowFox source
         run: |
-          cp -R overrides/. extracted/.
-          rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java
+          # The legacy ZIP supplies only the Gradle wrapper/root build scaffold.
+          # Never allow stale app source/resources from that ZIP into the APK.
+          rm -rf extracted/app/src
+          cp -R overrides/app/. extracted/app/.
+          test -d extracted/app/src/main/java/ca/shadowfoxtv/taskkiller
+          test -f extracted/app/src/main/AndroidManifest.xml
+          if find extracted/app/src/main/java/ca/shadowfoxtv/taskkiller -name 'MainActivity.java' -print -quit | grep -q .; then
+            echo 'ERROR: stale Java MainActivity leaked into authoritative source'
+            exit 1
+          fi
       - name: Preserve Android TV reference source
         run: |
           test -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
@@ -34,6 +42,11 @@ jobs:
           grep -q 'THERMAL + PERFORMANCE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
           grep -q 'CHECK UPDATE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
           grep -q 'shadowfox_tab' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+      - name: Verify authoritative source boundary
+        run: |
+          test ! -e extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/OptimizeService.kt
+          grep -q 'android:name=".ShadowFoxApp"' extracted/app/src/main/AndroidManifest.xml
+          grep -q 'ShadowFoxProEngine' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
       - name: Preserve highest-quality ShadowFox logo
         run: |
           python3 - <<'PY'
