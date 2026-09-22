@@ -302,7 +302,7 @@ private fun MasterDashboard(context: Context) {
                 }
 
                 // Reference Cache Cleaner module
-                GlowCard(Modifier.offset(516.dp, 182.dp).size(432.dp, 118.dp), onClick = { openUltimate(context, "SYSTEM") }) {
+                DisplayCard(Modifier.offset(516.dp, 182.dp).size(432.dp, 118.dp)) {
                     Row(Modifier.fillMaxSize().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text("♨", color = WHITE, fontSize = 38.sp)
                         Spacer(Modifier.width(16.dp))
@@ -320,7 +320,7 @@ private fun MasterDashboard(context: Context) {
                 }
 
                 // Reference Ultimate Center module
-                GlowCard(Modifier.offset(516.dp, 312.dp).size(432.dp, 120.dp), onClick = { openUltimate(context, "OPTIMIZE") }) {
+                DisplayCard(Modifier.offset(516.dp, 312.dp).size(432.dp, 120.dp)) {
                     Row(Modifier.fillMaxSize().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text("〽", color = CYAN, fontSize = 38.sp)
                         Spacer(Modifier.width(16.dp))
