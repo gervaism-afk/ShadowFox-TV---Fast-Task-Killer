@@ -126,6 +126,8 @@ private fun MasterDashboard(context: Context) {
     var storageFreed by remember { mutableStateOf(0L) }
     var closedApps by remember { mutableIntStateOf(0) }
     var optimizeHasRun by remember { mutableStateOf(optimizePrefs.getBoolean("has_run", false)) }
+    var cacheBusy by remember { mutableStateOf(false) }
+    var cacheCleared by remember { mutableStateOf(0L) }
     var clock by remember { mutableStateOf(Date()) }
     LaunchedEffect(optimizeHasRun) {
         if (optimizeHasRun) {
@@ -155,6 +157,18 @@ private fun MasterDashboard(context: Context) {
             }
             processRefreshTick++
             clock = Date()
+        }
+    }
+
+    fun cleanCache() {
+        if (cacheBusy) return
+        cacheBusy = true
+        scope.launch {
+            try {
+                cacheCleared = UltimateManager(context).clearCache()
+            } finally {
+                cacheBusy = false
+            }
         }
     }
 
@@ -310,11 +324,11 @@ private fun MasterDashboard(context: Context) {
                             Text("CACHE CLEANER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
                             Text("Remove temporary and cached files", color = MUTED, fontSize = 9.sp)
                             Spacer(Modifier.height(8.dp))
-                            MasterButton("CLEAN CACHE", 150.dp, true) { openUltimate(context, "SYSTEM") }
+                            MasterButton(if (cacheBusy) "CLEANING…" else "CLEAN CACHE", 150.dp, true) { if (!cacheBusy) cleanCache() }
                         }
                         Column(Modifier.width(105.dp)) {
                             Text("CACHE CLEARED", color = MUTED, fontSize = 8.sp)
-                            Text(formatBytes(storageFreed), color = CYAN, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Text(formatBytes(cacheCleared), color = CYAN, fontSize = 14.sp, fontWeight = FontWeight.Black)
                         }
                     }
                 }
