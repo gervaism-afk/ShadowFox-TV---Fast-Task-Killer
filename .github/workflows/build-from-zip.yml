@@ -50,14 +50,14 @@ jobs:
       - name: Preserve Android TV reference source
         run: |
           test -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
-          grep -q 'SMART OPTIMIZE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+          grep -q 'SYSTEM SCAN' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
       - name: Verify Android TV presentation layer
         run: |
-          grep -q 'SMART OPTIMIZE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+          grep -q 'SYSTEM SCAN' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
           grep -q 'ULTIMATE CENTER' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
-          grep -q 'THERMAL + PERFORMANCE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+          grep -q 'RAM BOOSTER' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
           grep -q 'CHECK UPDATE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
-          grep -q 'shadowfox_tab' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+          grep -q 'TV_V6_ULTIMATE_REBUILD_693' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
       - name: Verify authoritative source boundary
         run: |
           test ! -e extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/OptimizeService.kt
