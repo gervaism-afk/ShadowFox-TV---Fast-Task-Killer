@@ -25,6 +25,9 @@ jobs:
           # Never allow stale app source/resources from that ZIP into the APK.
           rm -rf extracted/app/src
           cp -R overrides/app/. extracted/app/.
+          # Compose is the production UI. Remove obsolete pre-Compose XML layouts so
+          # they cannot pull legacy ZIP resources/classes back into the build.
+          rm -rf extracted/app/src/main/res/layout extracted/app/src/main/res/layout-port
           test -d extracted/app/src/main/java/ca/shadowfoxtv/taskkiller
           test -f extracted/app/src/main/AndroidManifest.xml
           if find extracted/app/src/main/java/ca/shadowfoxtv/taskkiller -name 'MainActivity.java' -print -quit | grep -q .; then
