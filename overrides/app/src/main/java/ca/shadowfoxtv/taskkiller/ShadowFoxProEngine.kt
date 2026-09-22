@@ -41,6 +41,7 @@ class ShadowFoxProEngine(private val context: Context) {
     }
 
     suspend fun optimize(): ProCleanupResult = withContext(Dispatchers.IO) {
+        resetDiagnostic()
         val beforeRam = availableMemoryBytes()
         val beforeStorage = freeStorageBytes()
         val root = rootAvailable()
@@ -50,6 +51,11 @@ class ShadowFoxProEngine(private val context: Context) {
         val runningBefore = if (root) rootProcessSnapshot() else RootProcessSnapshot(emptySet(), "")
         val runningCandidates = if (root) allEligible.filter { it.isRunningIn(runningBefore) } else allEligible
 
+        appendDiagnostic("START root=$root eligible=${allEligible.size} running=${runningCandidates.size}")
+        appendDiagnostic("CANDIDATES ${runningCandidates.ifEmpty { listOf("none") }.joinToString(",")}")
+        appendDiagnostic("PROTECTED ${protected.sorted().joinToString(",")}")
+        if (root) appendDiagnostic("SOURCES proc=${runningBefore.names.size} activityChars=${runningBefore.activityProcesses.length}")
+
         var verifiedStopped = 0
         var cacheBefore = 0L
         var cacheAfter = 0L
@@ -58,7 +64,7 @@ class ShadowFoxProEngine(private val context: Context) {
             cacheBefore = cacheBytes(allEligible)
 
             for (pkg in runningCandidates) {
-                runRoot("am force-stop --user 0 ${shellQuote(pkg)}")
+                val stop = runRoot("am force-stop --user 0 ${shellQuote(pkg)}")
                 var stillRunning = true
                 for (attempt in 0 until 6) {
                     Thread.sleep(100)
@@ -66,12 +72,14 @@ class ShadowFoxProEngine(private val context: Context) {
                     if (!stillRunning) break
                 }
                 if (!stillRunning) verifiedStopped++
+                appendDiagnostic("STOP pkg=$pkg command=${if (stop.success) "ok" else "failed"} state=${if (stillRunning) "running" else "stopped"} output=${cleanOutput(stop.output)}")
             }
 
             for (pkg in allEligible) {
                 val paths = cachePaths(pkg)
                 val joined = paths.joinToString(" ") { shellQuote(it) }
-                runRoot("for d in $joined; do if [ -d \"\$d\" ]; then rm -rf \"\$d\"/* \"\$d\"/.[!.]* \"\$d\"/..?* 2>/dev/null; fi; done")
+                val clear = runRoot("for d in $joined; do if [ -d \"\$d\" ]; then rm -rf \"\$d\"/* \"\$d\"/.[!.]* \"\$d\"/..?* 2>/dev/null; fi; done")
+                if (!clear.success) appendDiagnostic("CACHE pkg=$pkg command=failed output=${cleanOutput(clear.output)}")
             }
 
             runRoot("pm trim-caches 999999999999")
@@ -98,9 +106,7 @@ class ShadowFoxProEngine(private val context: Context) {
             "STANDARD MODE • background clean requested • +${formatBytes(ramFreed)} measured RAM • app stops unverified"
         }
 
-        appendDiagnostic(
-            "root=$root eligible=${allEligible.size} running=${runningCandidates.size} stopped=$verifiedStopped ramFreed=$ramFreed cacheBefore=$cacheBefore cacheAfter=$cacheAfter storageFreed=$storageFreed"
-        )
+        appendDiagnostic("RESULT stopped=$verifiedStopped/${runningCandidates.size} ram=$ramFreed cacheBefore=$cacheBefore cacheAfter=$cacheAfter storage=$storageFreed")
 
         ProCleanupResult(
             closedApps = if (root) verifiedStopped else 0,
@@ -133,6 +139,17 @@ class ShadowFoxProEngine(private val context: Context) {
         val f = diagnosticFile()
         if (!f.exists()) emptyList() else f.readLines().takeLast(maxLines)
     }.getOrDefault(emptyList())
+
+    private fun resetDiagnostic() {
+        runCatching { diagnosticFile().writeText("") }
+    }
+
+    private fun cleanOutput(value: String): String = value
+        .replace('\n', ' ')
+        .replace('\r', ' ')
+        .trim()
+        .take(100)
+        .ifBlank { "none" }
 
     private fun rootThirdPartyPackages(protected: Set<String>): List<String> {
         val result = runRoot("pm list packages -3")
