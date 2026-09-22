@@ -340,6 +340,7 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
     var storage by remember { mutableStateOf(manager.storageReport()) }
     var maintenance by remember { mutableStateOf(manager.maintenanceEnabled()) }
     var message by remember { mutableStateOf("SYSTEM READY") }
+    val diagnostics = remember(message) { manager.optimizerDiagnostics() }
 
     val systemScroll = remember(landscape) { ScrollState(0) }
     Column(Modifier.fillMaxSize().verticalScroll(systemScroll)) {
@@ -382,6 +383,11 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
             val history = manager.history()
             if (history.isEmpty()) Text("No maintenance history yet.", color = UMUTED, fontSize = 10.sp)
             history.take(10).forEach { Text(it, color = UWHITE, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        }
+        Spacer(Modifier.height(10.dp))
+        UltimatePanel("OPTIMIZER DIAGNOSTICS", "Latest Smart Optimize scan — photograph this panel if results remain zero.") {
+            if (diagnostics.isEmpty()) Text("Run Smart Optimize once to generate diagnostics.", color = UMUTED, fontSize = 9.sp)
+            diagnostics.takeLast(10).forEach { Text(it.substringAfter(" | "), color = UWHITE, fontSize = 8.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
         }
         Spacer(Modifier.height(10.dp))
         UltimatePanel("ADVANCED APP CONTROL", "Rooted devices unlock deeper controls. Standard devices keep Android-safe actions.") {
