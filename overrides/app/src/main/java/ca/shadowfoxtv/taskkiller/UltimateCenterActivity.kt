@@ -112,8 +112,14 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
 
     fun refresh() { scope.launch { snapshot = manager.snapshot() } }
     LaunchedEffect(Unit) {
+        // Paint cheap local telemetry immediately; root detection runs independently
+        // so slow su probes on TV sticks cannot hold the whole dashboard hostage.
         snapshot = manager.snapshot()
         if (hasTelevisionUi) firstTabFocus.requestFocus()
+        launch(kotlinx.coroutines.Dispatchers.IO) {
+            manager.capabilities()
+            snapshot = manager.snapshot()
+        }
         while (true) {
             kotlinx.coroutines.delay(5000)
             snapshot = manager.snapshot()
