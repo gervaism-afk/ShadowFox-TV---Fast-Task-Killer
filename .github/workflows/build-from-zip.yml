@@ -28,6 +28,10 @@ jobs:
           # Compose is the production UI. Remove obsolete pre-Compose XML layouts so
           # they cannot pull legacy ZIP resources/classes back into the build.
           rm -rf extracted/app/src/main/res/layout extracted/app/src/main/res/layout-port
+          rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/V4DashboardActivity.java
+          rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/LatencyGraphView.java
+          rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/SpeedGaugeView.java
+          rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UpdateCenterButton.java
           test -d extracted/app/src/main/java/ca/shadowfoxtv/taskkiller
           test -f extracted/app/src/main/AndroidManifest.xml
           if find extracted/app/src/main/java/ca/shadowfoxtv/taskkiller -name 'MainActivity.java' -print -quit | grep -q .; then
