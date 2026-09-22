@@ -54,11 +54,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -164,11 +166,27 @@ private fun MasterDashboard(context: Context) {
 
                 Column(Modifier.offset(44.dp, 42.dp)) {
                     Row(verticalAlignment = Alignment.Bottom) {
-                        Text("ShadowFox", color = WHITE, fontSize = 29.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
+                        Text(
+                            "ShadowFox",
+                            color = Color(0xFFEAFBFF),
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Black,
+                            fontStyle = FontStyle.Italic,
+                            letterSpacing = 0.3.sp,
+                            style = TextStyle(shadow = Shadow(color = CYAN.copy(alpha = .55f), offset = Offset(0f, 1.5f), blurRadius = 8f))
+                        )
                         Spacer(Modifier.width(4.dp))
-                        Text("TV", color = ORANGE, fontSize = 29.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
+                        Text(
+                            "TV",
+                            color = Color(0xFFFFA126),
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Black,
+                            fontStyle = FontStyle.Italic,
+                            letterSpacing = 0.4.sp,
+                            style = TextStyle(shadow = Shadow(color = ORANGE.copy(alpha = .50f), offset = Offset(0f, 1.5f), blurRadius = 7f))
+                        )
                     }
-                    Text("www.shadowfoxtv.ca", color = MUTED, fontSize = 9.sp)
+                    Text("www.shadowfoxtv.ca", color = Color(0xFFC6DCE8), fontSize = 9.sp, fontWeight = FontWeight.Medium)
                 }
 
                 Image(
