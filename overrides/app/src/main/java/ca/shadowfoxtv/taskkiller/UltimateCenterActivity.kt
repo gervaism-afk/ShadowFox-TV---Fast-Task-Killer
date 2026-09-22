@@ -231,7 +231,8 @@ private fun SmartOptimizePanel(manager: UltimateManager, status: String, busy: B
     UltimatePanel("SMART OPTIMIZE", "Automatically chooses the safest cleanup supported by this device.") {
         Text(status, color = if (status.contains("ROOT") || status.contains("stopped")) UGREEN else UMUTED, fontSize = 10.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.height(8.dp))
-        UltimateButton(if (busy) "OPTIMIZING..." else "ONE-TAP SMART OPTIMIZE", enabled = !busy) {
+        UltimateButton(if (busy) "OPTIMIZING..." else "ONE-TAP SMART OPTIMIZE") {
+            if (busy) return@UltimateButton
             scope.launch {
                 onBusy(true)
                 onStatus("SCANNING RAM • APPS • CACHE...")
@@ -343,7 +344,7 @@ private fun NetworkScreen(manager: UltimateManager, landscape: Boolean) {
                 else -> "Run the test to diagnose the connection."
             }, color = UWHITE, fontSize = 11.sp)
             Spacer(Modifier.height(8.dp))
-            UltimateButton(if (testing) "TESTING..." else "RUN NETWORK TEST", enabled = !testing) { test() }
+            UltimateButton(if (testing) "TESTING..." else "RUN NETWORK TEST") { if (!testing) test() }
         }
     }
 }
