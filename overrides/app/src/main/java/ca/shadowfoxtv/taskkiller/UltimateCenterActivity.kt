@@ -114,6 +114,10 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     LaunchedEffect(Unit) {
         snapshot = manager.snapshot()
         if (hasTelevisionUi) firstTabFocus.requestFocus()
+        while (true) {
+            kotlinx.coroutines.delay(5000)
+            snapshot = manager.snapshot()
+        }
     }
 
     BoxWithConstraints(
@@ -198,10 +202,10 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
     Column(Modifier.fillMaxSize().verticalScroll(optimizeScroll)) {
         MetricGrid(
             listOf(
-                Triple("SHADOWFOX SCORE", "${snapshot?.health ?: 0}/100", if ((snapshot?.health ?: 0) >= 75) UGREEN else UORANGE),
-                Triple("RAM USED", "${snapshot?.ramUsedPercent ?: 0}%", UCYAN),
-                Triple("RUNNING", "${snapshot?.runningApps ?: 0} apps", UCYAN),
-                Triple("NETWORK", snapshot?.network ?: "...", UCYAN)
+                Triple("SYSTEM HEALTH", snapshot?.let { "${it.health}/100" } ?: "SCANNING", if ((snapshot?.health ?: 0) >= 75) UGREEN else UORANGE),
+                Triple("RAM USED", snapshot?.let { "${it.ramUsedPercent}%" } ?: "SCANNING", UCYAN),
+                Triple("ACTIVE APPS", snapshot?.let { "${it.runningApps}" } ?: "SCANNING", UCYAN),
+                Triple("NETWORK", snapshot?.network ?: "SCANNING", UCYAN)
             ), landscape
         )
         Spacer(Modifier.height(10.dp))
@@ -229,10 +233,10 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
 @Composable
 private fun SmartOptimizePanel(manager: UltimateManager, status: String, busy: Boolean, onBusy: (Boolean) -> Unit, onStatus: (String) -> Unit, refresh: () -> Unit) {
     val scope = rememberCoroutineScope()
-    UltimatePanel("SMART OPTIMIZE", "Automatically chooses the safest cleanup supported by this device.") {
+    UltimatePanel("SMART OPTIMIZE", "Root-aware deep cleanup • measured RAM recovery • verified app stops.") {
         Text(status, color = if (status.contains("ROOT") || status.contains("stopped")) UGREEN else UMUTED, fontSize = 10.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.height(8.dp))
-        UltimateButton(if (busy) "OPTIMIZING..." else "ONE-TAP SMART OPTIMIZE") {
+        UltimateButton(if (busy) "OPTIMIZING..." else "OPTIMIZE NOW") {
             if (busy) return@UltimateButton
             scope.launch {
                 onBusy(true)
@@ -248,14 +252,14 @@ private fun SmartOptimizePanel(manager: UltimateManager, status: String, busy: B
 
 @Composable
 private fun StreamingPanel() {
-    UltimatePanel("STREAMING MODE", "Stops safe background apps, protects the player you choose, checks memory, then launches it.") {
+    UltimatePanel("STREAMING MODE", "Prepare the device for IPTV, movies and high-bitrate playback.") {
         Text("Open APPS and press STREAM beside your IPTV, VLC, Kodi or movie player.", color = UMUTED, fontSize = 10.sp)
     }
 }
 
 @Composable
 private fun ThermalPanel(snapshot: UltimateSnapshot?) {
-    UltimatePanel("THERMAL + PERFORMANCE", "Live device condition based on actual Android telemetry.") {
+    UltimatePanel("DEVICE PERFORMANCE", "Live memory, storage and thermal condition.") {
         Text("Thermal: ${snapshot?.temperatureStatus ?: "..."}  •  Free RAM: ${formatUiBytes(snapshot?.freeRam ?: 0)}  •  Free Storage: ${formatUiBytes(snapshot?.freeStorage ?: 0)}", color = UWHITE, fontSize = 10.sp)
     }
 }
