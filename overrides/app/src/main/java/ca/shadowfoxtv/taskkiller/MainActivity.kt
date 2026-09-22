@@ -265,17 +265,17 @@ private fun BottomSystemStrip(
     modifier: Modifier
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        StatTile("RAM FREED", formatBytes(ramFreed), Modifier.size(126.dp, 48.dp))
+        StatTile("RAM FREED", formatBytes(ramFreed), Modifier.size(126.dp, 54.dp))
         Spacer(Modifier.width(9.dp))
-        StatTile("CACHE CLEARED", formatBytes(storageFreed), Modifier.size(126.dp, 48.dp))
+        StatTile("CACHE CLEARED", formatBytes(storageFreed), Modifier.size(126.dp, 54.dp))
         Spacer(Modifier.width(9.dp))
-        StatTile("APPS CLOSED", closedApps.toString(), Modifier.size(112.dp, 48.dp))
+        StatTile("APPS CLOSED", closedApps.toString(), Modifier.size(112.dp, 54.dp))
         Spacer(Modifier.width(78.dp))
-        StatTile("ROOT", if (root) "ACTIVE" else "READY", Modifier.size(112.dp, 48.dp), if (root) GREEN else MUTED)
+        StatTile("ROOT", if (root) "ACTIVE" else "READY", Modifier.size(112.dp, 54.dp), if (root) GREEN else WHITE)
         Spacer(Modifier.width(9.dp))
-        StatTile("DEVICE", deviceLabel(), Modifier.size(175.dp, 48.dp))
+        StatTile("DEVICE", deviceLabel(), Modifier.size(175.dp, 54.dp))
         Spacer(Modifier.width(9.dp))
-        StatTile("ANDROID", Build.VERSION.RELEASE.orEmpty().ifBlank { "Unknown" }, Modifier.size(100.dp, 48.dp))
+        StatTile("ANDROID", Build.VERSION.RELEASE.orEmpty().ifBlank { "Unknown" }, Modifier.size(100.dp, 54.dp))
     }
 }
 
@@ -286,10 +286,10 @@ private fun StatTile(label: String, value: String, modifier: Modifier, valueColo
         modifier
             .shadow(6.dp, shape, false, CYAN.copy(alpha = .25f), CYAN.copy(alpha = .25f))
             .background(Color(0xD90A1C29), shape)
-            .padding(horizontal = 10.dp, vertical = 7.dp)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
-        Text(label, color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
-        Text(value, color = valueColor, fontSize = 11.sp, fontWeight = FontWeight.Black, maxLines = 1)
+        Text(label, color = Color(0xFFC9D7E0), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+        Text(value, color = valueColor, fontSize = 14.sp, fontWeight = FontWeight.Black, maxLines = 1)
     }
 }
 
