@@ -563,11 +563,11 @@ private fun MobileNav(label: String, onClick: () -> Unit) {
 @Composable
 private fun NavEntry(icon: String, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(6.dp)
     Row(
         modifier
-            .background(if (focused) Color(0xFF0C1013) else Color.Transparent, shape)
-            .shadow(if (focused) 2.dp else 0.dp, shape, false, WHITE.copy(alpha = .16f), WHITE.copy(alpha = .16f))
+            .background(if (focused) Color(0xFF0B1821) else Color.Transparent, shape)
+            .shadow(if (focused) 3.dp else 0.dp, shape, false, CYAN.copy(alpha = .24f), CYAN.copy(alpha = .24f))
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick)
@@ -576,7 +576,7 @@ private fun NavEntry(icon: String, label: String, selected: Boolean, modifier: M
     ) {
         Text(icon, color = if (focused) CYAN else MUTED, fontSize = 16.sp)
         Spacer(Modifier.width(9.dp))
-        Text(label, color = if (focused) WHITE else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
+        Text(label, color = if (focused) CYAN else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
     }
 }
 
@@ -630,11 +630,11 @@ private fun BottomSystemStrip(
 
 @Composable
 private fun StatTile(label: String, value: String, modifier: Modifier, valueColor: Color = WHITE) {
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(6.dp)
     Column(
         modifier
-            .shadow(6.dp, shape, false, CYAN.copy(alpha = .25f), CYAN.copy(alpha = .25f))
-            .background(Color(0xD90A1C29), shape)
+            .shadow(2.dp, shape, false, Color.Black, Color.Black)
+            .background(Brush.verticalGradient(listOf(METAL_TOP, METAL_MID, METAL_BOTTOM)), shape)
             .padding(horizontal = 10.dp, vertical = 7.dp)
     ) {
         Text(label, color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
