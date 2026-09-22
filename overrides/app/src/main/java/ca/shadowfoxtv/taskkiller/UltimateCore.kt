@@ -94,14 +94,19 @@ class UltimateManager(private val context: Context) {
         val caps = capabilities()
         val mem = ActivityManager.MemoryInfo().also(am::getMemoryInfo)
         val usedPct = if (mem.totalMem > 0) (((mem.totalMem - mem.availMem) * 100) / mem.totalMem).toInt() else 0
-        val running = ShadowFoxProEngine(app).runningThirdPartyCount()
+        // Populate the dashboard from local telemetry first. Network latency/DNS
+        // diagnostics belong to the Network tab and must never block TV startup.
+        val running = runCatching { ShadowFoxProEngine(app).runningThirdPartyCount() }.getOrDefault(0)
         val storage = storageReport()
-        val network = networkReport()
+        val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val active = cm.activeNetwork
+        val networkConnected = active != null && cm.getNetworkCapabilities(active)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+        val networkLabel = if (networkConnected) "ONLINE" else "OFFLINE"
         val storageFreePct = if (storage.totalBytes > 0) (storage.freeBytes * 100 / storage.totalBytes).toInt() else 0
         var score = 100
         score -= ((usedPct - 65).coerceAtLeast(0) * 2).coerceAtMost(28)
         score -= ((20 - storageFreePct).coerceAtLeast(0) * 2).coerceAtMost(24)
-        if (!network.connected) score -= 20 else if (network.pingMs > 120) score -= 10
+        if (!networkConnected) score -= 20
         if (running > 20) score -= ((running - 20) / 2).coerceAtMost(10)
         UltimateSnapshot(
             mode = caps.modeLabel,
@@ -112,7 +117,7 @@ class UltimateManager(private val context: Context) {
             freeStorage = storage.freeBytes,
             runningApps = running,
             temperatureStatus = thermalStatus(),
-            network = network.verdict
+            network = networkLabel
         )
     }
 
