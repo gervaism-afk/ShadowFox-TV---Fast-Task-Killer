@@ -94,9 +94,12 @@ class UltimateManager(private val context: Context) {
         val caps = capabilities()
         val mem = ActivityManager.MemoryInfo().also(am::getMemoryInfo)
         val usedPct = if (mem.totalMem > 0) (((mem.totalMem - mem.availMem) * 100) / mem.totalMem).toInt() else 0
-        // Populate the dashboard from local telemetry first. Network latency/DNS
-        // diagnostics belong to the Network tab and must never block TV startup.
-        val running = runCatching { ShadowFoxProEngine(app).runningThirdPartyCount() }.getOrDefault(0)
+        // Keep the first dashboard paint fast on low-power TV sticks.
+        // Root process enumeration can be expensive, so do not block RAM/storage/network
+        // telemetry on a shell scan. Active-app detail is refreshed by the Apps/optimizer path.
+        val running = runCatching {
+            am.runningAppProcesses?.count { it.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_SERVICE } ?: 0
+        }.getOrDefault(0)
         val storage = storageReport()
         val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val active = cm.activeNetwork
