@@ -122,7 +122,7 @@ private val GREEN = Color(0xFF77C943)
 private fun MasterDashboard(context: Context) {
     val optimizePrefs = remember { context.getSharedPreferences("shadowfox_optimizer", Context.MODE_PRIVATE) }
     var ram by remember { mutableFloatStateOf(memoryUsedPercent(context)) }
-    var apps by remember { mutableIntStateOf(runningProcessCount(context)) }
+    var apps by remember { mutableIntStateOf(0) }
     var mbps by remember { mutableFloatStateOf(0f) }
     var ping by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf(false) }
@@ -201,9 +201,7 @@ private fun MasterDashboard(context: Context) {
                     .putString("summary", result.summary)
                     .commit()
                 ram = memoryUsedPercent(context)
-                apps = withContext(Dispatchers.IO) {
-                    if (rootAvailable) proEngine.runningThirdPartyCount() else runningProcessCount(context)
-                }
+                apps = withContext(Dispatchers.IO) { proEngine.runningThirdPartyCount() }
             } finally {
                 busy = false
             }
