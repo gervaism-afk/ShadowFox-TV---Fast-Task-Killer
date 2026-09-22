@@ -123,16 +123,16 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     BoxWithConstraints(
         Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0xFF0B3550), Color(0xFF052238), UBG)))
     ) {
-        val side = if (landscape && !isPhone) 12.dp else if (landscape) 18.dp else 20.dp
-        val top = if (landscape && !isPhone) 8.dp else if (landscape) 8.dp else 12.dp
-        val contentMax = if (landscape && !isPhone) 960.dp else if (landscape) 1180.dp else 620.dp
+        val side = if (landscape && !isPhone) 18.dp else if (landscape) 18.dp else 20.dp
+        val top = if (landscape && !isPhone) 14.dp else if (landscape) 8.dp else 12.dp
+        val contentMax = if (landscape && !isPhone) 920.dp else if (landscape) 1180.dp else 620.dp
         val contentWidth = minOf(maxWidth - (side * 2), contentMax)
 
         Column(
             Modifier.width(contentWidth).fillMaxSize().align(Alignment.TopCenter).padding(top = top, bottom = 10.dp)
         ) {
             if (landscape) {
-                Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(6.dp)).padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(10.dp)).padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     BrandHeader(snapshot, Modifier.weight(1f), compact = true, isPhone = isPhone)
                     UltimateButton("REFRESH") { refresh() }
                     Spacer(Modifier.width(8.dp))
@@ -148,8 +148,8 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
                 }
             }
 
-            Spacer(Modifier.height(if (landscape) 8.dp else 10.dp))
-            Row(Modifier.fillMaxWidth().background(Color(0xAA020508), RoundedCornerShape(6.dp)).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Spacer(Modifier.height(if (landscape) 10.dp else 10.dp))
+            Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color(0xCC0B2A3D), Color(0xDD061722), Color(0xEE020B11))), RoundedCornerShape(10.dp)).padding(5.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 UltimateTab.entries.forEachIndexed { index, item ->
                     UltimateTabButton(
                         item.name,
@@ -182,11 +182,11 @@ private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact
         Spacer(Modifier.width(12.dp))
         Column {
             Row(verticalAlignment = Alignment.Bottom) {
-                Text("ULTIMATE CENTER", color = UWHITE, fontSize = if (isPhone) { if (compact) 16.sp else 18.sp } else 21.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                Text("ULTIMATE CENTER", color = Color(0xFFEAFBFF), fontSize = if (isPhone) { if (compact) 16.sp else 18.sp } else 24.sp, fontWeight = FontWeight.Black, maxLines = 1)
                 Spacer(Modifier.width(7.dp))
                 Text("v${BuildConfig.VERSION_NAME}", color = UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
-            Text(if (isPhone) "ADVANCED CONTROL • MOBILE" else "OPTIMIZE • CLEAN • PERFORM", color = UMUTED, fontSize = if (isPhone) 8.sp else 10.sp, fontWeight = FontWeight.Bold)
+            Text(if (isPhone) "ADVANCED CONTROL • MOBILE" else "SHADOWFOX PERFORMANCE COMMAND", color = Color(0xFFC6DCE8), fontSize = if (isPhone) 8.sp else 10.sp, fontWeight = FontWeight.Bold)
             Text(snapshot?.mode ?: "DETECTING DEVICE...", color = if (snapshot?.root == true) UCYAN else UMUTED, fontSize = if (isPhone) 9.sp else 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
@@ -419,7 +419,7 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
 @Composable
 private fun MetricGrid(items: List<Triple<String, String, Color>>, landscape: Boolean) {
     if (landscape) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items.forEach { (a,b,c) -> MetricCard(a,b,c,Modifier.weight(1f)) }
         }
     } else {
@@ -436,21 +436,21 @@ private fun MetricGrid(items: List<Triple<String, String, Color>>, landscape: Bo
 @Composable
 private fun MetricCard(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Column(
-        modifier.shadow(3.dp, RoundedCornerShape(8.dp), ambientColor = Color.Black, spotColor = Color.Black)
-            .background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(8.dp)).padding(vertical = 11.dp, horizontal = 8.dp),
+        modifier.shadow(3.dp, RoundedCornerShape(10.dp), ambientColor = UCYAN.copy(alpha = .14f), spotColor = UCYAN.copy(alpha = .14f))
+            .background(Brush.verticalGradient(listOf(Color(0xFF17435D), UMETAL_MID, Color(0xFF051723))), RoundedCornerShape(10.dp)).padding(vertical = 10.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(label, color = UMUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(label, color = UMUTED, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         Spacer(Modifier.height(3.dp))
-        Text(value, color = color, fontSize = 12.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(value, color = color, fontSize = 16.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
 @Composable
 private fun UltimatePanel(title: String, subtitle: String, content: @Composable () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(12.dp), ambientColor = UCYAN.copy(alpha = .22f), spotColor = UCYAN.copy(alpha = .22f))
-            .background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(12.dp)).padding(13.dp)
+        Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(14.dp), ambientColor = UCYAN.copy(alpha = .28f), spotColor = UCYAN.copy(alpha = .28f))
+            .background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(14.dp)).padding(15.dp)
     ) {
         Text(title, color = UWHITE, fontSize = 15.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(subtitle, color = UMUTED, fontSize = 9.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -479,8 +479,8 @@ private fun CompactAction(text: String, modifier: Modifier, onClick: () -> Unit)
     val zoom by animateFloatAsState(if (focused) 1.012f else 1f, label = "compactFocus")
     Box(
         modifier.height(38.dp).scale(zoom)
-            .shadow(if (focused) 12.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black, spotColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black)
-            .background(if (focused) Color(0xFF11171B) else Color(0xFF07090B), RoundedCornerShape(6.dp))
+            .shadow(if (focused) 12.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = if (focused) UWHITE.copy(alpha = .62f) else Color.Black, spotColor = if (focused) UWHITE.copy(alpha = .62f) else Color.Black)
+            .background(if (focused) Color(0xFF183548) else Color(0xFF071722), RoundedCornerShape(7.dp))
             .onFocusChanged { focused = it.isFocused }.focusable().clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Text(text, color = UWHITE, fontSize = 9.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis) }
@@ -493,7 +493,7 @@ private fun UltimateTabButton(text: String, selected: Boolean, modifier: Modifie
     Box(
         modifier.height(42.dp).scale(zoom)
             .shadow(if (focused) 14.dp else 2.dp, RoundedCornerShape(8.dp), ambientColor = if (focused) UWHITE.copy(alpha = .58f) else UCYAN.copy(alpha = .14f), spotColor = if (focused) UWHITE.copy(alpha = .58f) else UCYAN.copy(alpha = .14f))
-            .background(if (focused) Color(0xFF0B1821) else if (selected) Color(0xFF07131B) else Color(0xFF030507), RoundedCornerShape(6.dp))
+            .background(if (focused) Color(0xFF1B4055) else if (selected) Color(0xFF0B2B3E) else Color(0xFF06141E), RoundedCornerShape(8.dp))
             .onFocusChanged { focused = it.isFocused }.focusable().clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Text(text, color = if (focused) UWHITE else if (selected) UCYAN else UMUTED, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1) }
