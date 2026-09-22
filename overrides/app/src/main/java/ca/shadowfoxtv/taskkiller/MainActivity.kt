@@ -105,6 +105,10 @@ class MainActivity : ComponentActivity() {
 
 private val BG = Color(0xFF010305)
 private val PANEL = Color(0xF20A0E12)
+private val METAL_TOP = Color(0xFF1A2732)
+private val METAL_MID = Color(0xFF07111A)
+private val METAL_BOTTOM = Color(0xFF020508)
+private val METAL_EDGE = Color(0xFF27495E)
 private val CYAN = Color(0xFF00E5FF)
 private val BLUE = Color(0xFF08AEEA)
 private val ORANGE = Color(0xFFFF7A00)
@@ -236,7 +240,7 @@ private fun MasterDashboard(context: Context) {
                         Image(painterResource(R.drawable.shadowfox_logo), "ShadowFox TV", contentScale = ContentScale.Fit, modifier = Modifier.size(190.dp, 62.dp))
                         Column(Modifier.width(250.dp)) {
                             Text("OPTIMIZE • CLEAN • PERFORM", color = MUTED, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text("ROOTED PRO MODE  •  v" + BuildConfig.VERSION_NAME, color = CYAN, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                            Text((if (rootAvailable) "ROOTED PRO MODE" else "STANDARD MODE") + "  •  v" + BuildConfig.VERSION_NAME, color = if (rootAvailable) CYAN else MUTED, fontSize = 11.sp, fontWeight = FontWeight.Black)
                         }
                         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("BUILT FOR ANDROID TV", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
@@ -318,7 +322,7 @@ private fun MasterDashboard(context: Context) {
                 // Reference Cache Cleaner module
                 DisplayCard(Modifier.offset(516.dp, 182.dp).size(432.dp, 118.dp)) {
                     Row(Modifier.fillMaxSize().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("♨", color = WHITE, fontSize = 38.sp)
+                        Broom(Modifier.size(54.dp))
                         Spacer(Modifier.width(16.dp))
                         Column(Modifier.weight(1f)) {
                             Text("CACHE CLEANER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
@@ -336,7 +340,7 @@ private fun MasterDashboard(context: Context) {
                 // Reference Ultimate Center module
                 DisplayCard(Modifier.offset(516.dp, 312.dp).size(432.dp, 120.dp)) {
                     Row(Modifier.fillMaxSize().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("〽", color = CYAN, fontSize = 38.sp)
+                        Bolt(Modifier.size(48.dp))
                         Spacer(Modifier.width(16.dp))
                         Column(Modifier.weight(1f)) {
                             Text("ULTIMATE CENTER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
@@ -358,7 +362,7 @@ private fun MasterDashboard(context: Context) {
                 // Full-width Thermal + Performance strip
                 DisplayCard(Modifier.offset(166.dp, 444.dp).size(782.dp, 52.dp)) {
                     Row(Modifier.fillMaxSize().padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("♨", color = WHITE, fontSize = 26.sp)
+                        Text("THERMAL", color = CYAN, fontSize = 10.sp, fontWeight = FontWeight.Black)
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.width(245.dp)) {
                             Text("THERMAL + PERFORMANCE", color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Black)
@@ -694,7 +698,7 @@ private fun GlowCard(
     ) {
         Canvas(Modifier.fillMaxSize()) {
             drawRoundRect(
-                color = if (focused) WHITE.copy(alpha = .62f) else Color(0xFF343A3F),
+                color = if (focused) CYAN.copy(alpha = .82f) else METAL_EDGE,
                 style = Stroke(if (focused) 1.35.dp.toPx() else 1.dp.toPx()),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
             )
@@ -713,14 +717,14 @@ private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabl
             .height(32.dp)
             .scale(if (focused) 1.015f else 1f)
             .shadow(if (focused) 3.dp else 1.dp, shape, false, if (focused) WHITE.copy(alpha = .18f) else Color.Black, if (focused) WHITE.copy(alpha = .18f) else Color.Black)
-            .background(Brush.horizontalGradient(listOf(Color(0xFF171A1D), Color(0xFF030405), Color(0xFF0E1113))), shape)
+            .background(Brush.horizontalGradient(listOf(METAL_TOP, METAL_MID, METAL_BOTTOM)), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable(enabled)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center
     ) {
         Canvas(Modifier.fillMaxSize()) { drawRoundRect(color = if (focused) WHITE.copy(alpha = .62f) else Color(0xFF343A3F), style = Stroke(if (focused) 1.25.dp.toPx() else 1.dp.toPx()), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())) }
-        Text(text, color = if (focused) WHITE else MUTED, fontSize = 10.sp, fontWeight = FontWeight.Black)
+        Text(text, color = if (focused) CYAN else WHITE, fontSize = 10.sp, fontWeight = FontWeight.Black)
     }
 }
 
@@ -838,7 +842,8 @@ private fun Bolt(modifier: Modifier) {
 private fun MasterBackdrop() {
     Canvas(Modifier.fillMaxSize()) {
         drawRect(BG)
-        drawCircle(CYAN.copy(.008f), size.width * .38f, Offset(size.width * .48f, size.height * .45f))
+        drawRect(Brush.verticalGradient(listOf(Color(0xFF07131D), Color(0xFF02070B), BG)))
+        drawCircle(BLUE.copy(.035f), size.width * .42f, Offset(size.width * .48f, size.height * .40f))
         val p = Path().apply {
             moveTo(size.width * .43f, 0f)
             lineTo(size.width * .39f, size.height * .18f)
