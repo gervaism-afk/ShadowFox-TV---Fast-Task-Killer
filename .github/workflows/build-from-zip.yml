@@ -32,6 +32,15 @@ jobs:
           rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/LatencyGraphView.java
           rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/SpeedGaugeView.java
           rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UpdateCenterButton.java
+          rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/AdvancedToolsActivity.kt
+          rm -f extracted/app/src/main/res/drawable/button_primary_tv.xml
+          rm -f extracted/app/src/main/res/drawable/button_secondary_tv.xml
+          rm -f extracted/app/src/main/res/drawable/optimizer_button.xml
+          rm -f extracted/app/src/main/res/drawable/optimizer_panel.xml
+          rm -f extracted/app/src/main/res/drawable/stat_tile.xml
+          rm -f extracted/app/src/main/res/drawable/success_circle.xml
+          rm -f extracted/app/src/main/res/drawable/tech_panel.xml
+          rm -f extracted/app/src/main/res/drawable/tech_stat_tile.xml
           test -d extracted/app/src/main/java/ca/shadowfoxtv/taskkiller
           test -f extracted/app/src/main/AndroidManifest.xml
           if find extracted/app/src/main/java/ca/shadowfoxtv/taskkiller -name 'MainActivity.java' -print -quit | grep -q .; then
@@ -52,6 +61,8 @@ jobs:
       - name: Verify authoritative source boundary
         run: |
           test ! -e extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/OptimizeService.kt
+          test ! -e extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/V4DashboardActivity.java
+          test ! -e extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/AdvancedToolsActivity.kt
           grep -q 'android:name=".ShadowFoxApp"' extracted/app/src/main/AndroidManifest.xml
           grep -q 'ShadowFoxProEngine' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
       - name: Preserve highest-quality ShadowFox logo
