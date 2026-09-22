@@ -53,6 +53,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -143,6 +145,7 @@ private fun MasterDashboard(context: Context) {
     }
     val proEngine = remember { ShadowFoxProEngine(context.applicationContext) }
     val scope = rememberCoroutineScope()
+    val firstTvFocus = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
         rootAvailable = withContext(Dispatchers.IO) { rootShellAvailable() }
@@ -228,6 +231,10 @@ private fun MasterDashboard(context: Context) {
         return
     }
 
+    LaunchedEffect(hasTelevisionUi) {
+        if (hasTelevisionUi) firstTvFocus.requestFocus()
+    }
+
     BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
         val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
         Box(Modifier.size(960.dp * scale, 540.dp * scale).align(Alignment.Center)) {
@@ -256,7 +263,7 @@ private fun MasterDashboard(context: Context) {
                 // Reference left navigation rail
                 DisplayCard(Modifier.offset(12.dp, 92.dp).size(142.dp, 404.dp)) {
                     Column(Modifier.fillMaxSize().padding(8.dp)) {
-                        NavEntry("⌂", "OPTIMIZE", false, Modifier.height(64.dp).fillMaxWidth()) { optimize() }
+                        NavEntry("⌂", "OPTIMIZE", false, Modifier.height(64.dp).fillMaxWidth().focusRequester(firstTvFocus)) { optimize() }
                         NavEntry("▦", "APPS", false, Modifier.height(64.dp).fillMaxWidth()) { openUltimate(context, "APPS") }
                         NavEntry("⌁", "NETWORK", false, Modifier.height(64.dp).fillMaxWidth()) { openUltimate(context, "NETWORK") }
                         NavEntry("⚙", "SYSTEM", false, Modifier.height(64.dp).fillMaxWidth()) { openUltimate(context, "SYSTEM") }
