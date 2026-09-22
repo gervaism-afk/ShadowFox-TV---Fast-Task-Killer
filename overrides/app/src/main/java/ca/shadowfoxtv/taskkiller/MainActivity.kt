@@ -156,7 +156,7 @@ private fun MasterDashboard(context: Context) {
             ram = memoryUsedPercent(context)
             if (processRefreshTick % 5 == 0) {
                 apps = withContext(Dispatchers.IO) {
-                    if (rootAvailable) proEngine.runningThirdPartyCount() else runningProcessCount(context)
+                    proEngine.runningThirdPartyCount()
                 }
             }
             processRefreshTick++
@@ -658,11 +658,11 @@ private fun DisplayCard(
                 ambientColor = Color.Black,
                 spotColor = Color.Black
             )
-            .background(Brush.verticalGradient(listOf(Color(0xFC171A1D), Color(0xFC030405), Color(0xFC0E1113), Color(0xFC010203))), shape)
+            .background(Brush.verticalGradient(listOf(METAL_TOP, METAL_MID, METAL_BOTTOM)), shape)
     ) {
         Canvas(Modifier.fillMaxSize()) {
             drawRoundRect(
-                color = Color(0xFF35505E),
+                color = METAL_EDGE,
                 style = Stroke(1.2.dp.toPx()),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
             )
@@ -680,7 +680,7 @@ private fun GlowCard(
 ) {
     var focused by remember { mutableStateOf(false) }
     val focusScale = if (focused) 1.012f else 1f
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(6.dp)
     Box(
         modifier
             .scale(focusScale)
@@ -688,8 +688,8 @@ private fun GlowCard(
                 elevation = if (focused) 5.dp else if (hero) 8.dp else 3.dp,
                 shape = shape,
                 clip = false,
-                ambientColor = if (focused) WHITE.copy(alpha = .18f) else Color.Black,
-                spotColor = if (focused) WHITE.copy(alpha = .18f) else Color.Black
+                ambientColor = if (focused) CYAN.copy(alpha = .22f) else Color.Black,
+                spotColor = if (focused) CYAN.copy(alpha = .22f) else Color.Black
             )
             .background(Brush.verticalGradient(listOf(Color(0xFC171A1D), Color(0xFC030405), Color(0xFC0E1113), Color(0xFC010203))), shape)
             .onFocusChanged { focused = it.isFocused }
@@ -723,7 +723,7 @@ private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabl
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(Modifier.fillMaxSize()) { drawRoundRect(color = if (focused) WHITE.copy(alpha = .62f) else Color(0xFF343A3F), style = Stroke(if (focused) 1.25.dp.toPx() else 1.dp.toPx()), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())) }
+        Canvas(Modifier.fillMaxSize()) { drawRoundRect(color = if (focused) CYAN.copy(alpha = .82f) else METAL_EDGE, style = Stroke(if (focused) 1.25.dp.toPx() else 1.dp.toPx()), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())) }
         Text(text, color = if (focused) CYAN else WHITE, fontSize = 10.sp, fontWeight = FontWeight.Black)
     }
 }
