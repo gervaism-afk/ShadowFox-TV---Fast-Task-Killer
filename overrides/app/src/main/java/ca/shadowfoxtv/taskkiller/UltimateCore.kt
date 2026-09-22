@@ -285,15 +285,20 @@ class UltimateManager(private val context: Context) {
     private fun runningPackages(): List<String> = am.runningAppProcesses.orEmpty().flatMap { it.pkgList?.toList().orEmpty() }.distinct()
 
     private fun rootRunningPackages(): List<String> {
-        val result = runRoot("ps -A -o NAME")
-        if (!result.first) return emptyList()
         val installed = runRoot("pm list packages -3").second.lineSequence().map { it.removePrefix("package:").trim() }.filter { it.isNotBlank() }.toSet()
-        return result.second.lineSequence().map { it.trim() }.filter { it in installed }.distinct().toList()
+        val psNames = runRoot("ps -A -o NAME").second.lineSequence().map { it.trim() }.filter { it.isNotBlank() }.toSet()
+        val activity = runRoot("dumpsys activity processes").second
+        return installed.filter { pkg ->
+            psNames.any { it == pkg || it.startsWith("${pkg}:") } ||
+                Regex("(?<![A-Za-z0-9_.])${Regex.escape(pkg)}(?=[:/}\\s]|$)").containsMatchIn(activity)
+        }
     }
 
     private fun isRunningRoot(pkg: String): Boolean {
-        val out = runRoot("pidof ${shellQuote(pkg)}")
-        return out.second.trim().isNotEmpty()
+        val psNames = runRoot("ps -A -o NAME").second.lineSequence().map { it.trim() }.toSet()
+        if (psNames.any { it == pkg || it.startsWith("${pkg}:") }) return true
+        val activity = runRoot("dumpsys activity processes").second
+        return Regex("(?<![A-Za-z0-9_.])${Regex.escape(pkg)}(?=[:/}\\s]|$)").containsMatchIn(activity)
     }
 
     private fun isSystem(pkg: String): Boolean = runCatching {
