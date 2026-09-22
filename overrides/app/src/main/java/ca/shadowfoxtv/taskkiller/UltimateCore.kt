@@ -94,7 +94,7 @@ class UltimateManager(private val context: Context) {
         val caps = capabilities()
         val mem = ActivityManager.MemoryInfo().also(am::getMemoryInfo)
         val usedPct = if (mem.totalMem > 0) (((mem.totalMem - mem.availMem) * 100) / mem.totalMem).toInt() else 0
-        val running = if (caps.rooted) ShadowFoxProEngine(app).runningThirdPartyCount() else runningPackages().size
+        val running = ShadowFoxProEngine(app).runningThirdPartyCount()
         val storage = storageReport()
         val network = networkReport()
         val storageFreePct = if (storage.totalBytes > 0) (storage.freeBytes * 100 / storage.totalBytes).toInt() else 0
@@ -176,7 +176,7 @@ class UltimateManager(private val context: Context) {
 
     suspend fun apps(): List<ManagedApp> = withContext(Dispatchers.IO) {
         val protected = protectedPackages()
-        val running = if (capabilities().rooted) ShadowFoxProEngine(app).runningThirdPartyPackages().toSet() else runningPackages().toSet()
+        val running = ShadowFoxProEngine(app).runningThirdPartyPackages().toSet()
         pm.getInstalledApplications(PackageManager.GET_META_DATA)
             .asSequence()
             .filter { pm.getLaunchIntentForPackage(it.packageName) != null }
@@ -222,7 +222,7 @@ class UltimateManager(private val context: Context) {
             else -> if (connected) "Connected" else "Offline"
         }
         val ping = if (connected) socketLatency("1.1.1.1", 443) else -1
-        val dns = if (connected) socketLatency("8.8.8.8", 53) else -1
+        val dns = if (connected) dnsLatency("cloudflare.com") else -1
         val verdict = when {
             !connected -> "NO INTERNET"
             ping < 0 -> "CONNECTION ISSUE"
@@ -309,6 +309,12 @@ class UltimateManager(private val context: Context) {
         if (pkg == app.packageName || pkg == "android" || pkg == "com.android.systemui" || pkg.contains("launcher", true)) return true
         return pkg in setOf("com.google.android.gms", "com.google.android.gsf", "com.android.vending", "com.android.permissioncontroller")
     }
+
+    private fun dnsLatency(host: String): Int = runCatching {
+        val start = System.nanoTime()
+        java.net.InetAddress.getByName(host)
+        ((System.nanoTime() - start) / 1_000_000L).toInt()
+    }.getOrDefault(-1)
 
     private fun socketLatency(host: String, port: Int): Int = runCatching {
         val start = System.nanoTime()
