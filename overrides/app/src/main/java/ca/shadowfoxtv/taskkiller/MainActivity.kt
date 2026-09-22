@@ -135,7 +135,6 @@ private fun MasterDashboard(context: Context) {
             optimizationRootUsed = optimizePrefs.getBoolean("root_used", optimizationRootUsed)
         }
     }
-    val optimizer = remember { AppOptimizer(context) }
     val proEngine = remember { ShadowFoxProEngine(context.applicationContext) }
     val scope = rememberCoroutineScope()
 
@@ -833,94 +832,6 @@ private fun MasterBackdrop() {
             lineTo(size.width * .41f, size.height * .38f)
         }
         drawPath(p, CYAN.copy(.025f), style = Stroke(3.dp.toPx()))
-    }
-}
-
-internal data class CleanupResult(
-    val closedApps: Int,
-    val ramFreedBytes: Long,
-    val storageFreedBytes: Long,
-    val rootUsed: Boolean
-)
-
-internal class AppOptimizer(private val context: Context) {
-    private val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-    private val packageManager = context.packageManager
-
-    suspend fun optimize(): CleanupResult = withContext(Dispatchers.IO) {
-        val beforeRam = availableMemoryBytes(context)
-        val beforeStorage = freeStorageBytes()
-        val protected = protectedPackages()
-        val root = rootShellAvailable()
-
-        val packages = if (root) {
-            runRoot("pm list packages -3").output
-                .lineSequence()
-                .map { it.trim() }
-                .filter { it.startsWith("package:") }
-                .map { it.removePrefix("package:") }
-                .filter { it.isNotBlank() && it != context.packageName && it !in protected }
-                .toList()
-        } else {
-            activityManager.runningAppProcesses.orEmpty()
-                .flatMap { it.pkgList?.toList().orEmpty() }
-                .distinct()
-                .filter { it != context.packageName && it !in protected }
-                .filterNot(::isSystemPackage)
-        }
-
-        var closed = 0
-        if (root && packages.isNotEmpty()) {
-            packages.forEach { pkg ->
-                if (runRoot("am force-stop '$pkg'").success) closed++
-            }
-            runRoot("pm trim-caches 999999999999")
-            runRoot("sync")
-        } else {
-            packages.forEach { packageName ->
-                runCatching {
-                    activityManager.killBackgroundProcesses(packageName)
-                    closed++
-                }
-            }
-        }
-
-        delay(300)
-        val afterRam = availableMemoryBytes(context)
-        val afterStorage = freeStorageBytes()
-        CleanupResult(
-            closedApps = closed,
-            ramFreedBytes = (afterRam - beforeRam).coerceAtLeast(0L),
-            storageFreedBytes = (afterStorage - beforeStorage).coerceAtLeast(0L),
-            rootUsed = root
-        )
-    }
-
-    private fun isSystemPackage(packageName: String): Boolean {
-        val info = runCatching { packageManager.getApplicationInfo(packageName, 0) }.getOrNull() ?: return true
-        val flags = ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP
-        return info.flags and flags != 0
-    }
-
-    private fun protectedPackages(): Set<String> {
-        val protected = mutableSetOf(
-            context.packageName,
-            "android",
-            "com.android.systemui",
-            "com.google.android.gms",
-            "com.google.android.gsf",
-            "com.android.vending",
-            "com.google.android.tvlauncher",
-            "com.google.android.apps.tv.launcherx",
-            "com.amazon.tv.launcher",
-            "com.amazon.firehomestarter",
-            "com.amazon.device.software.ota"
-        )
-        packageManager.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), PackageManager.MATCH_DEFAULT_ONLY)
-            .mapNotNullTo(protected) { it.activityInfo?.packageName }
-        packageManager.queryIntentServices(Intent(VpnService.SERVICE_INTERFACE), PackageManager.MATCH_ALL)
-            .mapNotNullTo(protected) { it.serviceInfo?.packageName }
-        return protected
     }
 }
 
