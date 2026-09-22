@@ -94,7 +94,7 @@ class UltimateManager(private val context: Context) {
         val caps = capabilities()
         val mem = ActivityManager.MemoryInfo().also(am::getMemoryInfo)
         val usedPct = if (mem.totalMem > 0) (((mem.totalMem - mem.availMem) * 100) / mem.totalMem).toInt() else 0
-        val running = runningPackages().size
+        val running = if (caps.rooted) ShadowFoxProEngine(app).runningThirdPartyCount() else runningPackages().size
         val storage = storageReport()
         val network = networkReport()
         val storageFreePct = if (storage.totalBytes > 0) (storage.freeBytes * 100 / storage.totalBytes).toInt() else 0
@@ -175,7 +175,7 @@ class UltimateManager(private val context: Context) {
 
     suspend fun apps(): List<ManagedApp> = withContext(Dispatchers.IO) {
         val protected = protectedPackages()
-        val running = if (capabilities().rooted) rootRunningPackages().toSet() else runningPackages().toSet()
+        val running = if (capabilities().rooted) ShadowFoxProEngine(app).runningThirdPartyPackages().toSet() else runningPackages().toSet()
         pm.getInstalledApplications(PackageManager.GET_META_DATA)
             .asSequence()
             .filter { pm.getLaunchIntentForPackage(it.packageName) != null }
@@ -285,23 +285,6 @@ class UltimateManager(private val context: Context) {
     }
 
     private fun runningPackages(): List<String> = am.runningAppProcesses.orEmpty().flatMap { it.pkgList?.toList().orEmpty() }.distinct()
-
-    private fun rootRunningPackages(): List<String> {
-        val installed = runRoot("pm list packages -3").second.lineSequence().map { it.removePrefix("package:").trim() }.filter { it.isNotBlank() }.toSet()
-        val psNames = runRoot("ps -A -o NAME").second.lineSequence().map { it.trim() }.filter { it.isNotBlank() }.toSet()
-        val activity = runRoot("dumpsys activity processes").second
-        return installed.filter { pkg ->
-            psNames.any { it == pkg || it.startsWith("${pkg}:") } ||
-                Regex("(?<![A-Za-z0-9_.])${Regex.escape(pkg)}(?=[:/}\\s]|$)").containsMatchIn(activity)
-        }
-    }
-
-    private fun isRunningRoot(pkg: String): Boolean {
-        val psNames = runRoot("ps -A -o NAME").second.lineSequence().map { it.trim() }.toSet()
-        if (psNames.any { it == pkg || it.startsWith("${pkg}:") }) return true
-        val activity = runRoot("dumpsys activity processes").second
-        return Regex("(?<![A-Za-z0-9_.])${Regex.escape(pkg)}(?=[:/}\\s]|$)").containsMatchIn(activity)
-    }
 
     private fun isSystem(pkg: String): Boolean = runCatching {
         val info = pm.getApplicationInfo(pkg, 0)
