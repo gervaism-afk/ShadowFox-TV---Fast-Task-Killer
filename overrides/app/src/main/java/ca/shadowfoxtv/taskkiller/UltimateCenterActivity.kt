@@ -40,6 +40,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -101,13 +103,17 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     var tab by remember { mutableStateOf(initialTab) }
     var snapshot by remember { mutableStateOf<UltimateSnapshot?>(null) }
     val scope = rememberCoroutineScope()
+    val firstTabFocus = remember { FocusRequester() }
     val configuration = LocalConfiguration.current
     val landscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val hasTelevisionUi = configuration.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
     val isPhone = !hasTelevisionUi && configuration.smallestScreenWidthDp < 600
 
     fun refresh() { scope.launch { snapshot = manager.snapshot() } }
-    LaunchedEffect(Unit) { snapshot = manager.snapshot() }
+    LaunchedEffect(Unit) {
+        snapshot = manager.snapshot()
+        if (hasTelevisionUi) firstTabFocus.requestFocus()
+    }
 
     BoxWithConstraints(
         Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF07131D), Color(0xFF02070B), UBG)))
@@ -139,8 +145,12 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
 
             Spacer(Modifier.height(if (landscape) 8.dp else 10.dp))
             Row(Modifier.fillMaxWidth().background(Color(0xAA020508), RoundedCornerShape(6.dp)).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                UltimateTab.entries.forEach { item ->
-                    UltimateTabButton(item.name, item == tab, Modifier.weight(1f)) { tab = item }
+                UltimateTab.entries.forEachIndexed { index, item ->
+                    UltimateTabButton(
+                        item.name,
+                        item == tab,
+                        Modifier.weight(1f).then(if (index == 0 && hasTelevisionUi) Modifier.focusRequester(firstTabFocus) else Modifier)
+                    ) { tab = item }
                 }
             }
             Spacer(Modifier.height(if (landscape) 8.dp else 10.dp))
@@ -460,7 +470,7 @@ private fun UltimateButton(text: String, enabled: Boolean = true, onClick: () ->
 @Composable
 private fun CompactAction(text: String, modifier: Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val zoom by animateFloatAsState(if (focused) 1.015f else 1f, label = "compactFocus")
+    val zoom by animateFloatAsState(if (focused) 1.012f else 1f, label = "compactFocus")
     Box(
         modifier.height(38.dp).scale(zoom)
             .shadow(if (focused) 12.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black, spotColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black)
