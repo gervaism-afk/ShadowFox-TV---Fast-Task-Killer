@@ -47,7 +47,7 @@ class ShadowFoxProEngine(private val context: Context) {
         val protected = protectedPackages()
 
         val allEligible = if (root) rootThirdPartyPackages(protected) else nonRootCandidates(protected)
-        val runningBefore = if (root) rootProcessNames() else emptySet()
+        val runningBefore = if (root) rootProcessSnapshot() else RootProcessSnapshot(emptySet(), "")
         val runningCandidates = if (root) allEligible.filter { it.isRunningIn(runningBefore) } else allEligible
 
         var verifiedStopped = 0
@@ -62,7 +62,7 @@ class ShadowFoxProEngine(private val context: Context) {
                 var stillRunning = true
                 for (attempt in 0 until 6) {
                     Thread.sleep(100)
-                    stillRunning = pkg.isRunningIn(rootProcessNames())
+                    stillRunning = pkg.isRunningIn(rootProcessSnapshot())
                     if (!stillRunning) break
                 }
                 if (!stillRunning) verifiedStopped++
@@ -118,14 +118,14 @@ class ShadowFoxProEngine(private val context: Context) {
         val root = rootAvailable()
         if (!root) return "STANDARD MODE • ROOT NOT GRANTED"
         val eligible = rootThirdPartyPackages(protectedPackages())
-        val processes = rootProcessNames()
+        val processes = rootProcessSnapshot()
         val running = eligible.count { it.isRunningIn(processes) }
         return "ROOT ACTIVE • UID 0 • $running running • ${eligible.size} eligible"
     }
 
     fun runningThirdPartyCount(): Int {
         if (!rootAvailable()) return nonRootCandidates(protectedPackages()).size
-        val processes = rootProcessNames()
+        val processes = rootProcessSnapshot()
         return rootThirdPartyPackages(protectedPackages()).count { it.isRunningIn(processes) }
     }
 
@@ -149,17 +149,23 @@ class ShadowFoxProEngine(private val context: Context) {
      * Reads /proc directly because several rooted Android TV firmwares ship a
      * pidof/ps variant that cannot resolve Android package process names.
      */
-    private fun rootProcessNames(): Set<String> {
-        val result = runRoot("for f in /proc/[0-9]*/cmdline; do cat \"\$f\" 2>/dev/null; echo; done")
-        if (!result.success && result.output.isBlank()) return emptySet()
-        return result.output.lineSequence()
+    private fun rootProcessSnapshot(): RootProcessSnapshot {
+        val proc = runRoot("for f in /proc/[0-9]*/cmdline; do cat \"\$f\" 2>/dev/null; echo; done")
+        val names = proc.output.lineSequence()
             .map { it.substringBefore('\u0000').trim() }
             .filter { it.isNotBlank() }
             .toSet()
+        // Some H96 Android TV builds isolate /proc even from app-spawned root.
+        // ActivityManager's registry still lists active and cached app processes.
+        val activity = runRoot("dumpsys activity processes").output
+        return RootProcessSnapshot(names, activity)
     }
 
-    private fun String.isRunningIn(processes: Set<String>): Boolean =
-        processes.any { it == this || it.startsWith("${this}:") }
+    private fun String.isRunningIn(snapshot: RootProcessSnapshot): Boolean {
+        if (snapshot.names.any { it == this || it.startsWith("${this}:") }) return true
+        val packageToken = Regex("(?<![A-Za-z0-9_.])${Regex.escape(this)}(?=[:/}\\s]|$)")
+        return packageToken.containsMatchIn(snapshot.activityProcesses)
+    }
 
     private fun nonRootCandidates(protected: Set<String>): List<String> =
         activityManager.runningAppProcesses.orEmpty()
@@ -280,4 +286,5 @@ class ShadowFoxProEngine(private val context: Context) {
     }
 
     private data class RootExec(val success: Boolean, val output: String)
+    private data class RootProcessSnapshot(val names: Set<String>, val activityProcesses: String)
 }
