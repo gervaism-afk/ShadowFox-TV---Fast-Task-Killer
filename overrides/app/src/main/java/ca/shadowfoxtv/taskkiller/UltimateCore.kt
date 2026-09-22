@@ -339,14 +339,8 @@ class UltimateManager(private val context: Context) {
     private fun dirSize(file: java.io.File): Long = if (!file.exists()) 0L else if (file.isFile) file.length() else file.listFiles()?.sumOf(::dirSize) ?: 0L
 
     private fun runRoot(command: String): Pair<Boolean, String> = runCatching {
-        val process = ProcessBuilder("su", "-c", command).redirectErrorStream(true).start()
-        val finished = process.waitFor(12, TimeUnit.SECONDS)
-        if (!finished) {
-            process.destroyForcibly(); false to "timeout"
-        } else {
-            val out = process.inputStream.bufferedReader().use { it.readText() }
-            (process.exitValue() == 0) to out
-        }
+        val result = RootShell.exec(command, 12)
+        result.success to result.output
     }.getOrElse { false to it.message.orEmpty() }
 
     private fun shellQuote(value: String) = "'" + value.replace("'", "'\\''") + "'"

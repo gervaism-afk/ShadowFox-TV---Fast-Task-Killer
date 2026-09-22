@@ -36,8 +36,7 @@ class ShadowFoxProEngine(private val context: Context) {
     private val packageManager = appContext.packageManager
 
     fun rootAvailable(): Boolean {
-        val result = runRoot("id")
-        return result.success && result.output.contains("uid=0")
+        return RootShell.isRootAvailable()
     }
 
     suspend fun optimize(): ProCleanupResult = withContext(Dispatchers.IO) {
@@ -268,31 +267,8 @@ class ShadowFoxProEngine(private val context: Context) {
     private fun shellQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
 
     private fun runRoot(command: String): RootExec {
-        val candidates = listOf(
-            "su",
-            "/system/bin/su",
-            "/system/xbin/su",
-            "/sbin/su",
-            "/debug_ramdisk/su",
-            "/data/adb/magisk/su"
-        )
-        var lastOutput = "su unavailable"
-        for (suPath in candidates.distinct()) {
-            val result = runCatching {
-                val process = ProcessBuilder(suPath, "-c", command).redirectErrorStream(true).start()
-                val finished = process.waitFor(15, TimeUnit.SECONDS)
-                if (!finished) {
-                    process.destroyForcibly()
-                    RootExec(false, "timeout")
-                } else {
-                    val output = process.inputStream.bufferedReader().use { it.readText() }
-                    RootExec(process.exitValue() == 0, output)
-                }
-            }.getOrElse { RootExec(false, it.message.orEmpty()) }
-            if (result.success || result.output.contains("uid=0")) return result
-            if (result.output.isNotBlank()) lastOutput = result.output
-        }
-        return RootExec(false, lastOutput)
+        val result = RootShell.exec(command)
+        return RootExec(result.success, result.output)
     }
 
     private fun formatBytes(bytes: Long): String {
