@@ -122,6 +122,8 @@ class UltimateManager(private val context: Context) {
         return result
     }
 
+    fun optimizerDiagnostics(): List<String> = ShadowFoxProEngine(app).readRecentDiagnostics(20)
+
     suspend fun streamingOptimize(targetPackage: String?): ProCleanupResult = withContext(Dispatchers.IO) {
         val caps = capabilities()
         val protected = protectedPackages().toMutableSet().apply {
