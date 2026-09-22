@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.StatFs
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
@@ -86,6 +87,14 @@ class MainActivity : ComponentActivity() {
             hide(WindowInsetsCompat.Type.systemBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // TV remotes should leave immediately. Do not wait for dashboard
+                // polling/root/network coroutines to finish.
+                isEnabled = false
+                finishAndRemoveTask()
+            }
+        })
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(background = BG, surface = PANEL)) {
                 ShadowFoxUpdateGate(applicationContext) {
