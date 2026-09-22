@@ -112,16 +112,16 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     BoxWithConstraints(
         Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF07131D), Color(0xFF02070B), UBG)))
     ) {
-        val side = if (landscape) 18.dp else 20.dp
-        val top = if (landscape) 8.dp else 12.dp
-        val contentMax = if (landscape) 1180.dp else 620.dp
+        val side = if (landscape && !isPhone) 12.dp else if (landscape) 18.dp else 20.dp
+        val top = if (landscape && !isPhone) 8.dp else if (landscape) 8.dp else 12.dp
+        val contentMax = if (landscape && !isPhone) 960.dp else if (landscape) 1180.dp else 620.dp
         val contentWidth = minOf(maxWidth - (side * 2), contentMax)
 
         Column(
             Modifier.width(contentWidth).fillMaxSize().align(Alignment.TopCenter).padding(top = top, bottom = 10.dp)
         ) {
             if (landscape) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(6.dp)).padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     BrandHeader(snapshot, Modifier.weight(1f), compact = true, isPhone = isPhone)
                     UltimateButton("REFRESH") { refresh() }
                     Spacer(Modifier.width(8.dp))
@@ -138,7 +138,7 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
             }
 
             Spacer(Modifier.height(if (landscape) 8.dp else 10.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth().background(Color(0xAA020508), RoundedCornerShape(6.dp)).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 UltimateTab.entries.forEach { item ->
                     UltimateTabButton(item.name, item == tab, Modifier.weight(1f)) { tab = item }
                 }
