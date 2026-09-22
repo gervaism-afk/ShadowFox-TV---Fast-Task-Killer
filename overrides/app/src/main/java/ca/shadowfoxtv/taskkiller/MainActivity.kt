@@ -927,22 +927,13 @@ internal class AppOptimizer(private val context: Context) {
 private data class RootResult(val success: Boolean, val output: String)
 
 private fun rootShellAvailable(): Boolean {
-    val primary = runRoot("id")
-    if (primary.success && primary.output.contains("uid=0")) return true
-    val fallback = runCatching {
-        val process = ProcessBuilder("su", "-c", "whoami").redirectErrorStream(true).start()
-        val output = process.inputStream.bufferedReader().use { it.readText() }.trim()
-        process.waitFor() == 0 && output.equals("root", ignoreCase = true)
-    }.getOrDefault(false)
-    return fallback
+    return RootShell.isRootAvailable()
 }
 
-private fun runRoot(command: String): RootResult = runCatching {
-    val process = ProcessBuilder("su", "-c", command).redirectErrorStream(true).start()
-    val output = process.inputStream.bufferedReader().use { it.readText() }
-    val code = process.waitFor()
-    RootResult(code == 0, output)
-}.getOrElse { RootResult(false, "") }
+private fun runRoot(command: String): RootResult {
+    val result = RootShell.exec(command)
+    return RootResult(result.success, result.output)
+}
 
 private fun memoryUsedPercent(context: Context): Float {
     val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
