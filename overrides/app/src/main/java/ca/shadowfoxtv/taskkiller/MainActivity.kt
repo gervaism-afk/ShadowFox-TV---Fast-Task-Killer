@@ -168,22 +168,22 @@ private fun MasterDashboard(context: Context) {
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             "ShadowFox",
-                            color = Color(0xFFEAFBFF),
-                            fontSize = 30.sp,
+                            color = Color(0xFFBFF7FF),
+                            fontSize = 34.sp,
                             fontWeight = FontWeight.Black,
                             fontStyle = FontStyle.Italic,
-                            letterSpacing = 0.3.sp,
-                            style = TextStyle(shadow = Shadow(color = CYAN.copy(alpha = .55f), offset = Offset(0f, 1.5f), blurRadius = 8f))
+                            letterSpacing = 0.7.sp,
+                            style = TextStyle(shadow = Shadow(color = CYAN.copy(alpha = .90f), offset = Offset(0f, 2f), blurRadius = 12f))
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
                             "TV",
-                            color = Color(0xFFFFA126),
-                            fontSize = 30.sp,
+                            color = Color(0xFFFFC247),
+                            fontSize = 34.sp,
                             fontWeight = FontWeight.Black,
                             fontStyle = FontStyle.Italic,
-                            letterSpacing = 0.4.sp,
-                            style = TextStyle(shadow = Shadow(color = ORANGE.copy(alpha = .50f), offset = Offset(0f, 1.5f), blurRadius = 7f))
+                            letterSpacing = 0.7.sp,
+                            style = TextStyle(shadow = Shadow(color = Color(0xFFFF7A00).copy(alpha = .90f), offset = Offset(0f, 2f), blurRadius = 11f))
                         )
                     }
                     Text("www.shadowfoxtv.ca", color = Color(0xFFC6DCE8), fontSize = 9.sp, fontWeight = FontWeight.Medium)
