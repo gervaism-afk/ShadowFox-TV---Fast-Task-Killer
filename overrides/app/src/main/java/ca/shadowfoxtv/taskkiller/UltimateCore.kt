@@ -78,8 +78,11 @@ class UltimateManager(private val context: Context) {
     private val am = app.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     private val pm = app.packageManager
     private val prefs = app.getSharedPreferences("shadowfox_v6", Context.MODE_PRIVATE)
+    @Volatile private var cachedCapabilities: DeviceCapabilities? = null
 
-    fun capabilities(): DeviceCapabilities = DeviceCapabilityDetector.detect(app)
+    fun capabilities(): DeviceCapabilities = cachedCapabilities ?: DeviceCapabilityDetector.detect(app).also { cachedCapabilities = it }
+
+    fun cachedCapabilities(): DeviceCapabilities? = cachedCapabilities
     fun appContext(): Context = app
 
     fun protectedPackages(): Set<String> = prefs.getStringSet("protected", emptySet())?.toSet().orEmpty()
@@ -91,7 +94,9 @@ class UltimateManager(private val context: Context) {
     }
 
     suspend fun snapshot(): UltimateSnapshot = withContext(Dispatchers.IO) {
-        val caps = capabilities()
+        // First paint must never wait for a root shell probe. Use the cached capability
+        // once available; root-aware actions still call capabilities() when required.
+        val caps = cachedCapabilities()
         val mem = ActivityManager.MemoryInfo().also(am::getMemoryInfo)
         val usedPct = if (mem.totalMem > 0) (((mem.totalMem - mem.availMem) * 100) / mem.totalMem).toInt() else 0
         // Keep the first dashboard paint fast on low-power TV sticks.
@@ -112,8 +117,8 @@ class UltimateManager(private val context: Context) {
         if (!networkConnected) score -= 20
         if (running > 20) score -= ((running - 20) / 2).coerceAtMost(10)
         UltimateSnapshot(
-            mode = caps.modeLabel,
-            root = caps.rooted,
+            mode = caps?.modeLabel ?: "DETECTING MODE",
+            root = caps?.rooted ?: false,
             health = score.coerceIn(0, 100),
             ramUsedPercent = usedPct,
             freeRam = mem.availMem,
