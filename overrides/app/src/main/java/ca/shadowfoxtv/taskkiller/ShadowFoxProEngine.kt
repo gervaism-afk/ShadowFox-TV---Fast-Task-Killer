@@ -128,10 +128,19 @@ class ShadowFoxProEngine(private val context: Context) {
         return "ROOT ACTIVE • UID 0 • $running running • ${eligible.size} eligible"
     }
 
-    fun runningThirdPartyCount(): Int {
-        if (!rootAvailable()) return nonRootCandidates(protectedPackages()).size
+    fun runningThirdPartyCount(): Int = runningThirdPartyPackages().size
+
+    fun runningThirdPartyPackages(): List<String> {
+        val protected = protectedPackages()
+        if (!rootAvailable()) return nonRootCandidates(protected)
         val processes = rootProcessSnapshot()
-        return rootThirdPartyPackages(protectedPackages()).count { it.isRunningIn(processes) }
+        return rootThirdPartyPackages(protected).filter { it.isRunningIn(processes) }
+    }
+
+    fun isThirdPartyPackageRunning(packageName: String): Boolean {
+        if (packageName.isBlank()) return false
+        if (!rootAvailable()) return packageName in nonRootCandidates(protectedPackages())
+        return packageName.isRunningIn(rootProcessSnapshot())
     }
 
     fun readRecentDiagnostics(maxLines: Int = 12): List<String> = runCatching {

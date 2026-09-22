@@ -53,6 +53,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -105,6 +107,10 @@ class MainActivity : ComponentActivity() {
 
 private val BG = Color(0xFF010305)
 private val PANEL = Color(0xF20A0E12)
+private val METAL_TOP = Color(0xFF1A2732)
+private val METAL_MID = Color(0xFF07111A)
+private val METAL_BOTTOM = Color(0xFF020508)
+private val METAL_EDGE = Color(0xFF27495E)
 private val CYAN = Color(0xFF00E5FF)
 private val BLUE = Color(0xFF08AEEA)
 private val ORANGE = Color(0xFFFF7A00)
@@ -116,7 +122,7 @@ private val GREEN = Color(0xFF77C943)
 private fun MasterDashboard(context: Context) {
     val optimizePrefs = remember { context.getSharedPreferences("shadowfox_optimizer", Context.MODE_PRIVATE) }
     var ram by remember { mutableFloatStateOf(memoryUsedPercent(context)) }
-    var apps by remember { mutableIntStateOf(runningProcessCount(context)) }
+    var apps by remember { mutableIntStateOf(0) }
     var mbps by remember { mutableFloatStateOf(0f) }
     var ping by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf(false) }
@@ -126,6 +132,8 @@ private fun MasterDashboard(context: Context) {
     var storageFreed by remember { mutableStateOf(0L) }
     var closedApps by remember { mutableIntStateOf(0) }
     var optimizeHasRun by remember { mutableStateOf(optimizePrefs.getBoolean("has_run", false)) }
+    var cacheBusy by remember { mutableStateOf(false) }
+    var cacheCleared by remember { mutableStateOf(0L) }
     var clock by remember { mutableStateOf(Date()) }
     LaunchedEffect(optimizeHasRun) {
         if (optimizeHasRun) {
@@ -135,9 +143,9 @@ private fun MasterDashboard(context: Context) {
             optimizationRootUsed = optimizePrefs.getBoolean("root_used", optimizationRootUsed)
         }
     }
-    val optimizer = remember { AppOptimizer(context) }
     val proEngine = remember { ShadowFoxProEngine(context.applicationContext) }
     val scope = rememberCoroutineScope()
+    val firstTvFocus = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
         rootAvailable = withContext(Dispatchers.IO) { rootShellAvailable() }
@@ -151,11 +159,23 @@ private fun MasterDashboard(context: Context) {
             ram = memoryUsedPercent(context)
             if (processRefreshTick % 5 == 0) {
                 apps = withContext(Dispatchers.IO) {
-                    if (rootAvailable) proEngine.runningThirdPartyCount() else runningProcessCount(context)
+                    proEngine.runningThirdPartyCount()
                 }
             }
             processRefreshTick++
             clock = Date()
+        }
+    }
+
+    fun cleanCache() {
+        if (cacheBusy) return
+        cacheBusy = true
+        scope.launch {
+            try {
+                cacheCleared = UltimateManager(context).clearCache()
+            } finally {
+                cacheBusy = false
+            }
         }
     }
 
@@ -181,9 +201,7 @@ private fun MasterDashboard(context: Context) {
                     .putString("summary", result.summary)
                     .commit()
                 ram = memoryUsedPercent(context)
-                apps = withContext(Dispatchers.IO) {
-                    if (rootAvailable) proEngine.runningThirdPartyCount() else runningProcessCount(context)
-                }
+                apps = withContext(Dispatchers.IO) { proEngine.runningThirdPartyCount() }
             } finally {
                 busy = false
             }
@@ -211,6 +229,10 @@ private fun MasterDashboard(context: Context) {
         return
     }
 
+    LaunchedEffect(hasTelevisionUi) {
+        if (hasTelevisionUi) firstTvFocus.requestFocus()
+    }
+
     BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
         val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
         Box(Modifier.size(960.dp * scale, 540.dp * scale).align(Alignment.Center)) {
@@ -223,7 +245,7 @@ private fun MasterDashboard(context: Context) {
                         Image(painterResource(R.drawable.shadowfox_logo), "ShadowFox TV", contentScale = ContentScale.Fit, modifier = Modifier.size(190.dp, 62.dp))
                         Column(Modifier.width(250.dp)) {
                             Text("OPTIMIZE • CLEAN • PERFORM", color = MUTED, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text("ROOTED PRO MODE  •  v" + BuildConfig.VERSION_NAME, color = CYAN, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                            Text((if (rootAvailable) "ROOTED PRO MODE" else "STANDARD MODE") + "  •  v" + BuildConfig.VERSION_NAME, color = if (rootAvailable) CYAN else MUTED, fontSize = 11.sp, fontWeight = FontWeight.Black)
                         }
                         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("BUILT FOR ANDROID TV", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
@@ -239,7 +261,7 @@ private fun MasterDashboard(context: Context) {
                 // Reference left navigation rail
                 DisplayCard(Modifier.offset(12.dp, 92.dp).size(142.dp, 404.dp)) {
                     Column(Modifier.fillMaxSize().padding(8.dp)) {
-                        NavEntry("⌂", "OPTIMIZE", false, Modifier.height(64.dp).fillMaxWidth()) { optimize() }
+                        NavEntry("⌂", "OPTIMIZE", false, Modifier.height(64.dp).fillMaxWidth().focusRequester(firstTvFocus)) { optimize() }
                         NavEntry("▦", "APPS", false, Modifier.height(64.dp).fillMaxWidth()) { openUltimate(context, "APPS") }
                         NavEntry("⌁", "NETWORK", false, Modifier.height(64.dp).fillMaxWidth()) { openUltimate(context, "NETWORK") }
                         NavEntry("⚙", "SYSTEM", false, Modifier.height(64.dp).fillMaxWidth()) { openUltimate(context, "SYSTEM") }
@@ -303,27 +325,27 @@ private fun MasterDashboard(context: Context) {
                 }
 
                 // Reference Cache Cleaner module
-                GlowCard(Modifier.offset(516.dp, 182.dp).size(432.dp, 118.dp), onClick = { openUltimate(context, "SYSTEM") }) {
+                DisplayCard(Modifier.offset(516.dp, 182.dp).size(432.dp, 118.dp)) {
                     Row(Modifier.fillMaxSize().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("♨", color = WHITE, fontSize = 38.sp)
+                        Broom(Modifier.size(54.dp))
                         Spacer(Modifier.width(16.dp))
                         Column(Modifier.weight(1f)) {
                             Text("CACHE CLEANER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
                             Text("Remove temporary and cached files", color = MUTED, fontSize = 9.sp)
                             Spacer(Modifier.height(8.dp))
-                            MasterButton("CLEAN CACHE", 150.dp, true) { openUltimate(context, "SYSTEM") }
+                            MasterButton(if (cacheBusy) "CLEANING…" else "CLEAN CACHE", 150.dp, true) { if (!cacheBusy) cleanCache() }
                         }
                         Column(Modifier.width(105.dp)) {
                             Text("CACHE CLEARED", color = MUTED, fontSize = 8.sp)
-                            Text(formatBytes(storageFreed), color = CYAN, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Text(formatBytes(cacheCleared), color = CYAN, fontSize = 14.sp, fontWeight = FontWeight.Black)
                         }
                     }
                 }
 
                 // Reference Ultimate Center module
-                GlowCard(Modifier.offset(516.dp, 312.dp).size(432.dp, 120.dp), onClick = { openUltimate(context, "OPTIMIZE") }) {
+                DisplayCard(Modifier.offset(516.dp, 312.dp).size(432.dp, 120.dp)) {
                     Row(Modifier.fillMaxSize().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("〽", color = CYAN, fontSize = 38.sp)
+                        Bolt(Modifier.size(48.dp))
                         Spacer(Modifier.width(16.dp))
                         Column(Modifier.weight(1f)) {
                             Text("ULTIMATE CENTER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
@@ -345,7 +367,7 @@ private fun MasterDashboard(context: Context) {
                 // Full-width Thermal + Performance strip
                 DisplayCard(Modifier.offset(166.dp, 444.dp).size(782.dp, 52.dp)) {
                     Row(Modifier.fillMaxSize().padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("♨", color = WHITE, fontSize = 26.sp)
+                        Text("THERMAL", color = CYAN, fontSize = 10.sp, fontWeight = FontWeight.Black)
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.width(245.dp)) {
                             Text("THERMAL + PERFORMANCE", color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Black)
@@ -546,11 +568,11 @@ private fun MobileNav(label: String, onClick: () -> Unit) {
 @Composable
 private fun NavEntry(icon: String, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(6.dp)
     Row(
         modifier
-            .background(if (focused) Color(0xFF0C1013) else Color.Transparent, shape)
-            .shadow(if (focused) 2.dp else 0.dp, shape, false, WHITE.copy(alpha = .16f), WHITE.copy(alpha = .16f))
+            .background(if (focused) Color(0xFF0B1821) else Color.Transparent, shape)
+            .shadow(if (focused) 3.dp else 0.dp, shape, false, CYAN.copy(alpha = .24f), CYAN.copy(alpha = .24f))
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .clickable(onClick = onClick)
@@ -559,7 +581,7 @@ private fun NavEntry(icon: String, label: String, selected: Boolean, modifier: M
     ) {
         Text(icon, color = if (focused) CYAN else MUTED, fontSize = 16.sp)
         Spacer(Modifier.width(9.dp))
-        Text(label, color = if (focused) WHITE else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
+        Text(label, color = if (focused) CYAN else MUTED, fontSize = 9.sp, fontWeight = FontWeight.Black)
     }
 }
 
@@ -613,11 +635,11 @@ private fun BottomSystemStrip(
 
 @Composable
 private fun StatTile(label: String, value: String, modifier: Modifier, valueColor: Color = WHITE) {
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(6.dp)
     Column(
         modifier
-            .shadow(6.dp, shape, false, CYAN.copy(alpha = .25f), CYAN.copy(alpha = .25f))
-            .background(Color(0xD90A1C29), shape)
+            .shadow(2.dp, shape, false, Color.Black, Color.Black)
+            .background(Brush.verticalGradient(listOf(METAL_TOP, METAL_MID, METAL_BOTTOM)), shape)
             .padding(horizontal = 10.dp, vertical = 7.dp)
     ) {
         Text(label, color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold)
@@ -641,11 +663,11 @@ private fun DisplayCard(
                 ambientColor = Color.Black,
                 spotColor = Color.Black
             )
-            .background(Brush.verticalGradient(listOf(Color(0xFC171A1D), Color(0xFC030405), Color(0xFC0E1113), Color(0xFC010203))), shape)
+            .background(Brush.verticalGradient(listOf(METAL_TOP, METAL_MID, METAL_BOTTOM)), shape)
     ) {
         Canvas(Modifier.fillMaxSize()) {
             drawRoundRect(
-                color = Color(0xFF35505E),
+                color = METAL_EDGE,
                 style = Stroke(1.2.dp.toPx()),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
             )
@@ -663,7 +685,7 @@ private fun GlowCard(
 ) {
     var focused by remember { mutableStateOf(false) }
     val focusScale = if (focused) 1.012f else 1f
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(6.dp)
     Box(
         modifier
             .scale(focusScale)
@@ -671,8 +693,8 @@ private fun GlowCard(
                 elevation = if (focused) 5.dp else if (hero) 8.dp else 3.dp,
                 shape = shape,
                 clip = false,
-                ambientColor = if (focused) WHITE.copy(alpha = .18f) else Color.Black,
-                spotColor = if (focused) WHITE.copy(alpha = .18f) else Color.Black
+                ambientColor = if (focused) CYAN.copy(alpha = .22f) else Color.Black,
+                spotColor = if (focused) CYAN.copy(alpha = .22f) else Color.Black
             )
             .background(Brush.verticalGradient(listOf(Color(0xFC171A1D), Color(0xFC030405), Color(0xFC0E1113), Color(0xFC010203))), shape)
             .onFocusChanged { focused = it.isFocused }
@@ -681,7 +703,7 @@ private fun GlowCard(
     ) {
         Canvas(Modifier.fillMaxSize()) {
             drawRoundRect(
-                color = if (focused) WHITE.copy(alpha = .62f) else Color(0xFF343A3F),
+                color = if (focused) CYAN.copy(alpha = .82f) else METAL_EDGE,
                 style = Stroke(if (focused) 1.35.dp.toPx() else 1.dp.toPx()),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
             )
@@ -700,14 +722,14 @@ private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabl
             .height(32.dp)
             .scale(if (focused) 1.015f else 1f)
             .shadow(if (focused) 3.dp else 1.dp, shape, false, if (focused) WHITE.copy(alpha = .18f) else Color.Black, if (focused) WHITE.copy(alpha = .18f) else Color.Black)
-            .background(Brush.horizontalGradient(listOf(Color(0xFF171A1D), Color(0xFF030405), Color(0xFF0E1113))), shape)
+            .background(Brush.horizontalGradient(listOf(METAL_TOP, METAL_MID, METAL_BOTTOM)), shape)
             .onFocusChanged { focused = it.isFocused }
             .focusable(enabled)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(Modifier.fillMaxSize()) { drawRoundRect(color = if (focused) WHITE.copy(alpha = .62f) else Color(0xFF343A3F), style = Stroke(if (focused) 1.25.dp.toPx() else 1.dp.toPx()), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())) }
-        Text(text, color = if (focused) WHITE else MUTED, fontSize = 10.sp, fontWeight = FontWeight.Black)
+        Canvas(Modifier.fillMaxSize()) { drawRoundRect(color = if (focused) CYAN.copy(alpha = .82f) else METAL_EDGE, style = Stroke(if (focused) 1.25.dp.toPx() else 1.dp.toPx()), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())) }
+        Text(text, color = if (focused) CYAN else WHITE, fontSize = 10.sp, fontWeight = FontWeight.Black)
     }
 }
 
@@ -825,7 +847,8 @@ private fun Bolt(modifier: Modifier) {
 private fun MasterBackdrop() {
     Canvas(Modifier.fillMaxSize()) {
         drawRect(BG)
-        drawCircle(CYAN.copy(.008f), size.width * .38f, Offset(size.width * .48f, size.height * .45f))
+        drawRect(Brush.verticalGradient(listOf(Color(0xFF07131D), Color(0xFF02070B), BG)))
+        drawCircle(BLUE.copy(.035f), size.width * .42f, Offset(size.width * .48f, size.height * .40f))
         val p = Path().apply {
             moveTo(size.width * .43f, 0f)
             lineTo(size.width * .39f, size.height * .18f)
@@ -833,94 +856,6 @@ private fun MasterBackdrop() {
             lineTo(size.width * .41f, size.height * .38f)
         }
         drawPath(p, CYAN.copy(.025f), style = Stroke(3.dp.toPx()))
-    }
-}
-
-internal data class CleanupResult(
-    val closedApps: Int,
-    val ramFreedBytes: Long,
-    val storageFreedBytes: Long,
-    val rootUsed: Boolean
-)
-
-internal class AppOptimizer(private val context: Context) {
-    private val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-    private val packageManager = context.packageManager
-
-    suspend fun optimize(): CleanupResult = withContext(Dispatchers.IO) {
-        val beforeRam = availableMemoryBytes(context)
-        val beforeStorage = freeStorageBytes()
-        val protected = protectedPackages()
-        val root = rootShellAvailable()
-
-        val packages = if (root) {
-            runRoot("pm list packages -3").output
-                .lineSequence()
-                .map { it.trim() }
-                .filter { it.startsWith("package:") }
-                .map { it.removePrefix("package:") }
-                .filter { it.isNotBlank() && it != context.packageName && it !in protected }
-                .toList()
-        } else {
-            activityManager.runningAppProcesses.orEmpty()
-                .flatMap { it.pkgList?.toList().orEmpty() }
-                .distinct()
-                .filter { it != context.packageName && it !in protected }
-                .filterNot(::isSystemPackage)
-        }
-
-        var closed = 0
-        if (root && packages.isNotEmpty()) {
-            packages.forEach { pkg ->
-                if (runRoot("am force-stop '$pkg'").success) closed++
-            }
-            runRoot("pm trim-caches 999999999999")
-            runRoot("sync")
-        } else {
-            packages.forEach { packageName ->
-                runCatching {
-                    activityManager.killBackgroundProcesses(packageName)
-                    closed++
-                }
-            }
-        }
-
-        delay(300)
-        val afterRam = availableMemoryBytes(context)
-        val afterStorage = freeStorageBytes()
-        CleanupResult(
-            closedApps = closed,
-            ramFreedBytes = (afterRam - beforeRam).coerceAtLeast(0L),
-            storageFreedBytes = (afterStorage - beforeStorage).coerceAtLeast(0L),
-            rootUsed = root
-        )
-    }
-
-    private fun isSystemPackage(packageName: String): Boolean {
-        val info = runCatching { packageManager.getApplicationInfo(packageName, 0) }.getOrNull() ?: return true
-        val flags = ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP
-        return info.flags and flags != 0
-    }
-
-    private fun protectedPackages(): Set<String> {
-        val protected = mutableSetOf(
-            context.packageName,
-            "android",
-            "com.android.systemui",
-            "com.google.android.gms",
-            "com.google.android.gsf",
-            "com.android.vending",
-            "com.google.android.tvlauncher",
-            "com.google.android.apps.tv.launcherx",
-            "com.amazon.tv.launcher",
-            "com.amazon.firehomestarter",
-            "com.amazon.device.software.ota"
-        )
-        packageManager.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), PackageManager.MATCH_DEFAULT_ONLY)
-            .mapNotNullTo(protected) { it.activityInfo?.packageName }
-        packageManager.queryIntentServices(Intent(VpnService.SERVICE_INTERFACE), PackageManager.MATCH_ALL)
-            .mapNotNullTo(protected) { it.serviceInfo?.packageName }
-        return protected
     }
 }
 

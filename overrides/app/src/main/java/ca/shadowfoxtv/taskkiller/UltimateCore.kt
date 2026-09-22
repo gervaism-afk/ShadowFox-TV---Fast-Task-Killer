@@ -94,7 +94,7 @@ class UltimateManager(private val context: Context) {
         val caps = capabilities()
         val mem = ActivityManager.MemoryInfo().also(am::getMemoryInfo)
         val usedPct = if (mem.totalMem > 0) (((mem.totalMem - mem.availMem) * 100) / mem.totalMem).toInt() else 0
-        val running = runningPackages().size
+        val running = ShadowFoxProEngine(app).runningThirdPartyCount()
         val storage = storageReport()
         val network = networkReport()
         val storageFreePct = if (storage.totalBytes > 0) (storage.freeBytes * 100 / storage.totalBytes).toInt() else 0
@@ -135,13 +135,14 @@ class UltimateManager(private val context: Context) {
         var attempted = 0
 
         if (caps.rooted) {
-            val running = rootRunningPackages().filter { it !in protected && !isCritical(it) }
+            val engine = ShadowFoxProEngine(app)
+            val running = engine.runningThirdPartyPackages().filter { it !in protected && !isCritical(it) }
             attempted = running.size
             for (pkg in running) {
                 val stop = runRoot("am force-stop --user 0 ${shellQuote(pkg)}")
                 if (stop.first) {
                     Thread.sleep(35)
-                    if (!isRunningRoot(pkg)) stopped++
+                    if (!engine.isThirdPartyPackageRunning(pkg)) stopped++
                 }
             }
             runRoot("pm trim-caches 999999999999")
@@ -175,7 +176,7 @@ class UltimateManager(private val context: Context) {
 
     suspend fun apps(): List<ManagedApp> = withContext(Dispatchers.IO) {
         val protected = protectedPackages()
-        val running = if (capabilities().rooted) rootRunningPackages().toSet() else runningPackages().toSet()
+        val running = ShadowFoxProEngine(app).runningThirdPartyPackages().toSet()
         pm.getInstalledApplications(PackageManager.GET_META_DATA)
             .asSequence()
             .filter { pm.getLaunchIntentForPackage(it.packageName) != null }
@@ -221,7 +222,7 @@ class UltimateManager(private val context: Context) {
             else -> if (connected) "Connected" else "Offline"
         }
         val ping = if (connected) socketLatency("1.1.1.1", 443) else -1
-        val dns = if (connected) socketLatency("8.8.8.8", 53) else -1
+        val dns = if (connected) dnsLatency("cloudflare.com") else -1
         val verdict = when {
             !connected -> "NO INTERNET"
             ping < 0 -> "CONNECTION ISSUE"
@@ -239,6 +240,19 @@ class UltimateManager(private val context: Context) {
         val free = stat.availableBytes
         val ownCache = dirSize(app.cacheDir) + (app.externalCacheDir?.let(::dirSize) ?: 0L)
         return StorageReport(total, free, (total - free).coerceAtLeast(0), ownCache)
+    }
+
+    suspend fun clearCache(): Long = withContext(Dispatchers.IO) {
+        val beforeFree = storageReport().freeBytes
+        if (RootShell.isRootAvailable()) {
+            RootShell.exec("pm trim-caches 999999999999", 15)
+            RootShell.exec("sync", 15)
+        } else {
+            clearOwnCache()
+        }
+        val freed = (storageReport().freeBytes - beforeFree).coerceAtLeast(0)
+        appendHistory("CACHE CLEANER • ${formatBytes(freed)} cleared")
+        freed
     }
 
     fun clearOwnCache(): Long {
@@ -286,23 +300,6 @@ class UltimateManager(private val context: Context) {
 
     private fun runningPackages(): List<String> = am.runningAppProcesses.orEmpty().flatMap { it.pkgList?.toList().orEmpty() }.distinct()
 
-    private fun rootRunningPackages(): List<String> {
-        val installed = runRoot("pm list packages -3").second.lineSequence().map { it.removePrefix("package:").trim() }.filter { it.isNotBlank() }.toSet()
-        val psNames = runRoot("ps -A -o NAME").second.lineSequence().map { it.trim() }.filter { it.isNotBlank() }.toSet()
-        val activity = runRoot("dumpsys activity processes").second
-        return installed.filter { pkg ->
-            psNames.any { it == pkg || it.startsWith("${pkg}:") } ||
-                Regex("(?<![A-Za-z0-9_.])${Regex.escape(pkg)}(?=[:/}\\s]|$)").containsMatchIn(activity)
-        }
-    }
-
-    private fun isRunningRoot(pkg: String): Boolean {
-        val psNames = runRoot("ps -A -o NAME").second.lineSequence().map { it.trim() }.toSet()
-        if (psNames.any { it == pkg || it.startsWith("${pkg}:") }) return true
-        val activity = runRoot("dumpsys activity processes").second
-        return Regex("(?<![A-Za-z0-9_.])${Regex.escape(pkg)}(?=[:/}\\s]|$)").containsMatchIn(activity)
-    }
-
     private fun isSystem(pkg: String): Boolean = runCatching {
         val info = pm.getApplicationInfo(pkg, 0)
         (info.flags and ApplicationInfo.FLAG_SYSTEM) != 0 || (info.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
@@ -312,6 +309,12 @@ class UltimateManager(private val context: Context) {
         if (pkg == app.packageName || pkg == "android" || pkg == "com.android.systemui" || pkg.contains("launcher", true)) return true
         return pkg in setOf("com.google.android.gms", "com.google.android.gsf", "com.android.vending", "com.android.permissioncontroller")
     }
+
+    private fun dnsLatency(host: String): Int = runCatching {
+        val start = System.nanoTime()
+        java.net.InetAddress.getByName(host)
+        ((System.nanoTime() - start) / 1_000_000L).toInt()
+    }.getOrDefault(-1)
 
     private fun socketLatency(host: String, port: Int): Int = runCatching {
         val start = System.nanoTime()

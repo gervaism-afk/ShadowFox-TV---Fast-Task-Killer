@@ -3,7 +3,7 @@ name: Build & Release ShadowFox TV Optimizer
 on:
   workflow_dispatch:
   push:
-    branches: [main, v6.3.1-mobile-device-polish, android-tv-reference-ui, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build, h96-anr-fix-v6.1.10, ui-focus-v6.1.11, ultimate-dpad-unified-v6.1.12, accuracy-audit-v6.1.13, auto-updater-v6.1.14, production-cleanup-v6.1.16, rollback-v6.2.1-to-v6.1.16, true-ui-rebuild-v6.2.2, v6.3.2-mobile-landscape-fix, v6.4.0-ultimate-center-polish, v6.4.1-ultimate-center-layout-fix, v6.5.0-ultimate-tools-polish, v6.6.0-tv-rebuild, v6.6.1-update-feedback, v6.7.0-tv-metallic-rebuild, v6.7.1-tv-contrast-root-fix, v6.8.0-reference-layout-rebuild, v6.8.1-tv-focus-controls, v6.8.2-optimize-qa-fix, v6.8.3-optimize-state-fix, v6.8.4-optimize-survival-fix, v6.8.5-optimize-service-fix, v6.8.6-optimize-deadlock-fix, v6.8.7-optimize-stale-state-fix, v6.8.8-optimize-race-fix, v6.8.9-optimize-result-ui, v6.8.10-direct-optimize-result, v6.8.11-tv-optimize-results, v6.8.12-optimize-results-fit, v6.8.13-optimize-result-slot, v6.8.14-focus-regression-fix, v6.8.15-optimize-results-visible, v6.8.16-root-process-detection, v6.8.17-h96-dumpsys-processes, v6.8.18-h96-diagnostics, v6.8.19-root-shell-unification]
+    branches: [main, v6.3.1-mobile-device-polish, android-tv-reference-ui, shadowfox-v6-ultimate, v6.0.3-layout-final, h96-diagnostic-build, h96-anr-fix-v6.1.10, ui-focus-v6.1.11, ultimate-dpad-unified-v6.1.12, accuracy-audit-v6.1.13, auto-updater-v6.1.14, production-cleanup-v6.1.16, rollback-v6.2.1-to-v6.1.16, true-ui-rebuild-v6.2.2, v6.3.2-mobile-landscape-fix, v6.4.0-ultimate-center-polish, v6.4.1-ultimate-center-layout-fix, v6.5.0-ultimate-tools-polish, v6.6.0-tv-rebuild, v6.6.1-update-feedback, v6.7.0-tv-metallic-rebuild, v6.7.1-tv-contrast-root-fix, v6.8.0-reference-layout-rebuild, v6.8.1-tv-focus-controls, v6.8.2-optimize-qa-fix, v6.8.3-optimize-state-fix, v6.8.4-optimize-survival-fix, v6.8.5-optimize-service-fix, v6.8.6-optimize-deadlock-fix, v6.8.7-optimize-stale-state-fix, v6.8.8-optimize-race-fix, v6.8.9-optimize-result-ui, v6.8.10-direct-optimize-result, v6.8.11-tv-optimize-results, v6.8.12-optimize-results-fit, v6.8.13-optimize-result-slot, v6.8.14-focus-regression-fix, v6.8.15-optimize-results-visible, v6.8.16-root-process-detection, v6.8.17-h96-dumpsys-processes, v6.8.18-h96-diagnostics, v6.8.19-root-shell-unification, stabilization-v6.9.0-audit, tv-v6-metallic-modernization]
     paths: ["overrides/**", "scripts/**", "signing/**", ".github/workflows/build-from-zip.yml"]
 
 permissions:
@@ -19,10 +19,34 @@ jobs:
       - uses: actions/checkout@v4
       - name: Extract project
         run: mkdir extracted && unzip -q ShadowFoxTV-FastTaskKiller-Project-v3.0.4-NON-ROOT.zip -d extracted
-      - name: Apply ShadowFox Compose source
+      - name: Apply authoritative ShadowFox source
         run: |
-          cp -R overrides/. extracted/.
-          rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.java
+          # The legacy ZIP supplies only the Gradle wrapper/root build scaffold.
+          # Never allow stale app source/resources from that ZIP into the APK.
+          rm -rf extracted/app/src
+          cp -R overrides/app/. extracted/app/.
+          # Compose is the production UI. Remove obsolete pre-Compose XML layouts so
+          # they cannot pull legacy ZIP resources/classes back into the build.
+          rm -rf extracted/app/src/main/res/layout extracted/app/src/main/res/layout-port
+          rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/V4DashboardActivity.java
+          rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/LatencyGraphView.java
+          rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/SpeedGaugeView.java
+          rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UpdateCenterButton.java
+          rm -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/AdvancedToolsActivity.kt
+          rm -f extracted/app/src/main/res/drawable/button_primary_tv.xml
+          rm -f extracted/app/src/main/res/drawable/button_secondary_tv.xml
+          rm -f extracted/app/src/main/res/drawable/optimizer_button.xml
+          rm -f extracted/app/src/main/res/drawable/optimizer_panel.xml
+          rm -f extracted/app/src/main/res/drawable/stat_tile.xml
+          rm -f extracted/app/src/main/res/drawable/success_circle.xml
+          rm -f extracted/app/src/main/res/drawable/tech_panel.xml
+          rm -f extracted/app/src/main/res/drawable/tech_stat_tile.xml
+          test -d extracted/app/src/main/java/ca/shadowfoxtv/taskkiller
+          test -f extracted/app/src/main/AndroidManifest.xml
+          if find extracted/app/src/main/java/ca/shadowfoxtv/taskkiller -name 'MainActivity.java' -print -quit | grep -q .; then
+            echo 'ERROR: stale Java MainActivity leaked into authoritative source'
+            exit 1
+          fi
       - name: Preserve Android TV reference source
         run: |
           test -f extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
@@ -34,6 +58,13 @@ jobs:
           grep -q 'THERMAL + PERFORMANCE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
           grep -q 'CHECK UPDATE' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/UltimateCenterActivity.kt
           grep -q 'shadowfox_tab' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
+      - name: Verify authoritative source boundary
+        run: |
+          test ! -e extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/OptimizeService.kt
+          test ! -e extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/V4DashboardActivity.java
+          test ! -e extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/AdvancedToolsActivity.kt
+          grep -q 'android:name=".ShadowFoxApp"' extracted/app/src/main/AndroidManifest.xml
+          grep -q 'ShadowFoxProEngine' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
       - name: Preserve highest-quality ShadowFox logo
         run: |
           python3 - <<'PY'

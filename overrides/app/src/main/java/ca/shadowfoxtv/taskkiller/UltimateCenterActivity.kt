@@ -40,6 +40,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -63,6 +65,10 @@ private val UORANGE = Color(0xFFFF7A00)
 private val UWHITE = Color(0xFFF7FBFF)
 private val UMUTED = Color(0xFFB7C2CA)
 private val UGREEN = Color(0xFF77C943)
+private val UMETAL_TOP = Color(0xFF1A2732)
+private val UMETAL_MID = Color(0xFF07111A)
+private val UMETAL_BOTTOM = Color(0xFF020508)
+private val UMETAL_EDGE = Color(0xFF27495E)
 
 class UltimateCenterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -97,27 +103,31 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     var tab by remember { mutableStateOf(initialTab) }
     var snapshot by remember { mutableStateOf<UltimateSnapshot?>(null) }
     val scope = rememberCoroutineScope()
+    val firstTabFocus = remember { FocusRequester() }
     val configuration = LocalConfiguration.current
     val landscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val hasTelevisionUi = configuration.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
     val isPhone = !hasTelevisionUi && configuration.smallestScreenWidthDp < 600
 
     fun refresh() { scope.launch { snapshot = manager.snapshot() } }
-    LaunchedEffect(Unit) { snapshot = manager.snapshot() }
+    LaunchedEffect(Unit) {
+        snapshot = manager.snapshot()
+        if (hasTelevisionUi) firstTabFocus.requestFocus()
+    }
 
     BoxWithConstraints(
-        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF050607), Color(0xFF1A1E21), Color(0xFF080A0C), Color(0xFF020303))))
+        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF07131D), Color(0xFF02070B), UBG)))
     ) {
-        val side = if (landscape) 18.dp else 20.dp
-        val top = if (landscape) 8.dp else 12.dp
-        val contentMax = if (landscape) 1180.dp else 620.dp
+        val side = if (landscape && !isPhone) 12.dp else if (landscape) 18.dp else 20.dp
+        val top = if (landscape && !isPhone) 8.dp else if (landscape) 8.dp else 12.dp
+        val contentMax = if (landscape && !isPhone) 960.dp else if (landscape) 1180.dp else 620.dp
         val contentWidth = minOf(maxWidth - (side * 2), contentMax)
 
         Column(
             Modifier.width(contentWidth).fillMaxSize().align(Alignment.TopCenter).padding(top = top, bottom = 10.dp)
         ) {
             if (landscape) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(6.dp)).padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     BrandHeader(snapshot, Modifier.weight(1f), compact = true, isPhone = isPhone)
                     UltimateButton("REFRESH") { refresh() }
                     Spacer(Modifier.width(8.dp))
@@ -134,9 +144,13 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
             }
 
             Spacer(Modifier.height(if (landscape) 8.dp else 10.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                UltimateTab.entries.forEach { item ->
-                    UltimateTabButton(item.name, item == tab, Modifier.weight(1f)) { tab = item }
+            Row(Modifier.fillMaxWidth().background(Color(0xAA020508), RoundedCornerShape(6.dp)).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                UltimateTab.entries.forEachIndexed { index, item ->
+                    UltimateTabButton(
+                        item.name,
+                        item == tab,
+                        Modifier.weight(1f).then(if (index == 0 && hasTelevisionUi) Modifier.focusRequester(firstTabFocus) else Modifier)
+                    ) { tab = item }
                 }
             }
             Spacer(Modifier.height(if (landscape) 8.dp else 10.dp))
@@ -167,8 +181,8 @@ private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact
                 Spacer(Modifier.width(7.dp))
                 Text("v${BuildConfig.VERSION_NAME}", color = UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
-            Text(if (isPhone) "ADVANCED CONTROL • MOBILE" else "ADVANCED CONTROL • ANDROID TV", color = UMUTED, fontSize = if (isPhone) 8.sp else 10.sp, fontWeight = FontWeight.Bold)
-            Text(snapshot?.mode ?: "DETECTING DEVICE...", color = if (snapshot?.root == true) UGREEN else UCYAN, fontSize = if (isPhone) 9.sp else 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(if (isPhone) "ADVANCED CONTROL • MOBILE" else "OPTIMIZE • CLEAN • PERFORM", color = UMUTED, fontSize = if (isPhone) 8.sp else 10.sp, fontWeight = FontWeight.Bold)
+            Text(snapshot?.mode ?: "DETECTING DEVICE...", color = if (snapshot?.root == true) UCYAN else UMUTED, fontSize = if (isPhone) 9.sp else 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
 }
@@ -217,7 +231,8 @@ private fun SmartOptimizePanel(manager: UltimateManager, status: String, busy: B
     UltimatePanel("SMART OPTIMIZE", "Automatically chooses the safest cleanup supported by this device.") {
         Text(status, color = if (status.contains("ROOT") || status.contains("stopped")) UGREEN else UMUTED, fontSize = 10.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.height(8.dp))
-        UltimateButton(if (busy) "OPTIMIZING..." else "ONE-TAP SMART OPTIMIZE", enabled = !busy) {
+        UltimateButton(if (busy) "OPTIMIZING..." else "ONE-TAP SMART OPTIMIZE") {
+            if (busy) return@UltimateButton
             scope.launch {
                 onBusy(true)
                 onStatus("SCANNING RAM • APPS • CACHE...")
@@ -329,7 +344,7 @@ private fun NetworkScreen(manager: UltimateManager, landscape: Boolean) {
                 else -> "Run the test to diagnose the connection."
             }, color = UWHITE, fontSize = 11.sp)
             Spacer(Modifier.height(8.dp))
-            UltimateButton(if (testing) "TESTING..." else "RUN NETWORK TEST", enabled = !testing) { test() }
+            UltimateButton(if (testing) "TESTING..." else "RUN NETWORK TEST") { if (!testing) test() }
         }
     }
 }
@@ -417,7 +432,7 @@ private fun MetricGrid(items: List<Triple<String, String, Color>>, landscape: Bo
 private fun MetricCard(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Column(
         modifier.shadow(3.dp, RoundedCornerShape(8.dp), ambientColor = Color.Black, spotColor = Color.Black)
-            .background(Brush.verticalGradient(listOf(Color(0xFF15181B), Color(0xFF030405), Color(0xFF0D1012), Color(0xFF010203))), RoundedCornerShape(8.dp)).padding(vertical = 11.dp, horizontal = 8.dp),
+            .background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(8.dp)).padding(vertical = 11.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(label, color = UMUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
@@ -430,7 +445,7 @@ private fun MetricCard(label: String, value: String, color: Color, modifier: Mod
 private fun UltimatePanel(title: String, subtitle: String, content: @Composable () -> Unit) {
     Column(
         Modifier.fillMaxWidth().shadow(3.dp, RoundedCornerShape(8.dp), ambientColor = Color.Black, spotColor = Color.Black)
-            .background(Brush.verticalGradient(listOf(Color(0xFF171A1D), Color(0xFF030405), Color(0xFF0E1113), Color(0xFF010203))), RoundedCornerShape(8.dp)).padding(13.dp)
+            .background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(8.dp)).padding(13.dp)
     ) {
         Text(title, color = UWHITE, fontSize = 15.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(subtitle, color = UMUTED, fontSize = 9.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -442,21 +457,21 @@ private fun UltimatePanel(title: String, subtitle: String, content: @Composable 
 @Composable
 private fun UltimateButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val zoom by animateFloatAsState(if (focused) 1.05f else 1f, label = "ultimateButtonFocus")
+    val zoom by animateFloatAsState(if (focused) 1.015f else 1f, label = "ultimateButtonFocus")
     Box(
         Modifier.height(38.dp).scale(zoom)
-            .shadow(if (focused) 12.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black, spotColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black)
-            .background(if (!enabled) Color(0xFF18252D) else if (focused) Color(0xFF11171B) else Color(0xFF07090B), RoundedCornerShape(6.dp))
+            .shadow(if (focused) 4.dp else 1.dp, RoundedCornerShape(6.dp), ambientColor = if (focused) UCYAN.copy(alpha = .28f) else Color.Black, spotColor = if (focused) UCYAN.copy(alpha = .28f) else Color.Black)
+            .background(Brush.horizontalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(6.dp))
             .onFocusChanged { focused = it.isFocused }.focusable(enabled).clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
-    ) { Text(text, color = if (enabled) UWHITE else UMUTED, fontSize = 9.sp, fontWeight = FontWeight.Black, maxLines = 1) }
+    ) { Text(text, color = if (!enabled) UMUTED else if (focused) UCYAN else UWHITE, fontSize = 9.sp, fontWeight = FontWeight.Black, maxLines = 1) }
 }
 
 @Composable
 private fun CompactAction(text: String, modifier: Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val zoom by animateFloatAsState(if (focused) 1.04f else 1f, label = "compactFocus")
+    val zoom by animateFloatAsState(if (focused) 1.012f else 1f, label = "compactFocus")
     Box(
         modifier.height(38.dp).scale(zoom)
             .shadow(if (focused) 12.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black, spotColor = if (focused) UCYAN.copy(alpha = .7f) else Color.Black)
@@ -469,14 +484,14 @@ private fun CompactAction(text: String, modifier: Modifier, onClick: () -> Unit)
 @Composable
 private fun UltimateTabButton(text: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val zoom by animateFloatAsState(if (focused) 1.035f else 1f, label = "tabFocus")
+    val zoom by animateFloatAsState(if (focused) 1.015f else 1f, label = "tabFocus")
     Box(
         modifier.height(42.dp).scale(zoom)
-            .shadow(if (focused) 14.dp else 2.dp, RoundedCornerShape(6.dp), ambientColor = if (focused) UWHITE.copy(alpha = .35f) else Color.Black, spotColor = if (focused) UWHITE.copy(alpha = .35f) else Color.Black)
-            .background(if (focused) Color(0xFF11171B) else if (selected) Color(0xFF090D10) else Color(0xFF030507), RoundedCornerShape(6.dp))
+            .shadow(if (focused) 4.dp else 1.dp, RoundedCornerShape(6.dp), ambientColor = if (focused) UCYAN.copy(alpha = .28f) else Color.Black, spotColor = if (focused) UCYAN.copy(alpha = .28f) else Color.Black)
+            .background(if (focused) Color(0xFF0B1821) else if (selected) Color(0xFF07131B) else Color(0xFF030507), RoundedCornerShape(6.dp))
             .onFocusChanged { focused = it.isFocused }.focusable().clickable(onClick = onClick),
         contentAlignment = Alignment.Center
-    ) { Text(text, color = if (selected || focused) UWHITE else UMUTED, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1) }
+    ) { Text(text, color = if (focused) UCYAN else if (selected) UWHITE else UMUTED, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1) }
 }
 
 private fun formatUiBytes(bytes: Long): String {
