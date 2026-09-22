@@ -135,13 +135,14 @@ class UltimateManager(private val context: Context) {
         var attempted = 0
 
         if (caps.rooted) {
-            val running = rootRunningPackages().filter { it !in protected && !isCritical(it) }
+            val engine = ShadowFoxProEngine(app)
+            val running = engine.runningThirdPartyPackages().filter { it !in protected && !isCritical(it) }
             attempted = running.size
             for (pkg in running) {
                 val stop = runRoot("am force-stop --user 0 ${shellQuote(pkg)}")
                 if (stop.first) {
                     Thread.sleep(35)
-                    if (!isRunningRoot(pkg)) stopped++
+                    if (!engine.isThirdPartyPackageRunning(pkg)) stopped++
                 }
             }
             runRoot("pm trim-caches 999999999999")
