@@ -22,8 +22,9 @@ fun ShadowFoxUpdateGate(context: Context, content: @Composable () -> Unit) {
         GitHubReleaseUpdater.resumePendingInstall(context)
         GitHubReleaseUpdater.start(context)
     }
+    // Diagnostics are retained in StartupDiagnostics for troubleshooting, but must never replace the production TV dashboard.
     val report = StartupDiagnostics.report(context)
-    if (report.isNotBlank()) {
+    if (false && report.isNotBlank()) {
         StartupDiagnostics.stage(context, "Diagnostic report displayed")
         Box(Modifier.fillMaxSize().background(Color(0xFF03111D)).padding(38.dp), contentAlignment = Alignment.Center) {
             Column {
