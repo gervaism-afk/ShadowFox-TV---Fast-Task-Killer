@@ -242,6 +242,19 @@ class UltimateManager(private val context: Context) {
         return StorageReport(total, free, (total - free).coerceAtLeast(0), ownCache)
     }
 
+    suspend fun clearCache(): Long = withContext(Dispatchers.IO) {
+        val beforeFree = storageReport().freeBytes
+        if (RootShell.isRootAvailable()) {
+            RootShell.exec("pm trim-caches 999999999999", 15)
+            RootShell.exec("sync", 15)
+        } else {
+            clearOwnCache()
+        }
+        val freed = (storageReport().freeBytes - beforeFree).coerceAtLeast(0)
+        appendHistory("CACHE CLEANER • ${formatBytes(freed)} cleared")
+        freed
+    }
+
     fun clearOwnCache(): Long {
         val before = storageReport().appCacheBytes
         app.cacheDir.listFiles()?.forEach { runCatching { it.deleteRecursively() } }
