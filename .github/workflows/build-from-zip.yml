@@ -80,7 +80,7 @@ jobs:
               raise SystemExit('HQ ShadowFox logo unexpectedly small')
           print('Using exact uploaded HQ ShadowFox logo:', len(data), 'bytes')
           PY
-      - name: Generate transparent Optimizer launcher identity
+      - name: Generate Cache Cleaner launcher identity
         run: |
           python3 -m pip install --quiet Pillow
           python3 - <<'PY'
@@ -89,38 +89,36 @@ jobs:
           res=Path('extracted/app/src/main/res')
           logo=Image.open(res/'drawable-nodpi'/'shadowfox_logo.png').convert('RGBA')
           logo=logo.crop(logo.getchannel('A').getbbox())
-          fp=next(p for p in ['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf','/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf'] if Path(p).exists())
-          label='OPTIMIZER'
+          fp=next(p for p in ['/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf','/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'] if Path(p).exists())
 
-          # Transparent master. Artwork deliberately fills the tile for TV viewing.
+          # Transparent square launcher identity: official emblem large + CACHE CLEANER.
           master=Image.new('RGBA',(1024,1024),(0,0,0,0))
-          maxw,maxh=900,700
-          s=min(maxw/logo.width,maxh/logo.height)
+          s=min(900/logo.width,690/logo.height)
           art=logo.resize((int(logo.width*s),int(logo.height*s)),Image.Resampling.LANCZOS)
-          master.alpha_composite(art,((1024-art.width)//2,35))
+          master.alpha_composite(art,((1024-art.width)//2,15))
           d=ImageDraw.Draw(master)
-          f=ImageFont.truetype(fp,116)
-          bb=d.textbbox((0,0),label,font=f,stroke_width=3); tw=bb[2]-bb[0]
-          d.text(((1024-tw)//2,800),label,font=f,fill=(230,252,255,255),
-                 stroke_width=5,stroke_fill=(0,82,135,255))
-
+          text='CACHE CLEANER'
+          f=ImageFont.truetype(fp,94)
+          bb=d.textbbox((0,0),text,font=f,stroke_width=3); tw=bb[2]-bb[0]
+          d.text(((1024-tw)//2,790),text,font=f,fill=(245,248,250,255),stroke_width=5,stroke_fill=(5,72,115,255))
           for density,size in {'mdpi':48,'hdpi':72,'xhdpi':96,'xxhdpi':144,'xxxhdpi':192}.items():
               q=res/f'mipmap-{density}'; q.mkdir(parents=True,exist_ok=True)
               icon=master.resize((size,size),Image.Resampling.LANCZOS)
               icon.save(q/'ic_launcher.png',optimize=True)
               icon.save(q/'ic_launcher_round.png',optimize=True)
 
-          # Transparent Android TV banner, with embedded product identity.
-          banner=Image.new('RGBA',(640,360),(0,0,0,0))
-          s=min(520/logo.width,245/logo.height)
-          a=logo.resize((int(logo.width*s),int(logo.height*s)),Image.Resampling.LANCZOS)
-          banner.alpha_composite(a,((640-a.width)//2,0))
-          bd=ImageDraw.Draw(banner); bf=ImageFont.truetype(fp,58)
-          bb=bd.textbbox((0,0),label,font=bf,stroke_width=2)
-          bd.text(((640-(bb[2]-bb[0]))//2,285),label,font=bf,fill=(230,252,255,255),
-                  stroke_width=3,stroke_fill=(0,82,135,255))
+          # Transparent 16:9 TV banner with explicit Cache Cleaner identity.
+          banner=Image.new('RGBA',(1280,720),(0,0,0,0))
+          s=min(560/logo.width,570/logo.height)
+          left=logo.resize((int(logo.width*s),int(logo.height*s)),Image.Resampling.LANCZOS)
+          banner.alpha_composite(left,(20,(720-left.height)//2))
+          bd=ImageDraw.Draw(banner)
+          f1=ImageFont.truetype(fp,72); f2=ImageFont.truetype(fp,92); f3=ImageFont.truetype(fp,39)
+          bd.text((600,190),'ShadowFox TV',font=f1,fill=(74,221,255,255),stroke_width=3,stroke_fill=(2,48,78,255))
+          bd.text((600,285),'CACHE CLEANER',font=f2,fill=(245,248,250,255),stroke_width=4,stroke_fill=(2,48,78,255))
+          bd.text((620,410),'⚡ ULTIMATE OPTIMIZATION ⚡',font=f3,fill=(255,190,40,255),stroke_width=2,stroke_fill=(50,38,0,255))
           banner.resize((320,180),Image.Resampling.LANCZOS).save(res/'drawable-nodpi'/'shadowfox_tv_banner.png',optimize=True)
-          print('Generated transparent ShadowFox TV Optimizer launcher assets')
+          print('Generated ShadowFox TV Cache Cleaner launcher assets')
           PY
       - name: Read version
         run: |
