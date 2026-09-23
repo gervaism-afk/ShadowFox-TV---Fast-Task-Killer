@@ -74,6 +74,9 @@ data class DeviceReport(
 )
 
 class UltimateManager(private val context: Context) {
+    companion object {
+        @Volatile private var processCapabilities: DeviceCapabilities? = null
+    }
     private val app = context.applicationContext
     private val am = app.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     private val pm = app.packageManager
@@ -82,9 +85,12 @@ class UltimateManager(private val context: Context) {
     @Volatile private var cachedApps: List<ManagedApp>? = null
     @Volatile private var cachedLaunchableApps: List<Pair<String, String>>? = null
 
-    fun capabilities(): DeviceCapabilities = cachedCapabilities ?: DeviceCapabilityDetector.detect(app).also { cachedCapabilities = it }
+    fun capabilities(): DeviceCapabilities = cachedCapabilities ?: processCapabilities ?: DeviceCapabilityDetector.detect(app).also { detected ->
+        cachedCapabilities = detected
+        processCapabilities = detected
+    }
 
-    fun cachedCapabilities(): DeviceCapabilities? = cachedCapabilities
+    fun cachedCapabilities(): DeviceCapabilities? = cachedCapabilities ?: processCapabilities
     fun appContext(): Context = app
 
     fun protectedPackages(): Set<String> = prefs.getStringSet("protected", emptySet())?.toSet().orEmpty()
