@@ -115,6 +115,7 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     LaunchedEffect(Unit) {
         // Paint cheap local telemetry immediately; root detection runs independently
         // so slow su probes on TV sticks cannot hold the whole dashboard hostage.
+        manager.disableAutomaticMaintenance()
         snapshot = manager.snapshot()
         if (hasTelevisionUi) firstTabFocus.requestFocus()
         launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -267,7 +268,7 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
         if (landscape) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.fillMaxWidth().height(146.dp)) { SmartOptimizePanel(manager, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh) }
+                    Box(Modifier.fillMaxWidth().height(146.dp)) { SmartOptimizePanel(manager, snapshot?.root == true, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh) }
                     Box(Modifier.fillMaxWidth().height(112.dp)) { ThermalPanel(snapshot) }
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -286,10 +287,9 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
 }
 
 @Composable
-private fun SmartOptimizePanel(manager: UltimateManager, status: String, busy: Boolean, onBusy: (Boolean) -> Unit, onStatus: (String) -> Unit, refresh: () -> Unit) {
+private fun SmartOptimizePanel(manager: UltimateManager, rootActive: Boolean, status: String, busy: Boolean, onBusy: (Boolean) -> Unit, onStatus: (String) -> Unit, refresh: () -> Unit) {
     val scope = rememberCoroutineScope()
-    val rootActive = manager.cachedCapabilities()?.rooted == true
-    UltimatePanel("SMART OPTIMIZE", "Root-aware cleanup with verified results — never simulated.") {
+    UltimatePanel("SMART OPTIMIZE", "Root-aware cleanup with verified results — never simulated.", Modifier.height(146.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(if (rootActive) "ROOT ENGINE ACTIVE" else "STANDARD ENGINE", color = if (rootActive) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Black)
@@ -312,7 +312,7 @@ private fun SmartOptimizePanel(manager: UltimateManager, status: String, busy: B
 
 @Composable
 private fun StreamingPanel() {
-    UltimatePanel("STREAMING MODE", "Prepare the device for IPTV, movies and high-bitrate playback.") {
+    UltimatePanel("STREAMING MODE", "Prepare the device for IPTV, movies and high-bitrate playback.", Modifier.height(146.dp)) {
         Text("Open APPS and press STREAM beside your IPTV, VLC, Kodi or movie player.", color = UMUTED, fontSize = 10.sp)
     }
 }
@@ -456,7 +456,7 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     UltimateButton("CLEAR SHADOWFOX CACHE") { val freed = manager.clearOwnCache(); storage = manager.storageReport(); message = "${formatUiBytes(freed)} cleared" }
                     UltimateButton(if (maintenance) "AUTO MAINTENANCE: ON" else "AUTO MAINTENANCE: OFF") { maintenance = !maintenance; manager.scheduleMaintenance(maintenance) }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(Modifier.width(145.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     UltimateButton("CHECK FOR UPDATES") { message = "CHECKING FOR UPDATE…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } }
                     Spacer(Modifier.height(5.dp))
                     Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 2, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
@@ -475,7 +475,16 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
         Spacer(Modifier.height(10.dp))
         UltimatePanel("OPTIMIZER DIAGNOSTICS", "Latest Smart Optimize scan • scroll down for all results.") {
             if (diagnostics.isEmpty()) Text("Run Smart Optimize once to generate diagnostics.", color = UMUTED, fontSize = 9.sp)
-            diagnostics.takeLast(10).forEach { Text(it.substringAfter(" | "), color = UWHITE, fontSize = 8.sp) }
+            diagnostics.takeLast(10).forEach { line ->
+                val raw = line.substringAfter(" | ")
+                val display = when {
+                    raw.startsWith("CANDIDATES ") -> "CANDIDATES • " + raw.removePrefix("CANDIDATES ").split(",").filter { it.isNotBlank() }.size + " apps"
+                    raw.startsWith("PROTECTED ") -> "PROTECTED • " + raw.removePrefix("PROTECTED ").split(",").filter { it.isNotBlank() }.size + " critical apps"
+                    raw.startsWith("SOURCES ") -> "PROCESS SOURCES • active"
+                    else -> raw
+                }
+                Text(display, color = UWHITE, fontSize = 8.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
         }
         Spacer(Modifier.height(10.dp))
         UltimatePanel("MAINTENANCE HISTORY", message) {
@@ -521,9 +530,9 @@ private fun MetricCard(label: String, value: String, color: Color, modifier: Mod
 }
 
 @Composable
-private fun UltimatePanel(title: String, subtitle: String, content: @Composable () -> Unit) {
+private fun UltimatePanel(title: String, subtitle: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(14.dp), ambientColor = UCYAN.copy(alpha = .28f), spotColor = UCYAN.copy(alpha = .28f))
+        modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(14.dp), ambientColor = UCYAN.copy(alpha = .28f), spotColor = UCYAN.copy(alpha = .28f))
             .background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(14.dp)).padding(15.dp)
     ) {
         Text(title, color = UWHITE, fontSize = 15.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
