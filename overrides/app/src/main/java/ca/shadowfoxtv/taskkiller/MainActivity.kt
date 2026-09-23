@@ -127,7 +127,16 @@ private fun MasterDashboard(context: Context) {
     var ramFreed by remember { mutableStateOf(0L) }
     var storageFreed by remember { mutableStateOf(0L) }
     var closedApps by remember { mutableIntStateOf(0) }
-    var weather by remember { mutableStateOf<WeatherSnapshot?>(null) }
+    var weather by remember {
+        val prefs = context.getSharedPreferences("shadowfox_weather", Context.MODE_PRIVATE)
+        mutableStateOf(
+            if (prefs.contains("temp")) WeatherSnapshot(
+                prefs.getString("city", "LOCAL") ?: "LOCAL",
+                prefs.getInt("temp", 0),
+                prefs.getInt("code", 0)
+            ) else null
+        )
+    }
     val graph = remember { mutableStateListOf<Int>() }
     val optimizer = remember { ShadowFoxProEngine(context.applicationContext) }
     val scope = rememberCoroutineScope()
