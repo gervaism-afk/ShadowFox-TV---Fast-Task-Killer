@@ -79,6 +79,7 @@ class UltimateManager(private val context: Context) {
     private val pm = app.packageManager
     private val prefs = app.getSharedPreferences("shadowfox_v6", Context.MODE_PRIVATE)
     @Volatile private var cachedCapabilities: DeviceCapabilities? = null
+    @Volatile private var cachedApps: List<ManagedApp>? = null
 
     fun capabilities(): DeviceCapabilities = cachedCapabilities ?: DeviceCapabilityDetector.detect(app).also { cachedCapabilities = it }
 
@@ -187,32 +188,38 @@ class UltimateManager(private val context: Context) {
         result
     }
 
-    suspend fun apps(): List<ManagedApp> = withContext(Dispatchers.IO) {
+    suspend fun apps(forceRefresh: Boolean = false): List<ManagedApp> = withContext(Dispatchers.IO) {
+        if (!forceRefresh) cachedApps?.let { return@withContext it }
         val protected = protectedPackages()
-        // Never block the Apps tab on a root shell/process enumeration. PackageManager
-        // can build the launchable-app list immediately; lightweight Android process
-        // state is sufficient for the visual RUNNING badge. Root verification remains
-        // in optimizer/streaming actions where it is actually required.
         val running = am.runningAppProcesses
             ?.asSequence()
             ?.filter { it.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_SERVICE }
             ?.flatMap { it.pkgList.asSequence() }
             ?.toSet()
             .orEmpty()
-        pm.getInstalledApplications(PackageManager.GET_META_DATA)
-            .asSequence()
-            .filter { pm.getLaunchIntentForPackage(it.packageName) != null }
-            .map {
+
+        // Query launchable activities directly instead of scanning every installed package
+        // and repeatedly asking PackageManager for a launch intent. This is substantially
+        // faster on low-power Android TV sticks.
+        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val resolved = pm.queryIntentActivities(launcherIntent, 0)
+        val result = resolved.asSequence()
+            .mapNotNull { ri ->
+                val ai = ri.activityInfo?.applicationInfo ?: return@mapNotNull null
+                val pkg = ai.packageName
                 ManagedApp(
-                    packageName = it.packageName,
-                    label = pm.getApplicationLabel(it).toString(),
-                    running = it.packageName in running,
-                    protected = it.packageName in protected,
-                    system = (it.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                    packageName = pkg,
+                    label = runCatching { pm.getApplicationLabel(ai).toString() }.getOrDefault(pkg),
+                    running = pkg in running,
+                    protected = pkg in protected,
+                    system = (ai.flags and ApplicationInfo.FLAG_SYSTEM) != 0
                 )
             }
+            .distinctBy { it.packageName }
             .sortedBy { it.label.lowercase(Locale.getDefault()) }
             .toList()
+        cachedApps = result
+        result
     }
 
     fun launch(pkg: String) {
