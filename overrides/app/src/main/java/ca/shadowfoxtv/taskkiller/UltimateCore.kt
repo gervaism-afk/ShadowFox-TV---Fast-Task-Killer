@@ -80,6 +80,7 @@ class UltimateManager(private val context: Context) {
     private val prefs = app.getSharedPreferences("shadowfox_v6", Context.MODE_PRIVATE)
     @Volatile private var cachedCapabilities: DeviceCapabilities? = null
     @Volatile private var cachedApps: List<ManagedApp>? = null
+    @Volatile private var cachedLaunchableApps: List<Pair<String, String>>? = null
 
     fun capabilities(): DeviceCapabilities = cachedCapabilities ?: DeviceCapabilityDetector.detect(app).also { cachedCapabilities = it }
 
@@ -198,27 +199,33 @@ class UltimateManager(private val context: Context) {
             ?.toSet()
             .orEmpty()
 
-        // Query launchable activities directly instead of scanning every installed package
-        // and repeatedly asking PackageManager for a launch intent. This is substantially
-        // faster on low-power Android TV sticks.
-        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        val leanbackIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
-        val resolved = pm.queryIntentActivities(launcherIntent, 0) + pm.queryIntentActivities(leanbackIntent, 0)
-        val result = resolved.asSequence()
-            .mapNotNull { ri ->
-                val ai = ri.activityInfo?.applicationInfo ?: return@mapNotNull null
-                val pkg = ai.packageName
-                ManagedApp(
-                    packageName = pkg,
-                    label = runCatching { pm.getApplicationLabel(ai).toString() }.getOrDefault(pkg),
-                    running = pkg in running,
-                    protected = pkg in protected,
-                    system = (ai.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-                )
-            }
-            .distinctBy { it.packageName }
-            .sortedBy { it.label.lowercase(Locale.getDefault()) }
-            .toList()
+        // Build the launchable-app metadata once. Opening APPS after the first load only
+        // recomputes cheap running/protected state instead of querying and relabelling packages.
+        val launchable = if (!forceRefresh) cachedLaunchableApps else null ?: run {
+            val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+            val leanbackIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+            (pm.queryIntentActivities(launcherIntent, 0) + pm.queryIntentActivities(leanbackIntent, 0))
+                .asSequence()
+                .mapNotNull { ri ->
+                    val ai = ri.activityInfo?.applicationInfo ?: return@mapNotNull null
+                    val pkg = ai.packageName
+                    pkg to runCatching { pm.getApplicationLabel(ai).toString() }.getOrDefault(pkg)
+                }
+                .distinctBy { it.first }
+                .sortedBy { it.second.lowercase(Locale.getDefault()) }
+                .toList()
+                .also { cachedLaunchableApps = it }
+        }
+        val result = launchable.map { (pkg, label) ->
+            val ai = runCatching { pm.getApplicationInfo(pkg, 0) }.getOrNull()
+            ManagedApp(
+                packageName = pkg,
+                label = label,
+                running = pkg in running,
+                protected = pkg in protected,
+                system = ai?.let { (it.flags and ApplicationInfo.FLAG_SYSTEM) != 0 } ?: false
+            )
+        }
         cachedApps = result
         result
     }
