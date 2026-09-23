@@ -456,11 +456,12 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Box(Modifier.weight(1f)) { UltimateButton("CLEAR CACHE") { val freed = manager.clearOwnCache(); storage = manager.storageReport(); message = "${formatUiBytes(freed)} CLEARED" } }
                         Box(Modifier.weight(1f)) { UltimateButton(if (maintenance) "AUTO MAINTENANCE: ON" else "AUTO MAINTENANCE: OFF") { maintenance = !maintenance; manager.scheduleMaintenance(maintenance) } }
-                        Box(Modifier.weight(1f)) { UltimateButton("CHECK FOR UPDATES") { message = "CHECKING…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } } }
+                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                            Spacer(Modifier.height(2.dp))
+                            UltimateButton("CHECK FOR UPDATES") { message = "CHECKING…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } }
+                        }
                     }
-                    Spacer(Modifier.height(4.dp))
-                    Text("UPDATE STATUS", color = UMUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                    Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 UltimatePanel("OPTIMIZER DIAGNOSTICS", "Latest verified Smart Optimize results.", Modifier.weight(.85f).fillMaxHeight()) {
                     if (diagnostics.isEmpty()) {
