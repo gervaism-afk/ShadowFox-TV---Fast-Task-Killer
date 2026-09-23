@@ -135,13 +135,13 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: ShadowFox-TV-Optimizer-v${{ env.APP_VERSION }}-debug
+          name: ShadowFox-TV-Cache-Cleaner-v${{ env.APP_VERSION }}-debug
           path: extracted/app/build/outputs/apk/debug/app-debug.apk
       - name: Upload signed release APK
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: ShadowFox-TV-Optimizer-v${{ env.APP_VERSION }}
+          name: ShadowFox-TV-Cache-Cleaner-v${{ env.APP_VERSION }}
           path: extracted/app/build/outputs/apk/release/app-release.apk
       - name: Publish release
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' && github.ref == 'refs/heads/main' }}
@@ -150,7 +150,7 @@ jobs:
         run: |
           TAG="v${APP_VERSION}"; ASSET="ShadowFox-TV-Cache-Cleaner-v${APP_VERSION}.apk"
           cp extracted/app/build/outputs/apk/release/app-release.apk "$ASSET"
-          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Cache Cleaner v${APP_VERSION}" --notes "ShadowFox H96 ANR fix build."; fi
+          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Cache Cleaner v${APP_VERSION}" --notes "Locked Android TV / Fire TV production release."; fi
 
 
 # validate corrected v6.4.0 source
