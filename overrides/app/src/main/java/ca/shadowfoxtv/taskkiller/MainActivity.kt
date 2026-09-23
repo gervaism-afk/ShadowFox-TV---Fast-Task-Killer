@@ -448,30 +448,40 @@ private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabl
 @Composable
 private fun ScanDial(modifier: Modifier) {
     Canvas(modifier) {
-        val c = Offset(size.width * .50f, size.height * .49f)
-        val r = size.minDimension * .31f
-        drawCircle(CYAN.copy(.08f), r * 1.48f, c)
-        drawCircle(Color(0xFF061722), r * 1.20f, c)
-        drawCircle(CYAN.copy(.30f), r * 1.17f, c, style = Stroke(7.dp.toPx()))
-        drawCircle(CYAN, r, c, style = Stroke(4.dp.toPx()))
-        drawCircle(BLUE.copy(.60f), r * .70f, c, style = Stroke(3.dp.toPx()))
-        for (i in 0..35) {
-            val a = Math.toRadians((i * 10.0 - 90.0))
-            val major = i % 3 == 0
-            val inner = if (major) .77f else .84f
-            val outer = .98f
-            val col = if (i > 27) ORANGE else CYAN
+        val c = Offset(size.width * .50f, size.height * .50f)
+        val r = size.minDimension * .34f
+        // Multi-layer machined bezel and illuminated face.
+        drawCircle(CYAN.copy(.07f), r * 1.42f, c)
+        drawCircle(Color(0xFF020A10), r * 1.26f, c)
+        drawCircle(Color(0xFF173A4E), r * 1.20f, c, style = Stroke(5.dp.toPx()))
+        drawCircle(CYAN.copy(.48f), r * 1.13f, c, style = Stroke(2.dp.toPx()))
+        drawCircle(Color(0xFF071722), r * 1.06f, c)
+        drawCircle(BLUE.copy(.50f), r * .72f, c, style = Stroke(2.dp.toPx()))
+        drawCircle(CYAN.copy(.20f), r * .52f, c, style = Stroke(1.dp.toPx()))
+        // Precision 60-division scale with cardinal marker blocks.
+        for (i in 0 until 60) {
+            val a = Math.toRadians(i * 6.0 - 90.0)
+            val major = i % 5 == 0
+            val mid = i % 5 == 0 || i % 5 == 2
+            val inner = if (major) .72f else if (mid) .79f else .84f
+            val col = when { i >= 48 -> ORANGE; major -> WHITE; else -> CYAN }
             drawLine(col.copy(if (major) .95f else .55f),
-                Offset(c.x + cos(a).toFloat()*r*inner, c.y + sin(a).toFloat()*r*inner),
-                Offset(c.x + cos(a).toFloat()*r*outer, c.y + sin(a).toFloat()*r*outer),
-                (if (major) 2f else 1f).dp.toPx(), StrokeCap.Round)
+                Offset(c.x+cos(a).toFloat()*r*inner,c.y+sin(a).toFloat()*r*inner),
+                Offset(c.x+cos(a).toFloat()*r*1.01f,c.y+sin(a).toFloat()*r*1.01f),
+                (if (major) 2.4f else 1f).dp.toPx(), StrokeCap.Round)
         }
-        val a = Math.toRadians(-24.0)
-        val p = Offset(c.x + cos(a).toFloat()*r*.72f, c.y + sin(a).toFloat()*r*.72f)
-        drawLine(CYAN.copy(.20f), c, p, 11.dp.toPx(), StrokeCap.Round)
-        drawLine(WHITE, c, p, 2.5.dp.toPx(), StrokeCap.Round)
-        drawCircle(ORANGE, 6.dp.toPx(), c)
-        drawCircle(WHITE, 2.dp.toPx(), c)
+        // Four small technical quadrant screws.
+        listOf(-45.0,45.0,135.0,225.0).forEach { deg ->
+            val a=Math.toRadians(deg); val p=Offset(c.x+cos(a).toFloat()*r*.55f,c.y+sin(a).toFloat()*r*.55f)
+            drawCircle(Color(0xFF78909C),2.6.dp.toPx(),p); drawCircle(Color(0xFF10242F),1.dp.toPx(),p)
+        }
+        val a = Math.toRadians(-28.0)
+        val p = Offset(c.x+cos(a).toFloat()*r*.68f,c.y+sin(a).toFloat()*r*.68f)
+        drawLine(CYAN.copy(.18f),c,p,13.dp.toPx(),StrokeCap.Round)
+        drawLine(WHITE,c,p,2.7.dp.toPx(),StrokeCap.Round)
+        drawCircle(Color(0xFF08131A),9.dp.toPx(),c)
+        drawCircle(ORANGE,6.dp.toPx(),c)
+        drawCircle(WHITE,2.dp.toPx(),c)
     }
 }
 
@@ -479,37 +489,42 @@ private fun ScanDial(modifier: Modifier) {
 private fun RamGauge(value: Float, modifier: Modifier) {
     Box(modifier) {
         Canvas(Modifier.fillMaxSize()) {
-            val c = Offset(size.width / 2, size.height * .50f)
-            val r = size.minDimension * .38f
-            drawCircle(CYAN.copy(.06f), r * 1.30f, c)
-            drawCircle(Color(0xFF06141E), r * 1.16f, c)
-            drawCircle(CYAN.copy(.22f), r * 1.10f, c, style = Stroke(7.dp.toPx()))
-            val start = 140f
-            val sweep = 260f
-            drawArc(Color(0xFF153443), start, sweep, false, Offset(c.x-r,c.y-r), Size(r*2,r*2), style=Stroke(18.dp.toPx(),cap=StrokeCap.Round))
-            for (i in 0..64) {
-                val t=i/64f
-                val color=if(t<.65f) lerp(CYAN,ORANGE,t/.65f) else lerp(ORANGE,Color.Red,(t-.65f)/.35f)
-                drawArc(color,start+sweep*t,sweep/64+0.8f,false,Offset(c.x-r,c.y-r),Size(r*2,r*2),style=Stroke(10.dp.toPx()))
+            val c=Offset(size.width/2,size.height*.49f)
+            val r=size.minDimension*.39f
+            drawCircle(CYAN.copy(.06f),r*1.28f,c)
+            drawCircle(Color(0xFF020A10),r*1.17f,c)
+            drawCircle(Color(0xFF1B4358),r*1.12f,c,style=Stroke(6.dp.toPx()))
+            drawCircle(CYAN.copy(.48f),r*1.04f,c,style=Stroke(2.dp.toPx()))
+            drawCircle(Color(0xFF071722),r*.96f,c)
+            val start=135f; val sweep=270f
+            drawArc(Color(0xFF102C3B),start,sweep,false,Offset(c.x-r*.86f,c.y-r*.86f),Size(r*1.72f,r*1.72f),style=Stroke(16.dp.toPx(),cap=StrokeCap.Round))
+            // 100-step illuminated status track.
+            for(i in 0..99){
+                val t=i/99f
+                val col=when { t<.60f -> lerp(CYAN,Color(0xFF4DFFDF),t/.60f); t<.82f -> lerp(Color(0xFF4DFFDF),ORANGE,(t-.60f)/.22f); else -> lerp(ORANGE,Color(0xFFFF3B30),(t-.82f)/.18f) }
+                drawArc(col.copy(if(t<=value.coerceIn(0f,100f)/100f) .95f else .20f),start+sweep*t,1.8f,false,Offset(c.x-r*.86f,c.y-r*.86f),Size(r*1.72f,r*1.72f),style=Stroke(8.dp.toPx()))
             }
-            for(i in 0..20){
-                val a=Math.toRadians((start+sweep*i/20).toDouble())
-                val major=i%2==0
-                drawLine(if(i>=16) ORANGE else WHITE.copy(if(major).82f else .42f),
-                    Offset(c.x+cos(a).toFloat()*r*(if(major).64f else .69f),c.y+sin(a).toFloat()*r*(if(major).64f else .69f)),
-                    Offset(c.x+cos(a).toFloat()*r*.82f,c.y+sin(a).toFloat()*r*.82f),
-                    (if(major)2f else 1f).dp.toPx())
+            // Fine calibration scale.
+            for(i in 0..50){
+                val a=Math.toRadians((start+sweep*i/50f).toDouble()); val major=i%5==0
+                val inner=if(major).58f else .65f
+                drawLine(if(i>=40) ORANGE else if(major) WHITE else CYAN.copy(.55f),
+                    Offset(c.x+cos(a).toFloat()*r*inner,c.y+sin(a).toFloat()*r*inner),
+                    Offset(c.x+cos(a).toFloat()*r*.78f,c.y+sin(a).toFloat()*r*.78f),
+                    (if(major)2.2f else .8f).dp.toPx(),StrokeCap.Round)
             }
+            drawCircle(CYAN.copy(.18f),r*.48f,c,style=Stroke(1.dp.toPx()))
             val a=Math.toRadians((start+sweep*value.coerceIn(0f,100f)/100f).toDouble())
-            val end=Offset(c.x+cos(a).toFloat()*r*.62f,c.y+sin(a).toFloat()*r*.62f)
-            drawLine(CYAN.copy(.22f),c,end,12.dp.toPx(),StrokeCap.Round)
-            drawLine(WHITE,c,end,2.5.dp.toPx(),StrokeCap.Round)
-            drawCircle(ORANGE,8.dp.toPx(),c)
-            drawCircle(WHITE,3.dp.toPx(),c)
+            val end=Offset(c.x+cos(a).toFloat()*r*.58f,c.y+sin(a).toFloat()*r*.58f)
+            drawLine(CYAN.copy(.20f),c,end,13.dp.toPx(),StrokeCap.Round)
+            drawLine(WHITE,c,end,2.8.dp.toPx(),StrokeCap.Round)
+            drawCircle(Color(0xFF08131A),11.dp.toPx(),c)
+            drawCircle(ORANGE,7.dp.toPx(),c)
+            drawCircle(WHITE,2.5.dp.toPx(),c)
         }
-        Column(Modifier.align(Alignment.Center).offset(y = 68.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("${value.toInt()}%", color=WHITE,fontSize=20.sp,fontWeight=FontWeight.Black)
-            Text("RAM",color=MUTED,fontSize=7.sp)
+        Column(Modifier.align(Alignment.Center).offset(y=69.dp),horizontalAlignment=Alignment.CenterHorizontally){
+            Text("${value.toInt()}%",color=WHITE,fontSize=20.sp,fontWeight=FontWeight.Black)
+            Text("RAM LOAD",color=CYAN,fontSize=7.sp,fontWeight=FontWeight.Bold)
         }
     }
 }
