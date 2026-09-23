@@ -456,10 +456,10 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Box(Modifier.weight(1f)) { UltimateButton("CLEAR CACHE") { val freed = manager.clearOwnCache(); storage = manager.storageReport(); message = "${formatUiBytes(freed)} CLEARED" } }
                         Box(Modifier.weight(1f)) { UltimateButton(if (maintenance) "AUTO MAINTENANCE: ON" else "AUTO MAINTENANCE: OFF") { maintenance = !maintenance; manager.scheduleMaintenance(maintenance) } }
-                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                            Spacer(Modifier.height(2.dp))
+                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
                             UltimateButton("CHECK FOR UPDATES") { message = "CHECKING…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } }
+                            Spacer(Modifier.height(2.dp))
+                            Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                         }
                     }
                 }
@@ -467,13 +467,22 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
                     if (diagnostics.isEmpty()) {
                         Text("Run Smart Optimize once to generate diagnostics.", color = UMUTED, fontSize = 8.sp)
                     } else {
-                        diagnostics.takeLast(6).forEach { line ->
+                        diagnostics.takeLast(5).forEach { line ->
                             val raw = line.substringAfter(" | ")
                             val display = when {
                                 raw.startsWith("CANDIDATES ") -> "CANDIDATES • " + raw.removePrefix("CANDIDATES ").split(",").count { it.isNotBlank() } + " apps"
                                 raw.startsWith("PROTECTED ") -> "PROTECTED • " + raw.removePrefix("PROTECTED ").split(",").count { it.isNotBlank() } + " critical"
                                 raw.startsWith("SOURCES ") -> "PROCESS SOURCES • active"
-                                else -> raw
+                                raw.startsWith("STOP ") -> {
+                                    val pkg = Regex("pkg=([^ ]+)").find(raw)?.groupValues?.getOrNull(1) ?: "app"
+                                    val stopped = raw.contains("state=stopped")
+                                    "STOP • ${pkg.substringAfterLast('.')} • ${if (stopped) "stopped" else "running"}"
+                                }
+                                raw.startsWith("RESULT ") -> {
+                                    val stopped = Regex("stopped=([^ ]+)").find(raw)?.groupValues?.getOrNull(1) ?: "0"
+                                    "RESULT • ${stopped} stopped • verified"
+                                }
+                                else -> raw.take(46)
                             }
                             Text(display, color = UWHITE, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
