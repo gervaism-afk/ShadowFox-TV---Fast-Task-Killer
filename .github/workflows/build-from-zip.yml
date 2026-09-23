@@ -80,6 +80,36 @@ jobs:
               raise SystemExit('HQ ShadowFox logo unexpectedly small')
           print('Using exact uploaded HQ ShadowFox logo:', len(data), 'bytes')
           PY
+      - name: Generate official launcher icons and TV banner
+        run: |
+          python3 -m pip install --quiet Pillow
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          res=Path('extracted/app/src/main/res')
+          src=res/'drawable-nodpi'/'shadowfox_logo.png'
+          im=Image.open(src).convert('RGBA')
+          box=im.getchannel('A').getbbox()
+          art=im.crop(box)
+          side=max(art.size)
+          base=Image.new('RGBA',(side,side),(0,0,0,0))
+          target=int(side*.82)
+          scale=min(target/art.width,target/art.height)
+          a=art.resize((int(art.width*scale),int(art.height*scale)),Image.Resampling.LANCZOS)
+          base.alpha_composite(a,((side-a.width)//2,(side-a.height)//2))
+          master=base.resize((1024,1024),Image.Resampling.LANCZOS)
+          for density,size in {'mdpi':48,'hdpi':72,'xhdpi':96,'xxhdpi':144,'xxxhdpi':192}.items():
+              d=res/f'mipmap-{density}'; d.mkdir(parents=True,exist_ok=True)
+              icon=master.resize((size,size),Image.Resampling.LANCZOS)
+              icon.save(d/'ic_launcher.png',optimize=True)
+              icon.save(d/'ic_launcher_round.png',optimize=True)
+          banner=Image.new('RGBA',(320,180),(0,0,0,0))
+          scale=min(290/art.width,150/art.height)
+          a=art.resize((int(art.width*scale),int(art.height*scale)),Image.Resampling.LANCZOS)
+          banner.alpha_composite(a,((320-a.width)//2,(180-a.height)//2))
+          banner.save(res/'drawable-nodpi'/'shadowfox_tv_banner.png',optimize=True)
+          print('Generated official ShadowFox TV Optimizer icon set')
+          PY
       - name: Read version
         run: |
           VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
