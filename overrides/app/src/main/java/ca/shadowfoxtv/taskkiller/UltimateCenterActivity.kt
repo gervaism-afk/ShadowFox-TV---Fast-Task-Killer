@@ -142,7 +142,7 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
         // Keep the entire command surface centered as one bounded canvas. Using
         // fillMaxSize after width() allowed the child to reclaim the parent width on TV.
         Column(
-            Modifier.width(contentWidth).align(Alignment.TopCenter).padding(top = if (isPhone && !landscape) 54.dp else top, bottom = 10.dp)
+            Modifier.width(contentWidth).align(Alignment.TopCenter).padding(top = if (isPhone && !landscape) 28.dp else top, bottom = 6.dp)
         ) {
             if (landscape) {
                 Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(10.dp)).padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -305,7 +305,7 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
 @Composable
 private fun SmartOptimizePanelCompact(manager: UltimateManager, rootActive: Boolean, status: String, busy: Boolean, onBusy: (Boolean) -> Unit, onStatus: (String) -> Unit, refresh: () -> Unit) {
     val scope = rememberCoroutineScope()
-    UltimatePanel("SMART OPTIMIZE", "Verified root-aware cleanup.", Modifier.height(112.dp)) {
+    UltimatePanel("SMART OPTIMIZE", "Verified root-aware cleanup.", Modifier.height(92.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(if (rootActive) "ROOT ENGINE ACTIVE" else "STANDARD ENGINE", color = if (rootActive) UGREEN else UCYAN, fontSize = 8.sp, fontWeight = FontWeight.Black)
@@ -325,14 +325,14 @@ private fun SmartOptimizePanelCompact(manager: UltimateManager, rootActive: Bool
 
 @Composable
 private fun StreamingPanelCompact() {
-    UltimatePanel("STREAMING MODE", "IPTV, movies and high-bitrate playback.", Modifier.height(92.dp)) {
+    UltimatePanel("STREAMING MODE", "IPTV, movies and high-bitrate playback.", Modifier.height(72.dp)) {
         Text("Use APPS → STREAM beside your preferred player.", color = UMUTED, fontSize = 9.sp, maxLines = 1)
     }
 }
 
 @Composable
 private fun ThermalPanelCompact(snapshot: UltimateSnapshot?) {
-    UltimatePanel("DEVICE PERFORMANCE", "Live device condition.", Modifier.height(92.dp)) {
+    UltimatePanel("DEVICE PERFORMANCE", "Live device condition.", Modifier.height(72.dp)) {
         Text("Thermal: ${snapshot?.temperatureStatus ?: "..."}  •  RAM: ${formatUiBytes(snapshot?.freeRam ?: 0)}  •  Storage: ${formatUiBytes(snapshot?.freeStorage ?: 0)}", color = UWHITE, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
