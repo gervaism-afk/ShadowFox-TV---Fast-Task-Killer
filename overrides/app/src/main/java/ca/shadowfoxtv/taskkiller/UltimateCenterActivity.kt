@@ -142,7 +142,7 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
         // Keep the entire command surface centered as one bounded canvas. Using
         // fillMaxSize after width() allowed the child to reclaim the parent width on TV.
         Column(
-            Modifier.width(contentWidth).align(Alignment.TopCenter).padding(top = top, bottom = 10.dp)
+            Modifier.width(contentWidth).align(Alignment.TopCenter).padding(top = if (isPhone && !landscape) 24.dp else top, bottom = 10.dp)
         ) {
             if (landscape) {
                 Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(10.dp)).padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
