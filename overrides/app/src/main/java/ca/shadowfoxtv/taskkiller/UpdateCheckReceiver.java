@@ -86,8 +86,8 @@ public class UpdateCheckReceiver extends BroadcastReceiver {
         android.app.Notification.Builder builder = Build.VERSION.SDK_INT >= 26
                 ? new android.app.Notification.Builder(context, CHANNEL_ID)
                 : new android.app.Notification.Builder(context);
-        builder.setSmallIcon(android.R.drawable.stat_sys_download_done)
-                .setContentTitle("ShadowFox update available")
+        builder.setSmallIcon(ca.shadowfoxtv.taskkiller.R.drawable.ic_stat_shadowfox_cache)
+                .setContentTitle("ShadowFox TV Cache Cleaner update available")
                 .setContentText("Version " + latest + " is ready. Select to update.")
                 .setContentIntent(contentIntent)
                 .setAutoCancel(true)
