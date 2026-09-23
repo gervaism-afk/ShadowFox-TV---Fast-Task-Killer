@@ -288,18 +288,23 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
 @Composable
 private fun SmartOptimizePanel(manager: UltimateManager, status: String, busy: Boolean, onBusy: (Boolean) -> Unit, onStatus: (String) -> Unit, refresh: () -> Unit) {
     val scope = rememberCoroutineScope()
-    UltimatePanel("SMART OPTIMIZE", "Root-aware deep cleanup • measured RAM recovery • verified app stops.") {
-        Text(status, color = if (status.contains("ROOT") || status.contains("stopped")) UGREEN else UMUTED, fontSize = 10.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Spacer(Modifier.height(8.dp))
-        UltimateButton(if (busy) "OPTIMIZING..." else "OPTIMIZE NOW") {
-            if (busy) return@UltimateButton
-            scope.launch {
-                onBusy(true)
-                onStatus("SCANNING RAM • APPS • CACHE...")
-                val r = manager.smartOptimize()
-                onStatus(r.summary)
-                onBusy(false)
-                refresh()
+    val rootActive = manager.cachedCapabilities()?.rooted == true
+    UltimatePanel("SMART OPTIMIZE", "Root-aware cleanup with verified results — never simulated.") {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(if (rootActive) "ROOT ENGINE ACTIVE" else "STANDARD ENGINE", color = if (rootActive) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                Text(status, color = if (status.contains("ROOT") || status.contains("STOPPED")) UGREEN else UMUTED, fontSize = 9.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            UltimateButton(if (busy) "OPTIMIZING..." else "OPTIMIZE NOW") {
+                if (busy) return@UltimateButton
+                scope.launch {
+                    onBusy(true)
+                    onStatus("SCANNING • VERIFYING APPS • CLEANING CACHE...")
+                    val result = manager.smartOptimize()
+                    onStatus("${result.verifiedStopped}/${result.attemptedApps} STOPPED • ${formatUiBytes(result.ramFreedBytes)} RAM • ${formatUiBytes(result.storageFreedBytes)} CACHE")
+                    onBusy(false)
+                    refresh()
+                }
             }
         }
     }
