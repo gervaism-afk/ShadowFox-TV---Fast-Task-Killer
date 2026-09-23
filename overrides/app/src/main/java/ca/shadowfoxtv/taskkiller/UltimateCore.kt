@@ -201,7 +201,7 @@ class UltimateManager(private val context: Context) {
 
         // Build the launchable-app metadata once. Opening APPS after the first load only
         // recomputes cheap running/protected state instead of querying and relabelling packages.
-        val launchable = if (!forceRefresh) cachedLaunchableApps else null ?: run {
+        val launchable: List<Pair<String, String>> = (if (!forceRefresh) cachedLaunchableApps else null) ?: run {
             val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
             val leanbackIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
             (pm.queryIntentActivities(launcherIntent, 0) + pm.queryIntentActivities(leanbackIntent, 0))
