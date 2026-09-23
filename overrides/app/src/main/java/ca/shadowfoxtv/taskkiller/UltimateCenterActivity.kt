@@ -224,6 +224,8 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
                 }
                 Column(Modifier.weight(1f)) {
                     StreamingPanel()
+                    Spacer(Modifier.height(10.dp))
+                    SystemStatusPanel(manager, snapshot)
                 }
             }
         } else {
@@ -267,6 +269,16 @@ private fun StreamingPanel() {
 private fun ThermalPanel(snapshot: UltimateSnapshot?) {
     UltimatePanel("DEVICE PERFORMANCE", "Live memory, storage and thermal condition.") {
         Text("Thermal: ${snapshot?.temperatureStatus ?: "..."}  •  Free RAM: ${formatUiBytes(snapshot?.freeRam ?: 0)}  •  Free Storage: ${formatUiBytes(snapshot?.freeStorage ?: 0)}", color = UWHITE, fontSize = 10.sp)
+    }
+}
+
+@Composable
+private fun SystemStatusPanel(manager: UltimateManager, snapshot: UltimateSnapshot?) {
+    val device = remember { manager.deviceReport() }
+    UltimatePanel("SYSTEM STATUS", "Live device and optimizer environment.") {
+        Text("Android ${device.android} • SDK ${device.sdk}  •  ${if (snapshot?.root == true) "ROOT ACTIVE" else snapshot?.mode ?: "DETECTING MODE"}", color = if (snapshot?.root == true) UGREEN else UWHITE, fontSize = 10.sp)
+        Spacer(Modifier.height(4.dp))
+        Text("${device.manufacturer} ${device.model} • ${device.abi}", color = UMUTED, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
