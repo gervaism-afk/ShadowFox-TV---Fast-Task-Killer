@@ -436,8 +436,8 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
     var message by remember { mutableStateOf("SYSTEM READY") }
     val diagnostics = remember(message) { manager.optimizerDiagnostics() }
 
-    val systemScroll = remember(landscape) { ScrollState(0) }
-    Column(Modifier.fillMaxSize().verticalScroll(systemScroll)) {
+    Column(Modifier.fillMaxSize()) {
+        // Keep the System summary fixed. Only the lower detail cards scroll.
         MetricGrid(
             listOf(
                 Triple("MODE", device.rootMode, if (snapshot?.root == true) UGREEN else UCYAN),
@@ -473,9 +473,11 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
             }
         }
         Spacer(Modifier.height(10.dp))
-        UltimatePanel("OPTIMIZER DIAGNOSTICS", "Latest Smart Optimize scan • scroll down for all results.") {
+        val detailScroll = remember(landscape) { ScrollState(0) }
+        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(detailScroll)) {
+        UltimatePanel("OPTIMIZER DIAGNOSTICS", "Latest verified Smart Optimize results.") {
             if (diagnostics.isEmpty()) Text("Run Smart Optimize once to generate diagnostics.", color = UMUTED, fontSize = 9.sp)
-            diagnostics.takeLast(10).forEach { line ->
+            diagnostics.takeLast(7).forEach { line ->
                 val raw = line.substringAfter(" | ")
                 val display = when {
                     raw.startsWith("CANDIDATES ") -> "CANDIDATES • " + raw.removePrefix("CANDIDATES ").split(",").filter { it.isNotBlank() }.size + " apps"
@@ -483,7 +485,7 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
                     raw.startsWith("SOURCES ") -> "PROCESS SOURCES • active"
                     else -> raw
                 }
-                Text(display, color = UWHITE, fontSize = 8.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(display, color = UWHITE, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
         Spacer(Modifier.height(10.dp))
@@ -495,6 +497,8 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
         Spacer(Modifier.height(10.dp))
         UltimatePanel("ADVANCED APP CONTROL", "Rooted devices unlock deeper controls. Standard devices keep Android-safe actions.") {
             Text("Unsupported actions are never reported as completed.", color = UMUTED, fontSize = 10.sp)
+        }
+        Spacer(Modifier.height(8.dp))
         }
     }
 }
