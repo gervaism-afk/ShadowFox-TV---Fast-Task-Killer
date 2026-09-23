@@ -277,7 +277,7 @@ private fun MasterDashboard(context: Context) {
                     closedApps = closedApps,
                     modifier = Modifier.offset(45.dp, 454.dp).size(867.dp, 58.dp)
                 )
-                Bolt(Modifier.offset(456.dp, 457.dp).size(38.dp))
+                Bolt(Modifier.offset(456.dp, 451.dp).size(38.dp, 70.dp))
             }
         }
     }
@@ -379,14 +379,30 @@ private fun MasterButton(text: String, width: androidx.compose.ui.unit.Dp, enabl
 @Composable
 private fun ScanDial(modifier: Modifier) {
     Canvas(modifier) {
-        val c = Offset(size.width * .48f, size.height * .47f)
-        val r = size.minDimension * .29f
-        drawCircle(CYAN.copy(.10f), r * 1.45f, c)
-        drawCircle(CYAN.copy(.35f), r * 1.18f, c, style = Stroke(9.dp.toPx()))
-        drawCircle(CYAN, r, c, style = Stroke(5.dp.toPx()))
-        drawCircle(BLUE.copy(.5f), r * .68f, c, style = Stroke(5.dp.toPx()))
-        val p = Offset(c.x + r * .72f, c.y + r * .72f)
-        drawLine(CYAN, c, p, 5.dp.toPx(), StrokeCap.Round)
+        val c = Offset(size.width * .50f, size.height * .49f)
+        val r = size.minDimension * .31f
+        drawCircle(CYAN.copy(.08f), r * 1.48f, c)
+        drawCircle(Color(0xFF061722), r * 1.20f, c)
+        drawCircle(CYAN.copy(.30f), r * 1.17f, c, style = Stroke(7.dp.toPx()))
+        drawCircle(CYAN, r, c, style = Stroke(4.dp.toPx()))
+        drawCircle(BLUE.copy(.60f), r * .70f, c, style = Stroke(3.dp.toPx()))
+        for (i in 0..35) {
+            val a = Math.toRadians((i * 10.0 - 90.0))
+            val major = i % 3 == 0
+            val inner = if (major) .77f else .84f
+            val outer = .98f
+            val col = if (i > 27) ORANGE else CYAN
+            drawLine(col.copy(if (major) .95f else .55f),
+                Offset(c.x + cos(a).toFloat()*r*inner, c.y + sin(a).toFloat()*r*inner),
+                Offset(c.x + cos(a).toFloat()*r*outer, c.y + sin(a).toFloat()*r*outer),
+                (if (major) 2f else 1f).dp.toPx(), StrokeCap.Round)
+        }
+        val a = Math.toRadians(-24.0)
+        val p = Offset(c.x + cos(a).toFloat()*r*.72f, c.y + sin(a).toFloat()*r*.72f)
+        drawLine(CYAN.copy(.20f), c, p, 11.dp.toPx(), StrokeCap.Round)
+        drawLine(WHITE, c, p, 2.5.dp.toPx(), StrokeCap.Round)
+        drawCircle(ORANGE, 6.dp.toPx(), c)
+        drawCircle(WHITE, 2.dp.toPx(), c)
     }
 }
 
@@ -394,36 +410,37 @@ private fun ScanDial(modifier: Modifier) {
 private fun RamGauge(value: Float, modifier: Modifier) {
     Box(modifier) {
         Canvas(Modifier.fillMaxSize()) {
-            val c = Offset(size.width / 2, size.height * .52f)
-            val r = size.minDimension * .37f
-            drawCircle(Color(0xFF07141D), r * 1.15f, c)
-            drawCircle(CYAN.copy(.25f), r * 1.08f, c, style = Stroke(9.dp.toPx()))
+            val c = Offset(size.width / 2, size.height * .50f)
+            val r = size.minDimension * .38f
+            drawCircle(CYAN.copy(.06f), r * 1.30f, c)
+            drawCircle(Color(0xFF06141E), r * 1.16f, c)
+            drawCircle(CYAN.copy(.22f), r * 1.10f, c, style = Stroke(7.dp.toPx()))
             val start = 140f
             val sweep = 260f
-            drawArc(Color(0xFF153443), start, sweep, false, Offset(c.x - r, c.y - r), Size(r * 2, r * 2), style = Stroke(18.dp.toPx(), cap = StrokeCap.Round))
-            for (i in 0..50) {
-                val t = i / 50f
-                val color = if (t < .65f) lerp(CYAN, ORANGE, t / .65f) else lerp(ORANGE, Color.Red, (t - .65f) / .35f)
-                drawArc(color, start + sweep * t, sweep / 50 + 1f, false, Offset(c.x - r, c.y - r), Size(r * 2, r * 2), style = Stroke(11.dp.toPx()))
+            drawArc(Color(0xFF153443), start, sweep, false, Offset(c.x-r,c.y-r), Size(r*2,r*2), style=Stroke(18.dp.toPx(),cap=StrokeCap.Round))
+            for (i in 0..64) {
+                val t=i/64f
+                val color=if(t<.65f) lerp(CYAN,ORANGE,t/.65f) else lerp(ORANGE,Color.Red,(t-.65f)/.35f)
+                drawArc(color,start+sweep*t,sweep/64+0.8f,false,Offset(c.x-r,c.y-r),Size(r*2,r*2),style=Stroke(10.dp.toPx()))
             }
-            for (i in 0..10) {
-                val a = Math.toRadians((start + sweep * i / 10).toDouble())
-                drawLine(
-                    WHITE.copy(.7f),
-                    Offset(c.x + cos(a).toFloat() * r * .66f, c.y + sin(a).toFloat() * r * .66f),
-                    Offset(c.x + cos(a).toFloat() * r * .82f, c.y + sin(a).toFloat() * r * .82f),
-                    2.dp.toPx()
-                )
+            for(i in 0..20){
+                val a=Math.toRadians((start+sweep*i/20).toDouble())
+                val major=i%2==0
+                drawLine(if(i>=16) ORANGE else WHITE.copy(if(major).82f else .42f),
+                    Offset(c.x+cos(a).toFloat()*r*(if(major).64f else .69f),c.y+sin(a).toFloat()*r*(if(major).64f else .69f)),
+                    Offset(c.x+cos(a).toFloat()*r*.82f,c.y+sin(a).toFloat()*r*.82f),
+                    (if(major)2f else 1f).dp.toPx())
             }
-            val a = Math.toRadians((start + sweep * value.coerceIn(0f, 100f) / 100f).toDouble())
-            val end = Offset(c.x + cos(a).toFloat() * r * .62f, c.y + sin(a).toFloat() * r * .62f)
-            drawLine(CYAN.copy(.25f), c, end, 13.dp.toPx(), StrokeCap.Round)
-            drawLine(CYAN, c, end, 3.dp.toPx(), StrokeCap.Round)
-            drawCircle(CYAN, 8.dp.toPx(), c)
+            val a=Math.toRadians((start+sweep*value.coerceIn(0f,100f)/100f).toDouble())
+            val end=Offset(c.x+cos(a).toFloat()*r*.62f,c.y+sin(a).toFloat()*r*.62f)
+            drawLine(CYAN.copy(.22f),c,end,12.dp.toPx(),StrokeCap.Round)
+            drawLine(WHITE,c,end,2.5.dp.toPx(),StrokeCap.Round)
+            drawCircle(ORANGE,8.dp.toPx(),c)
+            drawCircle(WHITE,3.dp.toPx(),c)
         }
-        Column(Modifier.align(Alignment.Center).offset(y = 52.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("${value.toInt()}%", color = WHITE, fontSize = 20.sp, fontWeight = FontWeight.Black)
-            Text("RAM", color = MUTED, fontSize = 7.sp)
+        Column(Modifier.align(Alignment.Center).offset(y = 68.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("${value.toInt()}%", color=WHITE,fontSize=20.sp,fontWeight=FontWeight.Black)
+            Text("RAM",color=MUTED,fontSize=7.sp)
         }
     }
 }
@@ -446,12 +463,22 @@ private fun Broom(modifier: Modifier) {
 @Composable
 private fun NetworkIcon(modifier: Modifier) {
     Canvas(modifier) {
-        val c = Offset(size.width * .5f, size.height * .72f)
-        listOf(.18f, .30f, .42f).forEach { r0 ->
-            val r = size.minDimension * r0
-            drawArc(CYAN, 205f, 130f, false, Offset(c.x - r, c.y - r), Size(r * 2, r * 2), style = Stroke(4.dp.toPx(), cap = StrokeCap.Round))
+        val c=Offset(size.width*.5f,size.height*.55f)
+        val r=size.minDimension*.40f
+        drawCircle(CYAN.copy(.07f),r*1.22f,c)
+        drawCircle(CYAN.copy(.25f),r,c,style=Stroke(3.dp.toPx()))
+        for(i in 0..23){
+            val a=Math.toRadians((i*15.0-90.0))
+            drawLine(if(i>17) ORANGE else CYAN.copy(.75f),
+                Offset(c.x+cos(a).toFloat()*r*.72f,c.y+sin(a).toFloat()*r*.72f),
+                Offset(c.x+cos(a).toFloat()*r*.94f,c.y+sin(a).toFloat()*r*.94f),
+                (if(i%3==0)2f else 1f).dp.toPx())
         }
-        drawCircle(CYAN, 5.dp.toPx(), c)
+        val a=Math.toRadians(-32.0)
+        val end=Offset(c.x+cos(a).toFloat()*r*.68f,c.y+sin(a).toFloat()*r*.68f)
+        drawLine(CYAN.copy(.22f),c,end,9.dp.toPx(),StrokeCap.Round)
+        drawLine(WHITE,c,end,2.dp.toPx(),StrokeCap.Round)
+        drawCircle(ORANGE,5.dp.toPx(),c)
     }
 }
 
