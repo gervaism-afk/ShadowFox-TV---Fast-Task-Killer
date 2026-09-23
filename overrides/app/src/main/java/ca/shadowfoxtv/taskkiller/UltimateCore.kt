@@ -251,7 +251,7 @@ class UltimateManager(private val context: Context) {
         val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = cm.activeNetwork
         val caps = network?.let(cm::getNetworkCapabilities)
-        val connected = caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+        val connected = network != null && caps != null
         val transport = when {
             caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true -> "Wi-Fi"
             caps?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true -> "Ethernet"
@@ -328,6 +328,10 @@ class UltimateManager(private val context: Context) {
     }
 
     fun maintenanceEnabled(): Boolean = prefs.getBoolean("maintenance", false)
+
+    fun disableAutomaticMaintenance() {
+        if (maintenanceEnabled()) scheduleMaintenance(false)
+    }
 
     private fun appendHistory(message: String) {
         val stamp = SimpleDateFormat("MMM d HH:mm", Locale.US).format(Date())
