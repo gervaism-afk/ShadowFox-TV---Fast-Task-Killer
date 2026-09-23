@@ -202,7 +202,8 @@ class UltimateManager(private val context: Context) {
         // and repeatedly asking PackageManager for a launch intent. This is substantially
         // faster on low-power Android TV sticks.
         val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        val resolved = pm.queryIntentActivities(launcherIntent, 0)
+        val leanbackIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+        val resolved = pm.queryIntentActivities(launcherIntent, 0) + pm.queryIntentActivities(leanbackIntent, 0)
         val result = resolved.asSequence()
             .mapNotNull { ri ->
                 val ai = ri.activityInfo?.applicationInfo ?: return@mapNotNull null
