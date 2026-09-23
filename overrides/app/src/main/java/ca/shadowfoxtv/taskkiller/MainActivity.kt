@@ -75,6 +75,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.net.URL
+import org.json.JSONObject
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
@@ -125,11 +127,18 @@ private fun MasterDashboard(context: Context) {
     var ramFreed by remember { mutableStateOf(0L) }
     var storageFreed by remember { mutableStateOf(0L) }
     var closedApps by remember { mutableIntStateOf(0) }
+    var weather by remember { mutableStateOf<WeatherSnapshot?>(null) }
     val graph = remember { mutableStateListOf<Int>() }
     val optimizer = remember { ShadowFoxProEngine(context.applicationContext) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
+        launch(Dispatchers.IO) {
+            while (true) {
+                weather = fetchIpWeather(context) ?: weather
+                delay(30 * 60 * 1000L)
+            }
+        }
         while (true) {
             val before = totalTrafficBytes()
             delay(1000)
@@ -205,6 +214,8 @@ private fun MasterDashboard(context: Context) {
                     modifier = Modifier.offset(790.dp, 18.dp).size(122.dp, 98.dp)
                 )
 
+                WeatherBadge(weather, Modifier.offset(430.dp, 38.dp).width(155.dp))
+
                 GlowCard(Modifier.offset(45.dp, 145.dp).size(205.dp, 265.dp), onClick = { clean() }) {
                     Box(Modifier.fillMaxSize()) {
                         ScanDial(Modifier.align(Alignment.TopCenter).padding(top = 26.dp).size(135.dp))
@@ -279,6 +290,56 @@ private fun MasterDashboard(context: Context) {
                 )
                 Bolt(Modifier.offset(456.dp, 451.dp).size(38.dp, 70.dp))
             }
+        }
+    }
+}
+
+private data class WeatherSnapshot(val city: String, val tempC: Int, val code: Int)
+
+private suspend fun fetchIpWeather(context: Context): WeatherSnapshot? = withContext(Dispatchers.IO) {
+    runCatching {
+        val prefs = context.getSharedPreferences("shadowfox_weather", Context.MODE_PRIVATE)
+        fun readUrl(url: String): String {
+            val conn = URL(url).openConnection()
+            conn.connectTimeout = 2500
+            conn.readTimeout = 2500
+            return conn.getInputStream().bufferedReader().use { it.readText() }
+        }
+        val loc = JSONObject(readUrl("https://ipwho.is/"))
+        if (!loc.optBoolean("success", true)) error("IP location unavailable")
+        val lat = loc.getDouble("latitude")
+        val lon = loc.getDouble("longitude")
+        val city = loc.optString("city").ifBlank { "LOCAL" }
+        val current = JSONObject(readUrl("https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,weather_code&temperature_unit=celsius")).getJSONObject("current")
+        WeatherSnapshot(city, kotlin.math.round(current.getDouble("temperature_2m")).toInt(), current.getInt("weather_code")).also { result ->
+            prefs.edit().putString("city", result.city).putInt("temp", result.tempC).putInt("code", result.code).apply()
+        }
+    }.getOrElse {
+        val prefs = context.getSharedPreferences("shadowfox_weather", Context.MODE_PRIVATE)
+        if (prefs.contains("temp")) WeatherSnapshot(prefs.getString("city", "LOCAL") ?: "LOCAL", prefs.getInt("temp", 0), prefs.getInt("code", 0)) else null
+    }
+}
+
+private fun weatherSymbol(code: Int): String = when (code) {
+    0 -> "☀"
+    1, 2 -> "⛅"
+    3 -> "☁"
+    45, 48 -> "≋"
+    in 51..67, in 80..82 -> "☂"
+    in 71..77, in 85..86 -> "❄"
+    in 95..99 -> "ϟ"
+    else -> "•"
+}
+
+@Composable
+private fun WeatherBadge(weather: WeatherSnapshot?, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(10.dp)
+    Row(modifier.shadow(5.dp, shape, false, CYAN.copy(alpha = .22f), CYAN.copy(alpha = .22f)).background(Color(0xD90A2030), shape).padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(if (weather == null) "•" else weatherSymbol(weather.code), color = if (weather?.code in 95..99) ORANGE else CYAN, fontSize = 18.sp, fontWeight = FontWeight.Black)
+        Spacer(Modifier.width(7.dp))
+        Column {
+            Text(weather?.let { result -> "${result.tempC}°C" } ?: "--°C", color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Black)
+            Text(weather?.city ?: "WEATHER", color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
 }
