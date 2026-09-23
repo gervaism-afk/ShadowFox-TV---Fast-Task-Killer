@@ -134,8 +134,8 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     BoxWithConstraints(
         Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0xFF0B3550), Color(0xFF052238), UBG)))
     ) {
-        val side = if (landscape && !isPhone) 18.dp else if (landscape) 18.dp else 20.dp
-        val top = if (landscape && !isPhone) 14.dp else if (landscape) 8.dp else 12.dp
+        val side = if (isPhone) 10.dp else 18.dp
+        val top = if (isPhone) 6.dp else 14.dp
         val contentMax = if (landscape && !isPhone) 920.dp else if (landscape) 1180.dp else 620.dp
         val contentWidth = minOf(maxWidth - (side * 2), contentMax)
 
@@ -155,17 +155,26 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
                     UltimateButton("BACK") { onClose() }
                 }
             } else {
-                BrandHeader(snapshot, Modifier.fillMaxWidth(), compact = false, isPhone = isPhone)
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    UltimateButton("REFRESH") { refresh() }
-                    Spacer(Modifier.width(8.dp))
-                    UltimateButton("BACK") { onClose() }
+                if (isPhone) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        BrandHeader(snapshot, Modifier.weight(1f), compact = true, isPhone = true)
+                        UltimateButton("REFRESH") { refresh() }
+                        Spacer(Modifier.width(6.dp))
+                        UltimateButton("BACK") { onClose() }
+                    }
+                } else {
+                    BrandHeader(snapshot, Modifier.fillMaxWidth(), compact = false, isPhone = false)
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        UltimateButton("REFRESH") { refresh() }
+                        Spacer(Modifier.width(8.dp))
+                        UltimateButton("BACK") { onClose() }
+                    }
                 }
             }
 
-            Spacer(Modifier.height(if (landscape) 10.dp else 10.dp))
-            Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color(0xCC0B2A3D), Color(0xDD061722), Color(0xEE020B11))), RoundedCornerShape(10.dp)).padding(5.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Spacer(Modifier.height(if (isPhone) 6.dp else 10.dp))
+            Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color(0xCC0B2A3D), Color(0xDD061722), Color(0xEE020B11))), RoundedCornerShape(10.dp)).padding(if (isPhone) 4.dp else 5.dp), horizontalArrangement = Arrangement.spacedBy(if (isPhone) 4.dp else 8.dp)) {
                 UltimateTab.entries.forEachIndexed { index, item ->
                     UltimateTabButton(
                         item.name,
@@ -234,7 +243,7 @@ private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact
             painter = painterResource(R.drawable.shadowfox_logo),
             contentDescription = "ShadowFox TV",
             contentScale = ContentScale.Fit,
-            modifier = Modifier.width(if (isPhone) { if (compact) 120.dp else 100.dp } else 190.dp).height(if (isPhone) { if (compact) 44.dp else 46.dp } else 60.dp)
+            modifier = Modifier.width(if (isPhone) 62.dp else 190.dp).height(if (isPhone) 46.dp else 60.dp)
         )
         Spacer(Modifier.width(12.dp))
         Column {
