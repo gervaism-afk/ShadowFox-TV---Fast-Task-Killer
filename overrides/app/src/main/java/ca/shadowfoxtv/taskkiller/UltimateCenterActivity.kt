@@ -436,69 +436,83 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
     var message by remember { mutableStateOf("SYSTEM READY") }
     val diagnostics = remember(message) { manager.optimizerDiagnostics() }
 
-    Column(Modifier.fillMaxSize()) {
-        // Keep the System summary fixed. Only the lower detail cards scroll.
-        MetricGrid(
-            listOf(
-                Triple("MODE", device.rootMode, if (snapshot?.root == true) UGREEN else UCYAN),
-                Triple("ANDROID", "${device.android} / SDK ${device.sdk}", UCYAN),
-                Triple("WIDEVINE", device.widevine, UCYAN),
-                Triple("THERMAL", device.thermal, if (device.thermal == "NORMAL") UGREEN else UORANGE)
-            ), landscape
-        )
-        Spacer(Modifier.height(10.dp))
-        UltimatePanel("DEVICE CENTER", "${device.manufacturer} ${device.model} • ${device.abi}") {
-            Text("Storage: ${formatUiBytes(storage.usedBytes)} used / ${formatUiBytes(storage.totalBytes)} total • ${formatUiBytes(storage.freeBytes)} free", color = UWHITE, fontSize = 10.sp)
-            Text("ShadowFox cache: ${formatUiBytes(storage.appCacheBytes)}", color = UMUTED, fontSize = 9.sp)
-            Text("Android ${device.android} • SDK ${device.sdk} • Thermal ${device.thermal}", color = UMUTED, fontSize = 9.sp)
-            Spacer(Modifier.height(8.dp))
-            if (landscape) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    UltimateButton("CLEAR SHADOWFOX CACHE") { val freed = manager.clearOwnCache(); storage = manager.storageReport(); message = "${formatUiBytes(freed)} cleared" }
-                    UltimateButton(if (maintenance) "AUTO MAINTENANCE: ON" else "AUTO MAINTENANCE: OFF") { maintenance = !maintenance; manager.scheduleMaintenance(maintenance) }
-                    Column(Modifier.width(145.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    UltimateButton("CHECK FOR UPDATES") { message = "CHECKING FOR UPDATE…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } }
+    if (landscape) {
+        // TV layout is intentionally non-scrollable. D-pad focus must never pan or clip a panel.
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            MetricGrid(
+                listOf(
+                    Triple("MODE", device.rootMode, if (snapshot?.root == true) UGREEN else UCYAN),
+                    Triple("ANDROID", "${device.android} / SDK ${device.sdk}", UCYAN),
+                    Triple("WIDEVINE", device.widevine, UCYAN),
+                    Triple("THERMAL", device.thermal, if (device.thermal == "NORMAL") UGREEN else UORANGE)
+                ), true
+            )
+            Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                UltimatePanel("DEVICE CENTER", "${device.manufacturer} ${device.model} • ${device.abi}", Modifier.weight(1.15f).fillMaxHeight()) {
+                    Text("Storage: ${formatUiBytes(storage.usedBytes)} / ${formatUiBytes(storage.totalBytes)} • ${formatUiBytes(storage.freeBytes)} free", color = UWHITE, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("Cache: ${formatUiBytes(storage.appCacheBytes)} • Android ${device.android} • Thermal ${device.thermal}", color = UMUTED, fontSize = 8.sp, maxLines = 1)
+                    Spacer(Modifier.height(7.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Box(Modifier.weight(1f)) { UltimateButton("CLEAR CACHE") { val freed = manager.clearOwnCache(); storage = manager.storageReport(); message = "${formatUiBytes(freed)} CLEARED" } }
+                        Box(Modifier.weight(1f)) { UltimateButton(if (maintenance) "AUTO: ON" else "AUTO: OFF") { maintenance = !maintenance; manager.scheduleMaintenance(maintenance) } }
+                        Box(Modifier.weight(1f)) { UltimateButton("CHECK UPDATE") { message = "CHECKING…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } } }
+                    }
                     Spacer(Modifier.height(5.dp))
-                    Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 2, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
+                UltimatePanel("OPTIMIZER DIAGNOSTICS", "Latest verified Smart Optimize results.", Modifier.weight(.85f).fillMaxHeight()) {
+                    if (diagnostics.isEmpty()) {
+                        Text("Run Smart Optimize once to generate diagnostics.", color = UMUTED, fontSize = 8.sp)
+                    } else {
+                        diagnostics.takeLast(6).forEach { line ->
+                            val raw = line.substringAfter(" | ")
+                            val display = when {
+                                raw.startsWith("CANDIDATES ") -> "CANDIDATES • " + raw.removePrefix("CANDIDATES ").split(",").count { it.isNotBlank() } + " apps"
+                                raw.startsWith("PROTECTED ") -> "PROTECTED • " + raw.removePrefix("PROTECTED ").split(",").count { it.isNotBlank() } + " critical"
+                                raw.startsWith("SOURCES ") -> "PROCESS SOURCES • active"
+                                else -> raw
+                            }
+                            Text(display, color = UWHITE, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
                 }
-            } else {
+            }
+            Row(Modifier.fillMaxWidth().height(72.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                UltimatePanel("MAINTENANCE HISTORY", message, Modifier.weight(1f).fillMaxHeight()) {
+                    val history = manager.history()
+                    Text(history.firstOrNull() ?: "No maintenance history yet.", color = if (history.isEmpty()) UMUTED else UWHITE, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                UltimatePanel("ADVANCED APP CONTROL", "Root-aware safety controls.", Modifier.weight(1f).fillMaxHeight()) {
+                    Text("Unsupported actions are never reported as completed.", color = UMUTED, fontSize = 8.sp, maxLines = 1)
+                }
+            }
+        }
+    } else {
+        val systemScroll = remember { ScrollState(0) }
+        Column(Modifier.fillMaxSize().verticalScroll(systemScroll)) {
+            MetricGrid(
+                listOf(
+                    Triple("MODE", device.rootMode, if (snapshot?.root == true) UGREEN else UCYAN),
+                    Triple("ANDROID", "${device.android} / SDK ${device.sdk}", UCYAN),
+                    Triple("WIDEVINE", device.widevine, UCYAN),
+                    Triple("THERMAL", device.thermal, if (device.thermal == "NORMAL") UGREEN else UORANGE)
+                ), false
+            )
+            Spacer(Modifier.height(10.dp))
+            UltimatePanel("DEVICE CENTER", "${device.manufacturer} ${device.model} • ${device.abi}") {
+                Text("Storage: ${formatUiBytes(storage.usedBytes)} used / ${formatUiBytes(storage.totalBytes)} total • ${formatUiBytes(storage.freeBytes)} free", color = UWHITE, fontSize = 10.sp)
+                Text("ShadowFox cache: ${formatUiBytes(storage.appCacheBytes)}", color = UMUTED, fontSize = 9.sp)
+                Spacer(Modifier.height(8.dp))
                 CompactAction("CLEAR SHADOWFOX CACHE", Modifier.fillMaxWidth()) { val freed = manager.clearOwnCache(); storage = manager.storageReport(); message = "${formatUiBytes(freed)} cleared" }
                 Spacer(Modifier.height(6.dp))
                 CompactAction(if (maintenance) "AUTO MAINTENANCE: ON" else "AUTO MAINTENANCE: OFF", Modifier.fillMaxWidth()) { maintenance = !maintenance; manager.scheduleMaintenance(maintenance) }
                 Spacer(Modifier.height(6.dp))
                 CompactAction("CHECK FOR UPDATES", Modifier.fillMaxWidth()) { message = "CHECKING FOR UPDATE…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } }
-                Spacer(Modifier.height(5.dp))
-                Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 2)
             }
-        }
-        Spacer(Modifier.height(10.dp))
-        val detailScroll = remember(landscape) { ScrollState(0) }
-        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(detailScroll)) {
-        UltimatePanel("OPTIMIZER DIAGNOSTICS", "Latest verified Smart Optimize results.") {
-            if (diagnostics.isEmpty()) Text("Run Smart Optimize once to generate diagnostics.", color = UMUTED, fontSize = 9.sp)
-            diagnostics.takeLast(7).forEach { line ->
-                val raw = line.substringAfter(" | ")
-                val display = when {
-                    raw.startsWith("CANDIDATES ") -> "CANDIDATES • " + raw.removePrefix("CANDIDATES ").split(",").filter { it.isNotBlank() }.size + " apps"
-                    raw.startsWith("PROTECTED ") -> "PROTECTED • " + raw.removePrefix("PROTECTED ").split(",").filter { it.isNotBlank() }.size + " critical apps"
-                    raw.startsWith("SOURCES ") -> "PROCESS SOURCES • active"
-                    else -> raw
-                }
-                Text(display, color = UWHITE, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(10.dp))
+            UltimatePanel("OPTIMIZER DIAGNOSTICS", "Latest verified Smart Optimize results.") {
+                diagnostics.takeLast(7).forEach { Text(it.substringAfter(" | "), color = UWHITE, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
             }
-        }
-        Spacer(Modifier.height(10.dp))
-        UltimatePanel("MAINTENANCE HISTORY", message) {
-            val history = manager.history()
-            if (history.isEmpty()) Text("No maintenance history yet.", color = UMUTED, fontSize = 10.sp)
-            history.take(10).forEach { Text(it, color = UWHITE, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-        }
-        Spacer(Modifier.height(10.dp))
-        UltimatePanel("ADVANCED APP CONTROL", "Rooted devices unlock deeper controls. Standard devices keep Android-safe actions.") {
-            Text("Unsupported actions are never reported as completed.", color = UMUTED, fontSize = 10.sp)
-        }
-        Spacer(Modifier.height(8.dp))
         }
     }
 }
