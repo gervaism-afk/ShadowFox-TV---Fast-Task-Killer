@@ -85,30 +85,52 @@ jobs:
           python3 -m pip install --quiet Pillow
           python3 - <<'PY'
           from pathlib import Path
-          from PIL import Image
+          from PIL import Image, ImageDraw, ImageFont
           res=Path('extracted/app/src/main/res')
           src=res/'drawable-nodpi'/'shadowfox_logo.png'
           im=Image.open(src).convert('RGBA')
           box=im.getchannel('A').getbbox()
-          art=im.crop(box)
-          side=max(art.size)
-          base=Image.new('RGBA',(side,side),(0,0,0,0))
-          target=int(side*.82)
-          scale=min(target/art.width,target/art.height)
-          a=art.resize((int(art.width*scale),int(art.height*scale)),Image.Resampling.LANCZOS)
-          base.alpha_composite(a,((side-a.width)//2,(side-a.height)//2))
-          master=base.resize((1024,1024),Image.Resampling.LANCZOS)
+          logo=im.crop(box)
+
+          # Optimizer-specific launcher artwork: preserve the official logo and
+          # embed the product name into the icon itself so it cannot be confused
+          # with the ShadowFox TV player in a launcher grid.
+          master=Image.new('RGBA',(1024,1024),(3,17,29,255))
+          maxw,maxh=850,570
+          scale=min(maxw/logo.width,maxh/logo.height)
+          art=logo.resize((int(logo.width*scale),int(logo.height*scale)),Image.Resampling.LANCZOS)
+          master.alpha_composite(art,((1024-art.width)//2,55))
+          draw=ImageDraw.Draw(master)
+          fonts=[
+              '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+              '/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf'
+          ]
+          fp=next((x for x in fonts if Path(x).exists()),None)
+          font=ImageFont.truetype(fp,122) if fp else ImageFont.load_default()
+          text='OPTIMIZER'
+          bb=draw.textbbox((0,0),text,font=font,stroke_width=2)
+          tw=bb[2]-bb[0]
+          x=(1024-tw)//2
+          draw.text((x,790),text,font=font,fill=(198,247,255,255),
+                    stroke_width=3,stroke_fill=(0,91,145,255))
+
           for density,size in {'mdpi':48,'hdpi':72,'xhdpi':96,'xxhdpi':144,'xxxhdpi':192}.items():
               d=res/f'mipmap-{density}'; d.mkdir(parents=True,exist_ok=True)
               icon=master.resize((size,size),Image.Resampling.LANCZOS)
               icon.save(d/'ic_launcher.png',optimize=True)
               icon.save(d/'ic_launcher_round.png',optimize=True)
-          banner=Image.new('RGBA',(320,180),(0,0,0,0))
-          scale=min(290/art.width,150/art.height)
-          a=art.resize((int(art.width*scale),int(art.height*scale)),Image.Resampling.LANCZOS)
-          banner.alpha_composite(a,((320-a.width)//2,(180-a.height)//2))
+
+          # TV banner carries the official logo plus embedded OPTIMIZER identity.
+          banner=Image.new('RGBA',(320,180),(3,17,29,255))
+          scale=min(270/logo.width,108/logo.height)
+          a=logo.resize((int(logo.width*scale),int(logo.height*scale)),Image.Resampling.LANCZOS)
+          banner.alpha_composite(a,((320-a.width)//2,5))
+          bd=ImageDraw.Draw(banner)
+          bf=ImageFont.truetype(fp,26) if fp else ImageFont.load_default()
+          bb=bd.textbbox((0,0),text,font=bf)
+          bd.text(((320-(bb[2]-bb[0]))//2,143),text,font=bf,fill=(198,247,255,255))
           banner.save(res/'drawable-nodpi'/'shadowfox_tv_banner.png',optimize=True)
-          print('Generated official ShadowFox TV Optimizer icon set')
+          print('Generated distinct ShadowFox TV Optimizer launcher identity')
           PY
       - name: Read version
         run: |
