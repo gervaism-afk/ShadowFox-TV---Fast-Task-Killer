@@ -272,9 +272,9 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
                 Triple("RAM USED", snapshot?.let { "${it.ramUsedPercent}%" } ?: "SCANNING", UCYAN),
                 Triple("ACTIVE APPS", snapshot?.let { "${it.runningApps}" } ?: "SCANNING", UCYAN),
                 Triple("NETWORK", snapshot?.network ?: "SCANNING", UCYAN)
-            ), landscape
+            ), landscape, compactPhone = isPhone && !landscape
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(if (isPhone && !landscape) 6.dp else 10.dp))
         if (landscape) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -305,7 +305,7 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
 @Composable
 private fun SmartOptimizePanelCompact(manager: UltimateManager, rootActive: Boolean, status: String, busy: Boolean, onBusy: (Boolean) -> Unit, onStatus: (String) -> Unit, refresh: () -> Unit) {
     val scope = rememberCoroutineScope()
-    UltimatePanel("SMART OPTIMIZE", "Verified root-aware cleanup.", Modifier.height(92.dp)) {
+    UltimatePanelCompact("SMART OPTIMIZE", "Verified root-aware cleanup.", Modifier.height(112.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(if (rootActive) "ROOT ENGINE ACTIVE" else "STANDARD ENGINE", color = if (rootActive) UGREEN else UCYAN, fontSize = 8.sp, fontWeight = FontWeight.Black)
@@ -325,15 +325,16 @@ private fun SmartOptimizePanelCompact(manager: UltimateManager, rootActive: Bool
 
 @Composable
 private fun StreamingPanelCompact() {
-    UltimatePanel("STREAMING MODE", "IPTV, movies and high-bitrate playback.", Modifier.height(72.dp)) {
-        Text("Use APPS → STREAM beside your preferred player.", color = UMUTED, fontSize = 9.sp, maxLines = 1)
+    UltimatePanelCompact("STREAMING MODE", "IPTV, movies and high-bitrate playback.", Modifier.height(82.dp)) {
+        Text("APPS → STREAM prepares your selected player.", color = UCYAN, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }
 
 @Composable
 private fun ThermalPanelCompact(snapshot: UltimateSnapshot?) {
-    UltimatePanel("DEVICE PERFORMANCE", "Live device condition.", Modifier.height(72.dp)) {
-        Text("Thermal: ${snapshot?.temperatureStatus ?: "..."}  •  RAM: ${formatUiBytes(snapshot?.freeRam ?: 0)}  •  Storage: ${formatUiBytes(snapshot?.freeStorage ?: 0)}", color = UWHITE, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    UltimatePanelCompact("DEVICE PERFORMANCE", "Live device condition.", Modifier.height(82.dp)) {
+        Text("Thermal: ${snapshot?.temperatureStatus ?: "..."}", color = UWHITE, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text("Free RAM: ${formatUiBytes(snapshot?.freeRam ?: 0)}  •  Storage: ${formatUiBytes(snapshot?.freeStorage ?: 0)}", color = UCYAN, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -580,32 +581,46 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
 }
 
 @Composable
-private fun MetricGrid(items: List<Triple<String, String, Color>>, landscape: Boolean) {
+private fun MetricGrid(items: List<Triple<String, String, Color>>, landscape: Boolean, compactPhone: Boolean = false) {
     if (landscape) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items.forEach { (a,b,c) -> MetricCard(a,b,c,Modifier.weight(1f)) }
         }
     } else {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items.take(2).forEach { (a,b,c) -> MetricCard(a,b,c,Modifier.weight(1f)) }
+            items.take(2).forEach { (a,b,c) -> MetricCard(a,b,c,Modifier.weight(1f), compactPhone) }
         }
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items.drop(2).forEach { (a,b,c) -> MetricCard(a,b,c,Modifier.weight(1f)) }
+            items.drop(2).forEach { (a,b,c) -> MetricCard(a,b,c,Modifier.weight(1f), compactPhone) }
         }
     }
 }
 
 @Composable
-private fun MetricCard(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
+private fun MetricCard(label: String, value: String, color: Color, modifier: Modifier = Modifier, compact: Boolean = false) {
     Column(
         modifier.shadow(3.dp, RoundedCornerShape(10.dp), ambientColor = UCYAN.copy(alpha = .14f), spotColor = UCYAN.copy(alpha = .14f))
-            .background(Brush.verticalGradient(listOf(Color(0xFF17435D), UMETAL_MID, Color(0xFF051723))), RoundedCornerShape(10.dp)).padding(vertical = 10.dp, horizontal = 8.dp),
+            .background(Brush.verticalGradient(listOf(Color(0xFF17435D), UMETAL_MID, Color(0xFF051723))), RoundedCornerShape(10.dp)).padding(vertical = if (compact) 6.dp else 10.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(label, color = UMUTED, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-        Spacer(Modifier.height(3.dp))
-        Text(value, color = color, fontSize = 16.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(label, color = UMUTED, fontSize = if (compact) 8.sp else 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Spacer(Modifier.height(if (compact) 1.dp else 3.dp))
+        Text(value, color = color, fontSize = if (compact) 14.sp else 16.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun UltimatePanelCompact(title: String, subtitle: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Column(
+        modifier.fillMaxWidth().shadow(5.dp, RoundedCornerShape(12.dp), ambientColor = UCYAN.copy(alpha = .20f), spotColor = UCYAN.copy(alpha = .20f))
+            .background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 9.dp)
+    ) {
+        Text(title, color = UWHITE, fontSize = 14.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(subtitle, color = UMUTED, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Spacer(Modifier.height(4.dp))
+        content()
     }
 }
 
