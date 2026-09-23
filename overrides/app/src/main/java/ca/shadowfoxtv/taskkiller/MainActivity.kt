@@ -161,7 +161,7 @@ private fun MobileDashboard(context: Context) {
     }
     LaunchedEffect(Unit) { while (true) { ram = memoryUsedPercent(context); delay(2000) } }
     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF0A2B42), BG, Color(0xFF01070C))))) {
-        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(start = 18.dp, end = 18.dp, top = 42.dp, bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Image(painterResource(R.drawable.shadowfox_logo), "ShadowFox TV", Modifier.size(76.dp), contentScale = ContentScale.Fit)
                 Spacer(Modifier.width(10.dp))
@@ -172,11 +172,11 @@ private fun MobileDashboard(context: Context) {
                 }
             }
             Spacer(Modifier.height(16.dp))
-            GlowCard(Modifier.fillMaxWidth().height(255.dp), onClick = { optimize() }, hero = true) {
-                Column(Modifier.fillMaxSize().padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    RamGauge(ram, Modifier.size(190.dp))
+            GlowCard(Modifier.fillMaxWidth().height(265.dp), onClick = { optimize() }, hero = true) {
+                Column(Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    RamGauge(ram, Modifier.size(184.dp))
                     Text("RAM BOOSTER", color = WHITE, fontSize = 19.sp, fontWeight = FontWeight.Black)
-                    Text(if (busy) "OPTIMIZING DEVICE..." else "Tap to free memory and process safe background apps", color = MUTED, fontSize = 10.sp)
+                    Text(if (busy) "OPTIMIZING DEVICE..." else "Tap to free memory and process safe background apps", color = MUTED, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -207,9 +207,9 @@ private fun MobileDashboard(context: Context) {
 @Composable
 private fun MobileActionCard(title: String, subtitle: String, modifier: Modifier, busy: Boolean, action: () -> Unit) {
     GlowCard(modifier.height(112.dp), onClick = action) {
-        Column(Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.Center) {
-            Text(title, color = WHITE, fontSize = 14.sp, fontWeight = FontWeight.Black); Spacer(Modifier.height(5.dp))
-            Text(if (busy) "WORKING..." else subtitle, color = if (busy) ORANGE else CYAN, fontSize = 11.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
+        Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 12.dp), verticalArrangement = Arrangement.Center) {
+            Text(title, color = WHITE, fontSize = 12.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis); Spacer(Modifier.height(5.dp))
+            Text(if (busy) "WORKING..." else subtitle, color = if (busy) ORANGE else CYAN, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis); Spacer(Modifier.height(8.dp))
             Text("TAP TO RUN", color = MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
         }
     }
