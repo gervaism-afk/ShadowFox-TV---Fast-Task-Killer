@@ -87,7 +87,7 @@ jobs:
           from pathlib import Path
           from PIL import Image, ImageDraw, ImageFont
           res=Path('extracted/app/src/main/res')
-          master_path=res/'drawable-nodpi'/'cache_cleaner_master.png'
+          master_path=res/'drawable-nodpi'/'file_000000009fd881f682bff9cb056d5ed8.png'
           if not master_path.exists():
               raise SystemExit('Missing exact Cache Cleaner master artwork: '+str(master_path))
           master=Image.open(master_path).convert('RGBA')
