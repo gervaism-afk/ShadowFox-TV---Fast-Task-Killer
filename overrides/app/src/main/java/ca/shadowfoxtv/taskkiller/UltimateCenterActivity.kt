@@ -140,6 +140,8 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
             if (landscape) {
                 Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(10.dp)).padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     BrandHeader(snapshot, Modifier.weight(1f), compact = true, isPhone = isPhone)
+                    UltimateWeatherBadge(manager.appContext())
+                    Spacer(Modifier.width(10.dp))
                     UltimateButton("REFRESH") { refresh() }
                     Spacer(Modifier.width(8.dp))
                     UltimateButton("BACK") { onClose() }
@@ -172,6 +174,47 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
                 UltimateTab.NETWORK -> NetworkScreen(manager, landscape)
                 UltimateTab.SYSTEM -> SystemScreen(manager, snapshot, ::refresh, landscape)
             }
+        }
+    }
+}
+
+@Composable
+private fun UltimateWeatherBadge(context: android.content.Context) {
+    val prefs = remember { context.getSharedPreferences("shadowfox_weather", android.content.Context.MODE_PRIVATE) }
+    var city by remember { mutableStateOf(prefs.getString("city", "WEATHER") ?: "WEATHER") }
+    var temp by remember { mutableStateOf(if (prefs.contains("temp")) "${prefs.getInt("temp", 0)}°C" else "--°C") }
+    var code by remember { mutableStateOf(prefs.getInt("code", -1)) }
+
+    // The landing page owns the network refresh. Ultimate Center reads the same
+    // cache immediately so opening this screen never adds another network delay.
+    LaunchedEffect(Unit) {
+        while (true) {
+            city = prefs.getString("city", "WEATHER") ?: "WEATHER"
+            temp = if (prefs.contains("temp")) "${prefs.getInt("temp", 0)}°C" else "--°C"
+            code = prefs.getInt("code", -1)
+            kotlinx.coroutines.delay(30_000)
+        }
+    }
+
+    val symbol = when (code) {
+        0 -> "☀"
+        1, 2 -> "⛅"
+        3 -> "☁"
+        45, 48 -> "≋"
+        in 51..67, in 80..82 -> "☂"
+        in 71..77, in 85..86 -> "❄"
+        in 95..99 -> "ϟ"
+        else -> "•"
+    }
+    Row(
+        Modifier.background(Color(0xAA071A28), RoundedCornerShape(9.dp)).padding(horizontal = 10.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(symbol, color = if (code in 95..99) UORANGE else UCYAN, fontSize = 15.sp, fontWeight = FontWeight.Black)
+        Spacer(Modifier.width(6.dp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(temp, color = UWHITE, fontSize = 11.sp, fontWeight = FontWeight.Black, maxLines = 1)
+            Text(city, color = UMUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
 }
