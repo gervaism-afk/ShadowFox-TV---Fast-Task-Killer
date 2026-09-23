@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ShadowFox TV Optimizer</string>
+    <string name="app_name">ShadowFox TV Cache Cleaner</string>
     <string name="title">ShadowFox TV</string>
-    <string name="subtitle">TASK KILLER</string>
+    <string name="subtitle">CACHE CLEANER</string>
     <string name="clean_now">CLEAN NOW</string>
     <string name="cleaning_button">CLEANING…</string>
     <string name="rescan">RESCAN APPS</string>
