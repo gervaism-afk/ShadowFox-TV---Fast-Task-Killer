@@ -448,10 +448,10 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     UltimateButton("CLEAR SHADOWFOX CACHE") { val freed = manager.clearOwnCache(); storage = manager.storageReport(); message = "${formatUiBytes(freed)} cleared" }
                     UltimateButton(if (maintenance) "AUTO MAINTENANCE: ON" else "AUTO MAINTENANCE: OFF") { maintenance = !maintenance; manager.scheduleMaintenance(maintenance) }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(horizontalAlignment = Alignment.Start) {
                     UltimateButton("CHECK FOR UPDATES") { message = "CHECKING FOR UPDATE…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } }
                     Spacer(Modifier.height(5.dp))
-                    Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 2, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 2, textAlign = TextAlign.Start)
                 }
                 }
             } else {
@@ -465,7 +465,7 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
             }
         }
         Spacer(Modifier.height(10.dp))
-        UltimatePanel("OPTIMIZER DIAGNOSTICS", "Latest Smart Optimize scan — photograph this panel if results remain zero.") {
+        UltimatePanel("OPTIMIZER DIAGNOSTICS", "Latest Smart Optimize scan • scroll down for all results.") {
             if (diagnostics.isEmpty()) Text("Run Smart Optimize once to generate diagnostics.", color = UMUTED, fontSize = 9.sp)
             diagnostics.takeLast(10).forEach { Text(it.substringAfter(" | "), color = UWHITE, fontSize = 8.sp) }
         }
