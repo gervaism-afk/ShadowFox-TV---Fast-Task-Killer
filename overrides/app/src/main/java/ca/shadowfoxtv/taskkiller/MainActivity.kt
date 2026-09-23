@@ -133,7 +133,8 @@ private fun MasterDashboard(context: Context) {
             if (prefs.contains("temp")) WeatherSnapshot(
                 prefs.getString("city", "LOCAL") ?: "LOCAL",
                 prefs.getInt("temp", 0),
-                prefs.getInt("code", 0)
+                prefs.getInt("code", 0),
+                prefs.getBoolean("is_day", true)
             ) else null
         )
     }
@@ -301,7 +302,7 @@ private fun MasterDashboard(context: Context) {
     }
 }
 
-private data class WeatherSnapshot(val city: String, val tempC: Int, val code: Int)
+private data class WeatherSnapshot(val city: String, val tempC: Int, val code: Int, val isDay: Boolean = true)
 
 private suspend fun fetchIpWeather(context: Context): WeatherSnapshot? = withContext(Dispatchers.IO) {
     runCatching {
@@ -317,19 +318,19 @@ private suspend fun fetchIpWeather(context: Context): WeatherSnapshot? = withCon
         val lat = loc.getDouble("latitude")
         val lon = loc.getDouble("longitude")
         val city = loc.optString("city").ifBlank { "LOCAL" }
-        val current = JSONObject(readUrl("https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,weather_code&temperature_unit=celsius")).getJSONObject("current")
-        WeatherSnapshot(city, kotlin.math.round(current.getDouble("temperature_2m")).toInt(), current.getInt("weather_code")).also { result ->
-            prefs.edit().putString("city", result.city).putInt("temp", result.tempC).putInt("code", result.code).apply()
+        val current = JSONObject(readUrl("https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,weather_code,is_day&temperature_unit=celsius")).getJSONObject("current")
+        WeatherSnapshot(city, kotlin.math.round(current.getDouble("temperature_2m")).toInt(), current.getInt("weather_code"), current.optInt("is_day", 1) == 1).also { result ->
+            prefs.edit().putString("city", result.city).putInt("temp", result.tempC).putInt("code", result.code).putBoolean("is_day", result.isDay).apply()
         }
     }.getOrElse {
         val prefs = context.getSharedPreferences("shadowfox_weather", Context.MODE_PRIVATE)
-        if (prefs.contains("temp")) WeatherSnapshot(prefs.getString("city", "LOCAL") ?: "LOCAL", prefs.getInt("temp", 0), prefs.getInt("code", 0)) else null
+        if (prefs.contains("temp")) WeatherSnapshot(prefs.getString("city", "LOCAL") ?: "LOCAL", prefs.getInt("temp", 0), prefs.getInt("code", 0), prefs.getBoolean("is_day", true)) else null
     }
 }
 
-private fun weatherSymbol(code: Int): String = when (code) {
-    0 -> "☀"
-    1, 2 -> "⛅"
+private fun weatherSymbol(code: Int, isDay: Boolean = true): String = when (code) {
+    0 -> if (isDay) "☀" else "☾"
+    1, 2 -> if (isDay) "⛅" else "☾"
     3 -> "☁"
     45, 48 -> "≋"
     in 51..67, in 80..82 -> "☂"
@@ -342,7 +343,7 @@ private fun weatherSymbol(code: Int): String = when (code) {
 private fun WeatherBadge(weather: WeatherSnapshot?, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(10.dp)
     Row(modifier.shadow(5.dp, shape, false, CYAN.copy(alpha = .22f), CYAN.copy(alpha = .22f)).background(Color(0xD90A2030), shape).padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(if (weather == null) "•" else weatherSymbol(weather.code), color = if (weather?.code in 95..99) ORANGE else CYAN, fontSize = 18.sp, fontWeight = FontWeight.Black)
+        Text(if (weather == null) "•" else weatherSymbol(weather.code, weather.isDay), color = if (weather?.code in 95..99) ORANGE else CYAN, fontSize = 18.sp, fontWeight = FontWeight.Black)
         Spacer(Modifier.width(7.dp))
         Column {
             Text(weather?.let { result -> "${result.tempC}°C" } ?: "--°C", color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Black)
