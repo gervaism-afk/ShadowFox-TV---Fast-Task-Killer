@@ -80,61 +80,47 @@ jobs:
               raise SystemExit('HQ ShadowFox logo unexpectedly small')
           print('Using exact uploaded HQ ShadowFox logo:', len(data), 'bytes')
           PY
-      - name: Generate premium Optimizer launcher identity
+      - name: Generate transparent Optimizer launcher identity
         run: |
           python3 -m pip install --quiet Pillow
           python3 - <<'PY'
           from pathlib import Path
-          from PIL import Image, ImageDraw, ImageFont, ImageFilter
+          from PIL import Image, ImageDraw, ImageFont
           res=Path('extracted/app/src/main/res')
           logo=Image.open(res/'drawable-nodpi'/'shadowfox_logo.png').convert('RGBA')
           logo=logo.crop(logo.getchannel('A').getbbox())
-          fontpath=next(p for p in ['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf','/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf'] if Path(p).exists())
+          fp=next(p for p in ['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf','/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf'] if Path(p).exists())
+          label='OPTIMIZER'
 
-          # 1024 master: bold TV-readable tile, no tiny floating artwork.
-          W=1024
-          bg=Image.new('RGBA',(W,W),(2,13,25,255))
-          d=ImageDraw.Draw(bg)
-          # metallic/electric-blue frame and restrained UI-style accents
-          for i in range(18):
-              v=40+i*5
-              d.rounded_rectangle((24+i,24+i,W-25-i,W-25-i),radius=130-i,outline=(0,min(210,v+70),255,max(35,170-i*7)),width=2)
-          d.rounded_rectangle((58,58,966,966),radius=105,fill=(4,28,47,255),outline=(94,222,255,255),width=5)
-
-          # Use the exact official ShadowFox artwork, large and dominant.
-          maxw,maxh=790,590
+          # Transparent master. Artwork deliberately fills the tile for TV viewing.
+          master=Image.new('RGBA',(1024,1024),(0,0,0,0))
+          maxw,maxh=900,700
           s=min(maxw/logo.width,maxh/logo.height)
           art=logo.resize((int(logo.width*s),int(logo.height*s)),Image.Resampling.LANCZOS)
-          glow=Image.new('RGBA',bg.size,(0,0,0,0)); glow.alpha_composite(art,((W-art.width)//2,90))
-          ga=glow.getchannel('A').filter(ImageFilter.GaussianBlur(18))
-          cyan=Image.new('RGBA',bg.size,(0,170,255,0)); cyan.putalpha(ga.point(lambda x:min(100,x)))
-          bg=Image.alpha_composite(bg,cyan); bg.alpha_composite(art,((W-art.width)//2,90))
+          master.alpha_composite(art,((1024-art.width)//2,35))
+          d=ImageDraw.Draw(master)
+          f=ImageFont.truetype(fp,116)
+          bb=d.textbbox((0,0),label,font=f,stroke_width=3); tw=bb[2]-bb[0]
+          d.text(((1024-tw)//2,800),label,font=f,fill=(230,252,255,255),
+                 stroke_width=5,stroke_fill=(0,82,135,255))
 
-          d=ImageDraw.Draw(bg)
-          f=ImageFont.truetype(fontpath,108)
-          label='OPTIMIZER'
-          bb=d.textbbox((0,0),label,font=f,stroke_width=2)
-          tw=bb[2]-bb[0]
-          d.rounded_rectangle((92,770,932,920),radius=42,fill=(2,18,31,245),outline=(88,226,255,255),width=4)
-          d.text(((W-tw)//2,786),label,font=f,fill=(225,250,255,255),stroke_width=3,stroke_fill=(0,92,150,255))
-
-          master=bg
           for density,size in {'mdpi':48,'hdpi':72,'xhdpi':96,'xxhdpi':144,'xxxhdpi':192}.items():
               q=res/f'mipmap-{density}'; q.mkdir(parents=True,exist_ok=True)
               icon=master.resize((size,size),Image.Resampling.LANCZOS)
               icon.save(q/'ic_launcher.png',optimize=True)
               icon.save(q/'ic_launcher_round.png',optimize=True)
 
-          # 16:9 TV banner: same premium identity, large enough to read across room.
-          banner=Image.new('RGBA',(640,360),(2,13,25,255)); bd=ImageDraw.Draw(banner)
-          bd.rounded_rectangle((8,8,632,352),radius=35,fill=(4,28,47,255),outline=(94,222,255,255),width=4)
-          s=min(430/logo.width,220/logo.height)
+          # Transparent Android TV banner, with embedded product identity.
+          banner=Image.new('RGBA',(640,360),(0,0,0,0))
+          s=min(520/logo.width,245/logo.height)
           a=logo.resize((int(logo.width*s),int(logo.height*s)),Image.Resampling.LANCZOS)
-          banner.alpha_composite(a,((640-a.width)//2,22))
-          bf=ImageFont.truetype(fontpath,55); bb=bd.textbbox((0,0),label,font=bf)
-          bd.text(((640-(bb[2]-bb[0]))//2,282),label,font=bf,fill=(225,250,255,255),stroke_width=2,stroke_fill=(0,92,150,255))
+          banner.alpha_composite(a,((640-a.width)//2,0))
+          bd=ImageDraw.Draw(banner); bf=ImageFont.truetype(fp,58)
+          bb=bd.textbbox((0,0),label,font=bf,stroke_width=2)
+          bd.text(((640-(bb[2]-bb[0]))//2,285),label,font=bf,fill=(230,252,255,255),
+                  stroke_width=3,stroke_fill=(0,82,135,255))
           banner.resize((320,180),Image.Resampling.LANCZOS).save(res/'drawable-nodpi'/'shadowfox_tv_banner.png',optimize=True)
-          print('Generated premium distinct Optimizer launcher assets')
+          print('Generated transparent ShadowFox TV Optimizer launcher assets')
           PY
       - name: Read version
         run: |
