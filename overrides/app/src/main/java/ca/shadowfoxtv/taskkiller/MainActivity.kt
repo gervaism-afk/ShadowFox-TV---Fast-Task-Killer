@@ -95,6 +95,8 @@ class MainActivity : ComponentActivity() {
                 // polling/root/network coroutines to finish.
                 isEnabled = false
                 finishAndRemoveTask()
+                @Suppress("DEPRECATION")
+                overridePendingTransition(0, 0)
             }
         })
         setContent {
@@ -222,7 +224,7 @@ private fun MasterDashboard(context: Context) {
                     modifier = Modifier.offset(790.dp, 18.dp).size(122.dp, 98.dp)
                 )
 
-                WeatherBadge(weather, Modifier.offset(444.dp, 38.dp).width(128.dp))
+                WeatherBadge(weather, Modifier.offset(458.dp, 38.dp))
 
                 GlowCard(Modifier.offset(45.dp, 145.dp).size(205.dp, 265.dp), onClick = { clean() }) {
                     Box(Modifier.fillMaxSize()) {
