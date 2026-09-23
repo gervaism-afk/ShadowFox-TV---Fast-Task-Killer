@@ -141,8 +141,9 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
             if (landscape) {
                 Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(10.dp)).padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     BrandHeader(snapshot, Modifier.weight(1f), compact = true, isPhone = isPhone)
-                    UltimateWeatherBadge(manager.appContext())
-                    Spacer(Modifier.width(10.dp))
+                    Box(Modifier.weight(.72f), contentAlignment = Alignment.Center) {
+                        UltimateWeatherBadge(manager.appContext())
+                    }
                     UltimateButton("REFRESH") { refresh() }
                     Spacer(Modifier.width(8.dp))
                     UltimateButton("BACK") { onClose() }
@@ -261,15 +262,13 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
         Spacer(Modifier.height(10.dp))
         if (landscape) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-                Column(Modifier.weight(1f)) {
-                    SmartOptimizePanel(manager, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh)
-                    Spacer(Modifier.height(10.dp))
-                    ThermalPanel(snapshot)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(Modifier.fillMaxWidth().height(132.dp)) { SmartOptimizePanel(manager, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh) }
+                    Box(Modifier.fillMaxWidth().height(112.dp)) { ThermalPanel(snapshot) }
                 }
-                Column(Modifier.weight(1f)) {
-                    StreamingPanel()
-                    Spacer(Modifier.height(10.dp))
-                    SystemStatusPanel(manager, snapshot)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(Modifier.fillMaxWidth().height(132.dp)) { StreamingPanel() }
+                    Box(Modifier.fillMaxWidth().height(112.dp)) { SystemStatusPanel(manager, snapshot) }
                 }
             }
         } else {
