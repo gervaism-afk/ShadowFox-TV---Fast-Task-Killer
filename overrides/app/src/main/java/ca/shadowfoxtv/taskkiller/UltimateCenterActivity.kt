@@ -277,7 +277,7 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
                 }
             }
         } else {
-            SmartOptimizePanel(manager, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh)
+            SmartOptimizePanel(manager, snapshot?.root == true, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh)
             Spacer(Modifier.height(10.dp))
             StreamingPanel()
             Spacer(Modifier.height(10.dp))
