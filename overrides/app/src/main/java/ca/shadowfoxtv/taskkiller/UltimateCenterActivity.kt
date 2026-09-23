@@ -121,6 +121,8 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
             manager.capabilities()
             snapshot = manager.snapshot()
         }
+        // Pre-warm launchable app metadata while the Optimize tab is visible so APPS opens immediately.
+        launch(kotlinx.coroutines.Dispatchers.IO) { manager.apps() }
         while (true) {
             kotlinx.coroutines.delay(5000)
             snapshot = manager.snapshot()
@@ -265,11 +267,11 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
         if (landscape) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.fillMaxWidth().height(132.dp)) { SmartOptimizePanel(manager, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh) }
+                    Box(Modifier.fillMaxWidth().height(146.dp)) { SmartOptimizePanel(manager, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh) }
                     Box(Modifier.fillMaxWidth().height(112.dp)) { ThermalPanel(snapshot) }
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.fillMaxWidth().height(132.dp)) { StreamingPanel() }
+                    Box(Modifier.fillMaxWidth().height(146.dp)) { StreamingPanel() }
                     Box(Modifier.fillMaxWidth().height(112.dp)) { SystemStatusPanel(manager, snapshot) }
                 }
             }
@@ -342,7 +344,7 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
     LaunchedEffect(Unit) { load() }
 
     Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Column(Modifier.fillMaxWidth(if (landscape) 0.96f else 1f)) {
+        Column(Modifier.fillMaxWidth()) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(message, color = UMUTED, fontSize = 10.sp, modifier = Modifier.weight(1f))
                 if (isPhone && apps.any { it.system }) CompactAction(if (showSystem) "HIDE SYSTEM" else "SHOW SYSTEM", Modifier.width(112.dp)) { showSystem = !showSystem }
@@ -352,7 +354,7 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
         val appsScroll = remember(landscape) { ScrollState(0) }
         Column(Modifier.fillMaxSize().verticalScroll(appsScroll), horizontalAlignment = Alignment.CenterHorizontally) {
             apps.filter { showSystem || !it.system }.forEach { item ->
-                Column(Modifier.fillMaxWidth(if (landscape) 0.96f else 1f)) {
+                Column(Modifier.fillMaxWidth()) {
                 UltimatePanel(item.label, "${if (item.system) "SYSTEM • " else ""}${if (item.running) "RUNNING" else "IDLE"} • ${item.packageName}") {
                     if (landscape) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -449,10 +451,10 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     UltimateButton("CLEAR SHADOWFOX CACHE") { val freed = manager.clearOwnCache(); storage = manager.storageReport(); message = "${formatUiBytes(freed)} cleared" }
                     UltimateButton(if (maintenance) "AUTO MAINTENANCE: ON" else "AUTO MAINTENANCE: OFF") { maintenance = !maintenance; manager.scheduleMaintenance(maintenance) }
-                    Column(horizontalAlignment = Alignment.Start) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     UltimateButton("CHECK FOR UPDATES") { message = "CHECKING FOR UPDATE…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } }
                     Spacer(Modifier.height(5.dp))
-                    Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 2, textAlign = TextAlign.Start)
+                    Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 2, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                 }
                 }
             } else {
