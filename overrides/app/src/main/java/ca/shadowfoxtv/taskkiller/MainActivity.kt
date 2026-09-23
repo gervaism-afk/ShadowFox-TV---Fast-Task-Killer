@@ -160,7 +160,8 @@ private fun MasterDashboard(context: Context) {
                 while (graph.size > 18) graph.removeAt(0)
             }
             ram = memoryUsedPercent(context)
-            apps = withContext(Dispatchers.IO) { optimizer.runningThirdPartyCount() }
+            // Do not launch root shells every second for a decorative app counter.
+            // Running-app discovery is performed only during an explicit optimization.
         }
     }
 
