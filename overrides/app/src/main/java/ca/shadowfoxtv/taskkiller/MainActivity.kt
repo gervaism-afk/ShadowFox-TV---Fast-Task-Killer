@@ -142,11 +142,9 @@ private fun MasterDashboard(context: Context) {
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
+        // Weather refreshes once per app launch. Avoid background polling on TV sticks.
         launch(Dispatchers.IO) {
-            while (true) {
-                weather = fetchIpWeather(context) ?: weather
-                delay(30 * 60 * 1000L)
-            }
+            weather = fetchIpWeather(context) ?: weather
         }
         while (true) {
             val before = totalTrafficBytes()
