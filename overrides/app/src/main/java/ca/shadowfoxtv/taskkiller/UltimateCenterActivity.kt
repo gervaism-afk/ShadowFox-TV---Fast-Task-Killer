@@ -173,7 +173,7 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
                 }
             }
 
-            Spacer(Modifier.height(if (isPhone) 6.dp else 10.dp))
+            Spacer(Modifier.height(if (isPhone) 4.dp else 10.dp))
             Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color(0xCC0B2A3D), Color(0xDD061722), Color(0xEE020B11))), RoundedCornerShape(10.dp)).padding(if (isPhone) 4.dp else 5.dp), horizontalArrangement = Arrangement.spacedBy(if (isPhone) 4.dp else 8.dp)) {
                 UltimateTab.entries.forEachIndexed { index, item ->
                     UltimateTabButton(
@@ -183,10 +183,10 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
                     ) { tab = item }
                 }
             }
-            Spacer(Modifier.height(if (landscape) 8.dp else 10.dp))
+            Spacer(Modifier.height(if (isPhone && !landscape) 6.dp else if (landscape) 8.dp else 10.dp))
 
             when (tab) {
-                UltimateTab.OPTIMIZE -> OptimizeScreen(manager, snapshot, ::refresh, landscape)
+                UltimateTab.OPTIMIZE -> OptimizeScreen(manager, snapshot, ::refresh, landscape, isPhone)
                 UltimateTab.APPS -> AppsScreen(manager, landscape, isPhone)
                 UltimateTab.NETWORK -> NetworkScreen(manager, landscape)
                 UltimateTab.SYSTEM -> SystemScreen(manager, snapshot, ::refresh, landscape)
@@ -259,7 +259,7 @@ private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact
 }
 
 @Composable
-private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, refresh: () -> Unit, landscape: Boolean) {
+private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, refresh: () -> Unit, landscape: Boolean, isPhone: Boolean) {
     val scope = rememberCoroutineScope()
     var status by remember { mutableStateOf("READY") }
     var busy by remember { mutableStateOf(false) }
@@ -286,6 +286,12 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
                     Box(Modifier.fillMaxWidth().height(112.dp)) { SystemStatusPanel(manager, snapshot) }
                 }
             }
+        } else if (isPhone) {
+            SmartOptimizePanelCompact(manager, snapshot?.root == true, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh)
+            Spacer(Modifier.height(6.dp))
+            StreamingPanelCompact()
+            Spacer(Modifier.height(6.dp))
+            ThermalPanelCompact(snapshot)
         } else {
             SmartOptimizePanel(manager, snapshot?.root == true, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh)
             Spacer(Modifier.height(10.dp))
@@ -293,6 +299,41 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
             Spacer(Modifier.height(10.dp))
             ThermalPanel(snapshot)
         }
+    }
+}
+
+@Composable
+private fun SmartOptimizePanelCompact(manager: UltimateManager, rootActive: Boolean, status: String, busy: Boolean, onBusy: (Boolean) -> Unit, onStatus: (String) -> Unit, refresh: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    UltimatePanel("SMART OPTIMIZE", "Verified root-aware cleanup.", Modifier.height(112.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(if (rootActive) "ROOT ENGINE ACTIVE" else "STANDARD ENGINE", color = if (rootActive) UGREEN else UCYAN, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                Text(status, color = UMUTED, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            UltimateButton(if (busy) "WORKING..." else "OPTIMIZE") {
+                if (!busy) scope.launch {
+                    onBusy(true); onStatus("SCANNING • CLEANING...")
+                    val result = manager.smartOptimize()
+                    onStatus("${result.verifiedStopped}/${result.attemptedApps} STOPPED • ${formatUiBytes(result.ramFreedBytes)} RAM")
+                    onBusy(false); refresh()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StreamingPanelCompact() {
+    UltimatePanel("STREAMING MODE", "IPTV, movies and high-bitrate playback.", Modifier.height(92.dp)) {
+        Text("Use APPS → STREAM beside your preferred player.", color = UMUTED, fontSize = 9.sp, maxLines = 1)
+    }
+}
+
+@Composable
+private fun ThermalPanelCompact(snapshot: UltimateSnapshot?) {
+    UltimatePanel("DEVICE PERFORMANCE", "Live device condition.", Modifier.height(92.dp)) {
+        Text("Thermal: ${snapshot?.temperatureStatus ?: "..."}  •  RAM: ${formatUiBytes(snapshot?.freeRam ?: 0)}  •  Storage: ${formatUiBytes(snapshot?.freeStorage ?: 0)}", color = UWHITE, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
