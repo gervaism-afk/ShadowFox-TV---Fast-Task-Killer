@@ -65,27 +65,20 @@ jobs:
           test ! -e extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/AdvancedToolsActivity.kt
           grep -q 'android:name=".ShadowFoxApp"' extracted/app/src/main/AndroidManifest.xml
           grep -q 'ShadowFoxProEngine' extracted/app/src/main/java/ca/shadowfoxtv/taskkiller/MainActivity.kt
-      - name: Preserve highest-quality ShadowFox logo
+      - name: Preserve exact HQ ShadowFox logo
         run: |
+          test -f extracted/app/src/main/res/drawable-nodpi/shadowfox_logo_hq.png
+          rm -f extracted/app/src/main/res/drawable-nodpi/shadowfox_logo.png
+          cp extracted/app/src/main/res/drawable-nodpi/shadowfox_logo_hq.png extracted/app/src/main/res/drawable-nodpi/shadowfox_logo.png
           python3 - <<'PY'
           from pathlib import Path
-          import zipfile
-          res=Path('extracted/app/src/main/res'); exts={'.png','.webp','.jpg','.jpeg'}
-          current=[p for p in res.rglob('shadowfox_logo.*') if p.suffix.lower() in exts]
-          sources=[(p.stat().st_size,p.read_bytes(),p.name) for p in current]
-          z=Path('ShadowFoxTV-FastTaskKiller-Project-v3.0.1-REAL-LOGO.zip')
-          if z.exists():
-            with zipfile.ZipFile(z) as f:
-              for n in f.namelist():
-                q=Path(n)
-                if q.name.lower().startswith('shadowfox_logo.') and q.suffix.lower() in exts:
-                  data=f.read(n); sources.append((len(data),data,q.name))
-          if not sources: raise SystemExit('No ShadowFox logo found')
-          _,data,name=max(sources,key=lambda x:x[0])
-          for q in current:
-            if q.exists(): q.unlink()
-          dst=res/'drawable-nodpi'/name; dst.parent.mkdir(parents=True,exist_ok=True); dst.write_bytes(data)
-          print('Using high-resolution logo',name,len(data),'bytes')
+          p=Path('extracted/app/src/main/res/drawable-nodpi/shadowfox_logo.png')
+          data=p.read_bytes()
+          if not data.startswith(b'\x89PNG\r\n\x1a\n'):
+              raise SystemExit('HQ ShadowFox logo is not a PNG')
+          if len(data) < 500000:
+              raise SystemExit('HQ ShadowFox logo unexpectedly small')
+          print('Using exact uploaded HQ ShadowFox logo:', len(data), 'bytes')
           PY
       - name: Read version
         run: |
