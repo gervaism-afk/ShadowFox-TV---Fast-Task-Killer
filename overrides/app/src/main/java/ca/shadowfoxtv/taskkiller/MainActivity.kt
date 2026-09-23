@@ -222,7 +222,7 @@ private fun MasterDashboard(context: Context) {
                     modifier = Modifier.offset(790.dp, 18.dp).size(122.dp, 98.dp)
                 )
 
-                WeatherBadge(weather, Modifier.offset(430.dp, 38.dp).width(155.dp))
+                WeatherBadge(weather, Modifier.offset(444.dp, 38.dp).width(128.dp))
 
                 GlowCard(Modifier.offset(45.dp, 145.dp).size(205.dp, 265.dp), onClick = { clean() }) {
                     Box(Modifier.fillMaxSize()) {
@@ -231,7 +231,7 @@ private fun MasterDashboard(context: Context) {
                             Modifier.align(Alignment.BottomCenter).padding(bottom = 22.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("SYSTEM SCAN", color = WHITE, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                            Text("SYSTEM SCAN", color = WHITE, fontSize = 16.sp, fontWeight = FontWeight.Black)
                             Text("$apps ACTIVE PROCESSES", color = MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(10.dp))
                             MasterButton(if (busy) "SCANNING..." else "SCAN NOW", 105.dp, !busy) { clean() }
@@ -362,11 +362,11 @@ private fun weatherSymbol(code: Int, isDay: Boolean = true): String = when (code
 @Composable
 private fun WeatherBadge(weather: WeatherSnapshot?, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(10.dp)
-    Row(modifier.shadow(5.dp, shape, false, CYAN.copy(alpha = .22f), CYAN.copy(alpha = .22f)).background(Color(0xD90A2030), shape).padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.shadow(5.dp, shape, false, CYAN.copy(alpha = .22f), CYAN.copy(alpha = .22f)).background(Color(0xD90A2030), shape).padding(horizontal = 8.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(if (weather == null) "•" else weatherSymbol(weather.code, weather.isDay), color = if (weather?.code in 95..99) ORANGE else CYAN, fontSize = 18.sp, fontWeight = FontWeight.Black)
-        Spacer(Modifier.width(7.dp))
+        Spacer(Modifier.width(6.dp))
         Column {
-            Text(weather?.let { result -> "${result.tempC}°C" } ?: "--°C", color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Black)
+            Text(weather?.let { result -> "${result.tempC}°C" } ?: "--°C", color = WHITE, fontSize = 12.sp, fontWeight = FontWeight.Black)
             Text(weather?.city ?: "WEATHER", color = MUTED, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
