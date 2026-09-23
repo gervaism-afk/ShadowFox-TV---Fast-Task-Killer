@@ -186,10 +186,16 @@ private fun MobileDashboard(context: Context) {
                 MobileActionCard("CACHE CLEANER", if (storageFreed > 0) formatBytes(storageFreed) else "Ready", Modifier.weight(1f), busy) { optimize() }
             }
             Spacer(Modifier.height(12.dp))
-            GlowCard(Modifier.fillMaxWidth().height(92.dp), onClick = { context.startActivity(Intent(context, UltimateCenterActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }) {
-                Row(Modifier.fillMaxSize().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    NetworkIcon(Modifier.size(54.dp)); Spacer(Modifier.width(14.dp))
-                    Column { Text("ULTIMATE CENTER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black); Text("Apps • Network • System • Advanced controls", color = MUTED, fontSize = 10.sp); Text("TAP TO OPEN", color = CYAN, fontSize = 9.sp, fontWeight = FontWeight.Black) }
+            GlowCard(Modifier.fillMaxWidth().height(108.dp), onClick = { context.startActivity(Intent(context, UltimateCenterActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }) {
+                Row(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    NetworkIcon(Modifier.size(52.dp)); Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                        Text("ULTIMATE CENTER", color = WHITE, fontSize = 16.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                        Spacer(Modifier.height(3.dp))
+                        Text("Apps • Network • System • Advanced controls", color = MUTED, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Spacer(Modifier.height(5.dp))
+                        Text("TAP TO OPEN", color = CYAN, fontSize = 8.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                    }
                 }
             }
             Spacer(Modifier.height(12.dp))
