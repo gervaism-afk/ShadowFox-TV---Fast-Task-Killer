@@ -388,10 +388,10 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     UltimateButton("CLEAR SHADOWFOX CACHE") { val freed = manager.clearOwnCache(); storage = manager.storageReport(); message = "${formatUiBytes(freed)} cleared" }
                     UltimateButton(if (maintenance) "AUTO MAINTENANCE: ON" else "AUTO MAINTENANCE: OFF") { maintenance = !maintenance; manager.scheduleMaintenance(maintenance) }
-                    Column {
-                    UltimateButton("CHECK UPDATE") { message = "CHECKING FOR UPDATE…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    UltimateButton("CHECK FOR UPDATES") { message = "CHECKING FOR UPDATE…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } }
                     Spacer(Modifier.height(5.dp))
-                    Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 2)
+                    Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 2, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                 }
                 }
             } else {
@@ -399,7 +399,7 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
                 Spacer(Modifier.height(6.dp))
                 CompactAction(if (maintenance) "AUTO MAINTENANCE: ON" else "AUTO MAINTENANCE: OFF", Modifier.fillMaxWidth()) { maintenance = !maintenance; manager.scheduleMaintenance(maintenance) }
                 Spacer(Modifier.height(6.dp))
-                CompactAction("CHECK UPDATE", Modifier.fillMaxWidth()) { message = "CHECKING FOR UPDATE…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } }
+                CompactAction("CHECK FOR UPDATES", Modifier.fillMaxWidth()) { message = "CHECKING FOR UPDATE…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } }
                 Spacer(Modifier.height(5.dp))
                 Text(message, color = if (message.contains("UP TO DATE") || message.contains("INSTALLED")) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 2)
             }
@@ -407,7 +407,7 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
         Spacer(Modifier.height(10.dp))
         UltimatePanel("OPTIMIZER DIAGNOSTICS", "Latest Smart Optimize scan — photograph this panel if results remain zero.") {
             if (diagnostics.isEmpty()) Text("Run Smart Optimize once to generate diagnostics.", color = UMUTED, fontSize = 9.sp)
-            diagnostics.takeLast(10).forEach { Text(it.substringAfter(" | "), color = UWHITE, fontSize = 8.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+            diagnostics.takeLast(10).forEach { Text(it.substringAfter(" | "), color = UWHITE, fontSize = 8.sp) }
         }
         Spacer(Modifier.height(10.dp))
         UltimatePanel("MAINTENANCE HISTORY", message) {
