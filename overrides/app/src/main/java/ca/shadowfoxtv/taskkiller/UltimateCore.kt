@@ -381,10 +381,24 @@ class UltimateManager(private val context: Context) {
         }
     } else "N/A"
 
-    private fun widevineLevel(): String = runCatching {
-        val uuid = UUID(-1301668207276963122L, -6645017420763422227L)
-        MediaDrm(uuid).use { drm -> String(drm.getPropertyByteArray("securityLevel")) }
-    }.getOrDefault("Unknown")
+    private fun widevineLevel(): String {
+        val widevineUuid = UUID.fromString("edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")
+        if (!MediaDrm.isCryptoSchemeSupported(widevineUuid)) return "UNAVAILABLE"
+        return runCatching {
+            MediaDrm(widevineUuid).use { drm ->
+                val raw = runCatching { drm.getPropertyString("securityLevel") }
+                    .getOrElse { String(drm.getPropertyByteArray("securityLevel"), Charsets.UTF_8) }
+                    .trim().uppercase(Locale.US)
+                when {
+                    raw.contains("L1") -> "L1"
+                    raw.contains("L2") -> "L2"
+                    raw.contains("L3") -> "L3"
+                    raw.isBlank() -> "UNAVAILABLE"
+                    else -> raw.take(12)
+                }
+            }
+        }.getOrDefault("UNAVAILABLE")
+    }
 
     private fun dirSize(file: java.io.File): Long = if (!file.exists()) 0L else if (file.isFile) file.length() else file.listFiles()?.sumOf(::dirSize) ?: 0L
 
