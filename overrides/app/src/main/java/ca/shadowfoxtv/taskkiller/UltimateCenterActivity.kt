@@ -339,15 +339,18 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
     } }
     LaunchedEffect(Unit) { load() }
 
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(message, color = UMUTED, fontSize = 10.sp, modifier = Modifier.weight(1f))
-            if (isPhone && apps.any { it.system }) CompactAction(if (showSystem) "HIDE SYSTEM" else "SHOW SYSTEM", Modifier.width(112.dp)) { showSystem = !showSystem }
+    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.fillMaxWidth(if (landscape) 0.96f else 1f)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(message, color = UMUTED, fontSize = 10.sp, modifier = Modifier.weight(1f))
+                if (isPhone && apps.any { it.system }) CompactAction(if (showSystem) "HIDE SYSTEM" else "SHOW SYSTEM", Modifier.width(112.dp)) { showSystem = !showSystem }
+            }
+            Spacer(Modifier.height(6.dp))
         }
-        Spacer(Modifier.height(6.dp))
         val appsScroll = remember(landscape) { ScrollState(0) }
-        Column(Modifier.fillMaxSize().verticalScroll(appsScroll)) {
+        Column(Modifier.fillMaxSize().verticalScroll(appsScroll), horizontalAlignment = Alignment.CenterHorizontally) {
             apps.filter { showSystem || !it.system }.forEach { item ->
+                Column(Modifier.fillMaxWidth(if (landscape) 0.96f else 1f)) {
                 UltimatePanel(item.label, "${if (item.system) "SYSTEM • " else ""}${if (item.running) "RUNNING" else "IDLE"} • ${item.packageName}") {
                     if (landscape) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -365,6 +368,7 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
                             if (!item.system) CompactAction("UNINSTALL", Modifier.weight(1f)) { manager.uninstall(item.packageName) }
                         }
                     }
+                }
                 }
                 Spacer(Modifier.height(7.dp))
             }
