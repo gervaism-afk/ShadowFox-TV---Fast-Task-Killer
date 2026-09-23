@@ -313,11 +313,31 @@ private suspend fun fetchIpWeather(context: Context): WeatherSnapshot? = withCon
             conn.readTimeout = 2500
             return conn.getInputStream().bufferedReader().use { it.readText() }
         }
-        val loc = JSONObject(readUrl("https://ipwho.is/"))
-        if (!loc.optBoolean("success", true)) error("IP location unavailable")
-        val lat = loc.getDouble("latitude")
-        val lon = loc.getDouble("longitude")
-        val city = loc.optString("city").ifBlank { "LOCAL" }
+        // Cross-check two independent IP geolocation providers. Some Canadian ISPs
+        // terminate traffic in Toronto even when the device is hundreds of kilometres away.
+        // Prefer the more specific result when the providers disagree.
+        data class IpFix(val lat: Double, val lon: Double, val city: String, val region: String)
+        val fixes = mutableListOf<IpFix>()
+        runCatching {
+            val j = JSONObject(readUrl("https://ipwho.is/"))
+            if (j.optBoolean("success", true)) fixes += IpFix(
+                j.getDouble("latitude"), j.getDouble("longitude"),
+                j.optString("city"), j.optString("region")
+            )
+        }
+        runCatching {
+            val j = JSONObject(readUrl("https://ipapi.co/json/"))
+            fixes += IpFix(
+                j.getDouble("latitude"), j.getDouble("longitude"),
+                j.optString("city"), j.optString("region")
+            )
+        }
+        if (fixes.isEmpty()) error("IP location unavailable")
+        val loc = fixes.firstOrNull { it.city.isNotBlank() && !it.city.equals("Toronto", true) }
+            ?: fixes.first()
+        val lat = loc.lat
+        val lon = loc.lon
+        val city = loc.city.ifBlank { loc.region.ifBlank { "LOCAL" } }
         val current = JSONObject(readUrl("https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,weather_code,is_day&temperature_unit=celsius")).getJSONObject("current")
         WeatherSnapshot(city, kotlin.math.round(current.getDouble("temperature_2m")).toInt(), current.getInt("weather_code"), current.optInt("is_day", 1) == 1).also { result ->
             prefs.edit().putString("city", result.city).putInt("temp", result.tempC).putInt("code", result.code).putBoolean("is_day", result.isDay).apply()
