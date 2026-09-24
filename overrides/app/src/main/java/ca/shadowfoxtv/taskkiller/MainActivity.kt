@@ -82,6 +82,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URL
@@ -149,7 +150,8 @@ private fun MobileDashboard(context: Context) {
         if (busy) return
         scope.launch {
             busy = true
-            val result = optimizer.optimize()
+            val result = withTimeoutOrNull(50_000L) { optimizer.optimize() }
+            if (result == null) { busy = false; return@launch }
             delay(350)
             ram = memoryUsedPercent(context)
             apps = withContext(Dispatchers.IO) { optimizer.runningThirdPartyCount() }
@@ -281,7 +283,8 @@ private fun MasterDashboard(context: Context) {
         if (busy) return
         scope.launch {
             busy = true
-            val result = optimizer.optimize()
+            val result = withTimeoutOrNull(50_000L) { optimizer.optimize() }
+            if (result == null) { busy = false; return@launch }
             delay(450)
             ram = memoryUsedPercent(context)
             apps = withContext(Dispatchers.IO) { optimizer.runningThirdPartyCount() }
