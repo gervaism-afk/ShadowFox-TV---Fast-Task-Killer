@@ -332,9 +332,10 @@ private fun StreamingPanelCompact() {
 
 @Composable
 private fun ThermalPanelCompact(snapshot: UltimateSnapshot?) {
-    UltimatePanelCompact("DEVICE PERFORMANCE", "Live device condition.", Modifier.height(98.dp)) {
+    UltimatePanelCompact("DEVICE PERFORMANCE", "Live device condition.", Modifier.height(112.dp)) {
         Text("Thermal: ${snapshot?.temperatureStatus ?: "..."}", color = UWHITE, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-        Text("Free RAM: ${formatUiBytes(snapshot?.freeRam ?: 0)}  •  Storage: ${formatUiBytes(snapshot?.freeStorage ?: 0)}", color = UCYAN, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text("Free RAM: ${formatUiBytes(snapshot?.freeRam ?: 0)}", color = UCYAN, fontSize = 8.sp, maxLines = 1)
+        Text("Free Storage: ${formatUiBytes(snapshot?.freeStorage ?: 0)}", color = UCYAN, fontSize = 8.sp, maxLines = 1)
     }
 }
 
