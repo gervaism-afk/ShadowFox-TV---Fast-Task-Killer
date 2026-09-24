@@ -325,14 +325,14 @@ private fun SmartOptimizePanelCompact(manager: UltimateManager, rootActive: Bool
 
 @Composable
 private fun StreamingPanelCompact() {
-    UltimatePanelCompact("STREAMING MODE", "IPTV, movies and high-bitrate playback.", Modifier.height(82.dp)) {
+    UltimatePanelCompact("STREAMING MODE", "IPTV, movies and high-bitrate playback.", Modifier.height(92.dp)) {
         Text("APPS → STREAM prepares your selected player.", color = UCYAN, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }
 
 @Composable
 private fun ThermalPanelCompact(snapshot: UltimateSnapshot?) {
-    UltimatePanelCompact("DEVICE PERFORMANCE", "Live device condition.", Modifier.height(82.dp)) {
+    UltimatePanelCompact("DEVICE PERFORMANCE", "Live device condition.", Modifier.height(98.dp)) {
         Text("Thermal: ${snapshot?.temperatureStatus ?: "..."}", color = UWHITE, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         Text("Free RAM: ${formatUiBytes(snapshot?.freeRam ?: 0)}  •  Storage: ${formatUiBytes(snapshot?.freeStorage ?: 0)}", color = UCYAN, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
@@ -615,11 +615,11 @@ private fun UltimatePanelCompact(title: String, subtitle: String, modifier: Modi
     Column(
         modifier.fillMaxWidth().shadow(5.dp, RoundedCornerShape(12.dp), ambientColor = UCYAN.copy(alpha = .20f), spotColor = UCYAN.copy(alpha = .20f))
             .background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(12.dp))
-            .padding(horizontal = 14.dp, vertical = 9.dp)
+                        .padding(horizontal = 14.dp, vertical = 7.dp)
     ) {
-        Text(title, color = UWHITE, fontSize = 14.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(title, color = UWHITE, fontSize = 13.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(subtitle, color = UMUTED, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(2.dp))
         content()
     }
 }
