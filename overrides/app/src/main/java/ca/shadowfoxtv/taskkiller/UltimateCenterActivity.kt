@@ -249,8 +249,6 @@ private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact
         Column {
             Row(verticalAlignment = Alignment.Bottom) {
                 Text("ULTIMATE CENTER", color = Color(0xFFEAFBFF), fontSize = if (isPhone) { if (compact) 16.sp else 18.sp } else 24.sp, fontWeight = FontWeight.Black, maxLines = 1)
-                Spacer(Modifier.width(7.dp))
-                Text("v${BuildConfig.VERSION_NAME}", color = UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
             Text(if (isPhone) "ADVANCED CONTROL • MOBILE" else "SHADOWFOX PERFORMANCE COMMAND", color = Color(0xFFC6DCE8), fontSize = if (isPhone) 8.sp else 10.sp, fontWeight = FontWeight.Bold)
             Text(snapshot?.mode ?: "DETECTING DEVICE...", color = if (snapshot?.root == true) UCYAN else UMUTED, fontSize = if (isPhone) 9.sp else 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
