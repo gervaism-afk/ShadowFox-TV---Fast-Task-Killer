@@ -9,6 +9,7 @@ import android.os.Environment
 import android.os.StatFs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -40,6 +41,7 @@ class ShadowFoxProEngine(private val context: Context) {
     }
 
     suspend fun optimize(): ProCleanupResult = withContext(Dispatchers.IO) {
+        withTimeoutOrNull(45_000L) {
         resetDiagnostic()
         val beforeRam = availableMemoryBytes()
         val beforeStorage = freeStorageBytes()
@@ -117,6 +119,10 @@ class ShadowFoxProEngine(private val context: Context) {
             cacheFreedBytes = measuredCacheGain,
             summary = summary
         )
+        } ?: run {
+            appendDiagnostic("RESULT timeout=45s")
+            ProCleanupResult(0, 0L, 0L, rootAvailable(), 0, 0, 0L, "Optimization timed out safely")
+        }
     }
 
     fun diagnosticsSummary(): String {
@@ -276,7 +282,7 @@ class ShadowFoxProEngine(private val context: Context) {
     private fun shellQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
 
     private fun runRoot(command: String): RootExec {
-        val result = RootShell.exec(command)
+        val result = RootShell.exec(command, 3)
         return RootExec(result.success, result.output)
     }
 
