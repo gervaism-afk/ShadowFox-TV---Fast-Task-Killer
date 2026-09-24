@@ -10,6 +10,8 @@ import java.util.concurrent.TimeUnit
 object RootShell {
     data class Result(val success: Boolean, val output: String)
 
+    @Volatile private var preferredPath: String? = null
+
     private val candidates = listOf(
         "su",
         "/system/bin/su",
@@ -28,22 +30,42 @@ object RootShell {
 
     fun exec(command: String, timeoutSeconds: Long = 15): Result {
         var last = "su unavailable"
-        for (path in candidates) {
-            val attempts = listOf(
-                listOf(path, "-c", command),
-                listOf(path, "0", "sh", "-c", command),
-                listOf(path, "root", "sh", "-c", command)
-            )
-            for (args in attempts) {
-                val result = runProcess(args, timeoutSeconds)
-                if (result.output.contains("uid=0") || result.success) return result
-                if (result.output.isNotBlank()) last = result.output
-            }
 
-            // Older pre-rooted TV-box ROMs often expose only an interactive su shell.
-            val interactive = runInteractive(path, command, timeoutSeconds)
-            if (interactive.output.contains("uid=0") || interactive.success) return interactive
-            if (interactive.output.isNotBlank()) last = interactive.output
+        // Once a working su binary is found, reuse it. This is critical on older TV-box
+        // firmware: probing every possible su path/mode can consume the timeout repeatedly.
+        preferredPath?.let { path ->
+            val direct = runProcess(listOf(path, "-c", command), timeoutSeconds)
+            if (direct.success || direct.output.contains("uid=0")) return direct
+            preferredPath = null
+        }
+
+        for (path in candidates) {
+            // Fast path used by Magisk and nearly all pre-rooted Android boxes.
+            val direct = runProcess(listOf(path, "-c", command), timeoutSeconds)
+            if (direct.success || direct.output.contains("uid=0")) {
+                preferredPath = path
+                return direct
+            }
+            if (direct.output.isNotBlank()) last = direct.output
+
+            // Compatibility fallbacks get a short probe budget so a broken su variant
+            // cannot multiply one command into minutes of retries.
+            val probeSeconds = minOf(timeoutSeconds, 1L)
+            val legacy = runProcess(listOf(path, "0", "sh", "-c", command), probeSeconds)
+            if (legacy.success || legacy.output.contains("uid=0")) {
+                preferredPath = path
+                return legacy
+            }
+            val rooted = runProcess(listOf(path, "root", "sh", "-c", command), probeSeconds)
+            if (rooted.success || rooted.output.contains("uid=0")) {
+                preferredPath = path
+                return rooted
+            }
+            val interactive = runInteractive(path, command, probeSeconds)
+            if (interactive.success || interactive.output.contains("uid=0")) {
+                preferredPath = path
+                return interactive
+            }
         }
         return Result(false, last)
     }
