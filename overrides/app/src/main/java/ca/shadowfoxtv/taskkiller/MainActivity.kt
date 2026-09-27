@@ -132,7 +132,10 @@ private val GREEN = Color(0xFF77C943)
 private fun AdaptiveDashboard(context: Context) {
     val configuration = LocalConfiguration.current
     val isTelevision = configuration.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
-    if (isTelevision) MasterDashboard(context) else MobileDashboard(context)
+    val isTablet = configuration.smallestScreenWidthDp >= 600
+    // Large-screen Android tablets use the approved TV dashboard composition.
+    // Phones keep the dedicated mobile layout.
+    if (isTelevision || isTablet) MasterDashboard(context) else MobileDashboard(context)
 }
 
 @Composable
