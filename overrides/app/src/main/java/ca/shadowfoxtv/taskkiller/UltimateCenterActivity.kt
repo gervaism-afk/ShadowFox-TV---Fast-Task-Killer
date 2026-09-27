@@ -110,7 +110,9 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     val configuration = LocalConfiguration.current
     val landscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val hasTelevisionUi = configuration.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
-    val isPhone = !hasTelevisionUi && configuration.smallestScreenWidthDp < 600
+    val isTablet = !hasTelevisionUi && configuration.smallestScreenWidthDp >= 600
+    val useLargeScreenUi = hasTelevisionUi || isTablet
+    val isPhone = !useLargeScreenUi && configuration.smallestScreenWidthDp < 600
 
     fun refresh() { scope.launch { snapshot = manager.snapshot() } }
     LaunchedEffect(Unit) {
