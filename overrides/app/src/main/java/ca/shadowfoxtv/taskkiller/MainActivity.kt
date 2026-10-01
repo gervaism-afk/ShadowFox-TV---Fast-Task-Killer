@@ -157,7 +157,7 @@ private fun MobileDashboard(context: Context) {
             if (result == null) { busy = false; return@launch }
             delay(350)
             ram = memoryUsedPercent(context)
-            apps = withContext(Dispatchers.IO) { optimizer.runningThirdPartyCount() }
+            apps = result.verifiedStopped
             rootAvailable = result.rootUsed
             ramFreed = result.ramFreedBytes
             storageFreed = result.storageFreedBytes
@@ -290,7 +290,7 @@ private fun MasterDashboard(context: Context) {
             if (result == null) { busy = false; return@launch }
             delay(450)
             ram = memoryUsedPercent(context)
-            apps = withContext(Dispatchers.IO) { optimizer.runningThirdPartyCount() }
+            apps = result.verifiedStopped
             rootAvailable = result.rootUsed
             ramFreed = result.ramFreedBytes
             storageFreed = result.storageFreedBytes
