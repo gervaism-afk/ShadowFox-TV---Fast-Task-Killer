@@ -316,7 +316,8 @@ private fun SmartOptimizePanelCompact(manager: UltimateManager, rootActive: Bool
                     onBusy(true); onStatus("SCANNING • CLEANING...")
                     val result = manager.smartOptimize()
                     onStatus("${result.verifiedStopped}/${result.attemptedApps} STOPPED • ${formatUiBytes(result.ramFreedBytes)} RAM")
-                    onBusy(false); refresh()
+                    onBusy(false)
+                    refresh()
                 }
             }
         }
@@ -356,6 +357,8 @@ private fun SmartOptimizePanel(manager: UltimateManager, rootActive: Boolean, st
                     val result = manager.smartOptimize()
                     onStatus("${result.verifiedStopped}/${result.attemptedApps} STOPPED • ${formatUiBytes(result.ramFreedBytes)} RAM • ${formatUiBytes(result.storageFreedBytes)} CACHE")
                     onBusy(false)
+                    // Telemetry refresh happens after the action is released so slow
+                    // H96 device queries never extend the visible optimization time.
                     refresh()
                 }
             }
