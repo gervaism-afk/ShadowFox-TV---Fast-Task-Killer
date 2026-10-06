@@ -24,7 +24,7 @@
     <application
         android:name=".ShadowFoxApp"
         android:allowBackup="false"
-        android:banner="@drawable/shadowfox_tv_banner"
+        android:banner="@drawable/ultra_cleaner_tv_banner"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"

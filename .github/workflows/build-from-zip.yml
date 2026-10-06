@@ -80,35 +80,11 @@ jobs:
               raise SystemExit('HQ ShadowFox logo unexpectedly small')
           print('Using exact uploaded HQ ShadowFox logo:', len(data), 'bytes')
           PY
-      - name: Generate Cache Cleaner launcher identity
+      - name: Generate official Ultra Cleaner icon pack
         run: |
           python3 -m pip install --quiet Pillow
-          python3 - <<'PY'
-          from pathlib import Path
-          from PIL import Image, ImageDraw, ImageFont
-          res=Path('extracted/app/src/main/res')
-          master_path=res/'drawable-nodpi'/'file_000000009fd881f682bff9cb056d5ed8.png'
-          if not master_path.exists():
-              raise SystemExit('Missing exact Cache Cleaner master artwork: '+str(master_path))
-          master=Image.open(master_path).convert('RGBA')
-          # Preserve exact supplied 16:9 artwork for TV banner.
-          master.resize((320,180),Image.Resampling.LANCZOS).save(res/'drawable-nodpi'/'shadowfox_tv_banner.png',optimize=True)
-          # Crop left branded emblem for square launcher family; no recreation.
-          w,h=master.size
-          left=master.crop((0,0,int(w*0.43),h))
-          box=left.getbbox()
-          if box: left=left.crop(box)
-          sq=Image.new('RGBA',(1024,1024),(0,0,0,0))
-          s=min(930/left.width,930/left.height)
-          art=left.resize((int(left.width*s),int(left.height*s)),Image.Resampling.LANCZOS)
-          sq.alpha_composite(art,((1024-art.width)//2,(1024-art.height)//2))
-          for density,size in {'mdpi':48,'hdpi':72,'xhdpi':96,'xxhdpi':144,'xxxhdpi':192}.items():
-              q=res/f'mipmap-{density}'; q.mkdir(parents=True,exist_ok=True)
-              icon=sq.resize((size,size),Image.Resampling.LANCZOS)
-              icon.save(q/'ic_launcher.png',optimize=True)
-              icon.save(q/'ic_launcher_round.png',optimize=True)
-          print('Generated all app icon sizes from exact Cache Cleaner master')
-          PY
+          python3 scripts/generate_official_icons.py extracted/app/src/main/res official-icon-pack
+          cd official-icon-pack && zip -q -r ../ShadowFox-Ultra-Cleaner-Official-Icon-Pack.zip .
       - name: Read version
         run: |
           VERSION=$(grep -oP 'versionName "\K[^"]+' extracted/app/build.gradle)
@@ -157,7 +133,7 @@ jobs:
           else
             NOTES="Locked Android TV / Fire TV production release."
           fi
-          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" --clobber; else gh release create "$TAG" "$ASSET" --title "ShadowFox TV Cache Cleaner v${APP_VERSION}" --notes "$NOTES"; fi
+          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" ShadowFox-Ultra-Cleaner-Official-Icon-Pack.zip --clobber; else gh release create "$TAG" "$ASSET" ShadowFox-Ultra-Cleaner-Official-Icon-Pack.zip --title "ShadowFox Ultra Cleaner v${APP_VERSION}" --notes "$NOTES"; fi
 
 
 # validate corrected v6.4.0 source
