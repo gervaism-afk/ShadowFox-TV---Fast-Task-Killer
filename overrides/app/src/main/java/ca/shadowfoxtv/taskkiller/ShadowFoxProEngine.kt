@@ -53,6 +53,7 @@ class ShadowFoxProEngine(private val context: Context) {
 
         appendDiagnostic("START root=$root eligible=${allEligible.size} running=${runningCandidates.size}")
         var verifiedStopped = 0
+        var cacheFreed = 0L
 
         if (root) {
             // Batch all force-stops into one root shell instead of one su invocation per app.
@@ -69,22 +70,7 @@ class ShadowFoxProEngine(private val context: Context) {
             val runningAfter = rootProcessSnapshot()
             verifiedStopped = runningCandidates.count { !it.isRunningIn(runningAfter) }
 
-            // Batch cache removal into one shell. Avoid per-package du scans: storage delta is
-            // measured from StatFs before/after, which is both faster and more representative.
-            if (allEligible.isNotEmpty()) {
-                val clearCommand = buildString {
-                    for (pkg in allEligible) {
-                        for (path in cachePaths(pkg)) {
-                            append("d=").append(shellQuote(path)).append("; ")
-                            append("if [ -d \"\$d\" ]; then rm -rf \"\$d\"/* \"\$d\"/.[!.]* \"\$d\"/..?* 2>/dev/null; fi; ")
-                        }
-                    }
-                }
-                val clear = runRoot(clearCommand, 12)
-                appendDiagnostic("CACHE_BATCH count=${allEligible.size} command=${if (clear.success) "ok" else "partial/failed"} output=${cleanOutput(clear.output)}")
-            }
-            // trim-caches is useful but ROM-dependent; keep it tightly bounded.
-            runRoot("pm trim-caches 999999999999", 4)
+            cacheFreed = clearEligibleCache()
         } else {
             for (pkg in runningCandidates) runCatching { activityManager.killBackgroundProcesses(pkg) }
             Thread.sleep(300)
@@ -94,7 +80,7 @@ class ShadowFoxProEngine(private val context: Context) {
         val afterRam = availableMemoryBytes()
         val afterStorage = freeStorageBytes()
         val ramFreed = (afterRam - beforeRam).coerceAtLeast(0L)
-        val storageFreed = (afterStorage - beforeStorage).coerceAtLeast(0L)
+        val storageFreed = cacheFreed
         val summary = if (root) {
             "ROOT ✓ • $verifiedStopped/${runningCandidates.size} running apps stopped • +${formatBytes(ramFreed)} RAM • ${formatBytes(storageFreed)} cache"
         } else {
@@ -112,6 +98,21 @@ class ShadowFoxProEngine(private val context: Context) {
             cacheFreedBytes = storageFreed,
             summary = summary
         )
+    }
+
+    fun clearEligibleCache(additionalProtected: Set<String> = emptySet()): Long {
+        if (!rootAvailable()) return 0L
+        val packages = rootThirdPartyPackages(protectedPackages() + additionalProtected)
+        if (packages.isEmpty()) return 0L
+        val before = cacheBytes(packages)
+        val command = buildString {
+            for (pkg in packages) for (path in cachePaths(pkg)) {
+                append("d=").append(shellQuote(path)).append("; ")
+                append("if [ -d \"\$d\" ]; then rm -rf \"\$d\"/* \"\$d\"/.[!.]* \"\$d\"/..?* 2>/dev/null; fi; ")
+            }
+        }
+        runRoot(command, 12)
+        return (before - cacheBytes(packages)).coerceAtLeast(0L)
     }
 
     fun diagnosticsSummary(): String {
@@ -197,6 +198,7 @@ class ShadowFoxProEngine(private val context: Context) {
     private fun protectedPackages(): Set<String> {
         val set = mutableSetOf(
             appContext.packageName,
+            "com.shadowfoxtv",
             "android",
             "com.android.systemui",
             "com.google.android.gms",
@@ -225,15 +227,9 @@ class ShadowFoxProEngine(private val context: Context) {
 
     private fun cacheBytes(packages: List<String>): Long {
         if (packages.isEmpty()) return 0L
-        var totalKb = 0L
-        for (pkg in packages) {
-            val paths = cachePaths(pkg)
-            val joined = paths.joinToString(" ") { shellQuote(it) }
-            val cmd = "du -sk $joined 2>/dev/null | awk '{s+=\$1} END{print s+0}'"
-            val out = runRoot(cmd)
-            if (out.output.isNotBlank()) totalKb += out.output.trim().lineSequence().lastOrNull()?.toLongOrNull() ?: 0L
-        }
-        return totalKb * 1024L
+        val paths = packages.flatMap(::cachePaths).joinToString(" ") { shellQuote(it) }
+        val result = runRoot("du -sk $paths 2>/dev/null | awk '{s+=\$1} END{print s+0}'", 8)
+        return (result.output.trim().lineSequence().lastOrNull()?.toLongOrNull() ?: 0L) * 1024L
     }
 
     private fun cachePaths(pkg: String): List<String> = listOf(

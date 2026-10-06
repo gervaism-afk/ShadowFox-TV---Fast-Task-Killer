@@ -93,7 +93,7 @@ class UltimateManager(private val context: Context) {
     fun cachedCapabilities(): DeviceCapabilities? = cachedCapabilities ?: processCapabilities
     fun appContext(): Context = app
 
-    fun protectedPackages(): Set<String> = prefs.getStringSet("protected", emptySet())?.toSet().orEmpty()
+    fun protectedPackages(): Set<String> = prefs.getStringSet("protected", emptySet())?.toSet().orEmpty() + setOf("com.shadowfoxtv")
 
     fun setProtected(pkg: String, value: Boolean) {
         val next = protectedPackages().toMutableSet()
@@ -166,7 +166,7 @@ class UltimateManager(private val context: Context) {
                     if (!engine.isThirdPartyPackageRunning(pkg)) stopped++
                 }
             }
-            runRoot("pm trim-caches 999999999999")
+            ShadowFoxProEngine(app).clearEligibleCache(protected)
             runRoot("sync")
         } else {
             for (pkg in runningPackages().filter { it !in protected && !isSystem(it) }) {
@@ -286,14 +286,11 @@ class UltimateManager(private val context: Context) {
     }
 
     suspend fun clearCache(): Long = withContext(Dispatchers.IO) {
-        val beforeFree = storageReport().freeBytes
-        if (RootShell.isRootAvailable()) {
-            RootShell.exec("pm trim-caches 999999999999", 15)
-            RootShell.exec("sync", 15)
+        val freed = if (RootShell.isRootAvailable()) {
+            ShadowFoxProEngine(app).clearEligibleCache(protectedPackages())
         } else {
             clearOwnCache()
         }
-        val freed = (storageReport().freeBytes - beforeFree).coerceAtLeast(0)
         appendHistory("CACHE CLEANER • ${formatBytes(freed)} cleared")
         freed
     }
