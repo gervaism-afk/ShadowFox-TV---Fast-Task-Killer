@@ -81,7 +81,6 @@ class ShadowFoxProEngine(private val context: Context) {
                 if (!clear.success) appendDiagnostic("CACHE pkg=$pkg command=failed output=${cleanOutput(clear.output)}")
             }
 
-            runRoot("pm trim-caches 999999999999")
             runRoot("sync")
             cacheAfter = cacheBytes(allEligible)
         } else {
@@ -97,7 +96,7 @@ class ShadowFoxProEngine(private val context: Context) {
         val ramFreed = (afterRam - beforeRam).coerceAtLeast(0L)
         val measuredStorageGain = (afterStorage - beforeStorage).coerceAtLeast(0L)
         val measuredCacheGain = (cacheBefore - cacheAfter).coerceAtLeast(0L)
-        val storageFreed = maxOf(measuredStorageGain, measuredCacheGain)
+        val storageFreed = measuredCacheGain
 
         val summary = if (root) {
             "ROOT ✓ • $verifiedStopped/${runningCandidates.size} running apps stopped • +${formatBytes(ramFreed)} RAM • ${formatBytes(storageFreed)} cache"
@@ -117,6 +116,19 @@ class ShadowFoxProEngine(private val context: Context) {
             cacheFreedBytes = measuredCacheGain,
             summary = summary
         )
+    }
+
+    // Cache totals and removal use exactly the same eligible package set.
+    fun clearEligibleCache(additionalProtected: Set<String> = emptySet()): Long {
+        if (!rootAvailable()) return 0L
+        val packages = rootThirdPartyPackages(protectedPackages() + additionalProtected)
+        val before = cacheBytes(packages)
+        for (pkg in packages) {
+            val joined = cachePaths(pkg).joinToString(" ") { shellQuote(it) }
+            runRoot("for d in $joined; do if [ -d \"\$d\" ]; then rm -rf \"\$d\"/* \"\$d\"/.[!.]* \"\$d\"/..?* 2>/dev/null; fi; done")
+        }
+        runRoot("sync")
+        return (before - cacheBytes(packages)).coerceAtLeast(0L)
     }
 
     fun diagnosticsSummary(): String {
@@ -202,6 +214,7 @@ class ShadowFoxProEngine(private val context: Context) {
     private fun protectedPackages(): Set<String> {
         val set = mutableSetOf(
             appContext.packageName,
+            "com.shadowfoxtv",
             "android",
             "com.android.systemui",
             "com.google.android.gms",

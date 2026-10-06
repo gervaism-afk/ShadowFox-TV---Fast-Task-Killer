@@ -672,7 +672,7 @@ private class AppOptimizer(private val context: Context) {
         if (root && packages.isNotEmpty()) {
             val command = packages.joinToString(" ; ") { pkg -> "am force-stop '$pkg'" }
             if (runRoot(command).success) closed = packages.size
-            runRoot("pm trim-caches 999999999999")
+            ShadowFoxProEngine(context).clearEligibleCache(protected)
             runRoot("sync")
         } else {
             packages.forEach { packageName ->
@@ -703,6 +703,7 @@ private class AppOptimizer(private val context: Context) {
     private fun protectedPackages(): Set<String> {
         val protected = mutableSetOf(
             context.packageName,
+            "com.shadowfoxtv",
             "android",
             "com.android.systemui",
             "com.google.android.gms",
