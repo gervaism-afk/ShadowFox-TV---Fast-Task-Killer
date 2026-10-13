@@ -9,6 +9,7 @@ import android.os.Environment
 import android.os.StatFs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -51,60 +52,41 @@ class ShadowFoxProEngine(private val context: Context) {
         val runningCandidates = if (root) allEligible.filter { it.isRunningIn(runningBefore) } else allEligible
 
         appendDiagnostic("START root=$root eligible=${allEligible.size} running=${runningCandidates.size}")
-        appendDiagnostic("CANDIDATES ${runningCandidates.ifEmpty { listOf("none") }.joinToString(",")}")
-        appendDiagnostic("PROTECTED ${protected.sorted().joinToString(",")}")
-        if (root) appendDiagnostic("SOURCES proc=${runningBefore.names.size} activityChars=${runningBefore.activityProcesses.length}")
-
         var verifiedStopped = 0
-        var cacheBefore = 0L
-        var cacheAfter = 0L
+        var cacheFreed = 0L
 
         if (root) {
-            cacheBefore = cacheBytes(allEligible)
-
-            for (pkg in runningCandidates) {
-                val stop = runRoot("am force-stop --user 0 ${shellQuote(pkg)}")
-                var stillRunning = true
-                for (attempt in 0 until 6) {
-                    Thread.sleep(100)
-                    stillRunning = pkg.isRunningIn(rootProcessSnapshot())
-                    if (!stillRunning) break
+            // Batch all force-stops into one root shell instead of one su invocation per app.
+            if (runningCandidates.isNotEmpty()) {
+                val stopCommand = runningCandidates.joinToString("; ") { pkg ->
+                    "am force-stop --user 0 ${shellQuote(pkg)}"
                 }
-                if (!stillRunning) verifiedStopped++
-                appendDiagnostic("STOP pkg=$pkg command=${if (stop.success) "ok" else "failed"} state=${if (stillRunning) "running" else "stopped"} output=${cleanOutput(stop.output)}")
+                val stop = runRoot(stopCommand, 8)
+                appendDiagnostic("STOP_BATCH count=${runningCandidates.size} command=${if (stop.success) "ok" else "partial/failed"} output=${cleanOutput(stop.output)}")
             }
 
-            for (pkg in allEligible) {
-                val paths = cachePaths(pkg)
-                val joined = paths.joinToString(" ") { shellQuote(it) }
-                val clear = runRoot("for d in $joined; do if [ -d \"\$d\" ]; then rm -rf \"\$d\"/* \"\$d\"/.[!.]* \"\$d\"/..?* 2>/dev/null; fi; done")
-                if (!clear.success) appendDiagnostic("CACHE pkg=$pkg command=failed output=${cleanOutput(clear.output)}")
-            }
+            // One verification snapshot after the batch; do not repeatedly scan /proc per package.
+            Thread.sleep(300)
+            val runningAfter = rootProcessSnapshot()
+            verifiedStopped = runningCandidates.count { !it.isRunningIn(runningAfter) }
 
-            runRoot("sync")
-            cacheAfter = cacheBytes(allEligible)
+            cacheFreed = clearEligibleCache()
         } else {
-            for (pkg in runningCandidates) {
-                runCatching { activityManager.killBackgroundProcesses(pkg) }
-            }
-            Thread.sleep(500)
+            for (pkg in runningCandidates) runCatching { activityManager.killBackgroundProcesses(pkg) }
+            Thread.sleep(300)
         }
 
-        Thread.sleep(750)
+        Thread.sleep(350)
         val afterRam = availableMemoryBytes()
         val afterStorage = freeStorageBytes()
         val ramFreed = (afterRam - beforeRam).coerceAtLeast(0L)
-        val measuredStorageGain = (afterStorage - beforeStorage).coerceAtLeast(0L)
-        val measuredCacheGain = (cacheBefore - cacheAfter).coerceAtLeast(0L)
-        val storageFreed = measuredCacheGain
-
+        val storageFreed = cacheFreed
         val summary = if (root) {
             "ROOT ✓ • $verifiedStopped/${runningCandidates.size} running apps stopped • +${formatBytes(ramFreed)} RAM • ${formatBytes(storageFreed)} cache"
         } else {
-            "STANDARD MODE • background clean requested • +${formatBytes(ramFreed)} measured RAM • app stops unverified"
+            "STANDARD MODE • background clean requested • +${formatBytes(ramFreed)} measured RAM"
         }
-
-        appendDiagnostic("RESULT stopped=$verifiedStopped/${runningCandidates.size} ram=$ramFreed cacheBefore=$cacheBefore cacheAfter=$cacheAfter storage=$storageFreed")
+        appendDiagnostic("RESULT stopped=$verifiedStopped/${runningCandidates.size} ram=$ramFreed storage=$storageFreed")
 
         ProCleanupResult(
             closedApps = if (root) verifiedStopped else 0,
@@ -113,21 +95,23 @@ class ShadowFoxProEngine(private val context: Context) {
             rootUsed = root,
             attemptedApps = runningCandidates.size,
             verifiedStopped = verifiedStopped,
-            cacheFreedBytes = measuredCacheGain,
+            cacheFreedBytes = storageFreed,
             summary = summary
         )
     }
 
-    // Cache totals and removal use exactly the same eligible package set.
     fun clearEligibleCache(additionalProtected: Set<String> = emptySet()): Long {
         if (!rootAvailable()) return 0L
         val packages = rootThirdPartyPackages(protectedPackages() + additionalProtected)
+        if (packages.isEmpty()) return 0L
         val before = cacheBytes(packages)
-        for (pkg in packages) {
-            val joined = cachePaths(pkg).joinToString(" ") { shellQuote(it) }
-            runRoot("for d in $joined; do if [ -d \"\$d\" ]; then rm -rf \"\$d\"/* \"\$d\"/.[!.]* \"\$d\"/..?* 2>/dev/null; fi; done")
+        val command = buildString {
+            for (pkg in packages) for (path in cachePaths(pkg)) {
+                append("d=").append(shellQuote(path)).append("; ")
+                append("if [ -d \"\$d\" ]; then rm -rf \"\$d\"/* \"\$d\"/.[!.]* \"\$d\"/..?* 2>/dev/null; fi; ")
+            }
         }
-        runRoot("sync")
+        runRoot(command, 12)
         return (before - cacheBytes(packages)).coerceAtLeast(0L)
     }
 
@@ -243,15 +227,9 @@ class ShadowFoxProEngine(private val context: Context) {
 
     private fun cacheBytes(packages: List<String>): Long {
         if (packages.isEmpty()) return 0L
-        var totalKb = 0L
-        for (pkg in packages) {
-            val paths = cachePaths(pkg)
-            val joined = paths.joinToString(" ") { shellQuote(it) }
-            val cmd = "du -sk $joined 2>/dev/null | awk '{s+=\$1} END{print s+0}'"
-            val out = runRoot(cmd)
-            if (out.output.isNotBlank()) totalKb += out.output.trim().lineSequence().lastOrNull()?.toLongOrNull() ?: 0L
-        }
-        return totalKb * 1024L
+        val paths = packages.flatMap(::cachePaths).joinToString(" ") { shellQuote(it) }
+        val result = runRoot("du -sk $paths 2>/dev/null | awk '{s+=\$1} END{print s+0}'", 8)
+        return (result.output.trim().lineSequence().lastOrNull()?.toLongOrNull() ?: 0L) * 1024L
     }
 
     private fun cachePaths(pkg: String): List<String> = listOf(
@@ -288,8 +266,8 @@ class ShadowFoxProEngine(private val context: Context) {
 
     private fun shellQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
 
-    private fun runRoot(command: String): RootExec {
-        val result = RootShell.exec(command)
+    private fun runRoot(command: String, timeoutSeconds: Long = 3): RootExec {
+        val result = RootShell.exec(command, timeoutSeconds)
         return RootExec(result.success, result.output)
     }
 

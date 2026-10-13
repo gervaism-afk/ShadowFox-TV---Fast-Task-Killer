@@ -15,8 +15,8 @@ android {
         applicationId "ca.shadowfoxtv.taskkiller"
         minSdk 23
         targetSdk 35
-        versionCode 167
-        versionName "6.9.30"
+        versionCode 185
+        versionName "7.1.8"
     }
 
     buildFeatures { compose true; buildConfig true }
@@ -59,3 +59,4 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
     debugImplementation 'androidx.compose.ui:ui-tooling'
 }
+

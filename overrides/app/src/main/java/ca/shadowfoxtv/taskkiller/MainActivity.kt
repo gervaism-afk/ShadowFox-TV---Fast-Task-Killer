@@ -31,6 +31,12 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -61,9 +67,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalConfiguration
+import android.content.res.Configuration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -73,6 +82,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URL
@@ -102,7 +112,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(background = BG, surface = PANEL)) {
                 ShadowFoxUpdateGate(applicationContext) {
-                    MasterDashboard(applicationContext)
+                    AdaptiveDashboard(applicationContext)
                 }
             }
         }
@@ -117,6 +127,113 @@ private val ORANGE = Color(0xFFFF7A00)
 private val WHITE = Color(0xFFF7FBFF)
 private val MUTED = Color(0xFF9AABB8)
 private val GREEN = Color(0xFF77C943)
+
+@Composable
+private fun AdaptiveDashboard(context: Context) {
+    val configuration = LocalConfiguration.current
+    val isTelevision = configuration.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
+    val isTablet = configuration.smallestScreenWidthDp >= 600
+    // Large-screen Android tablets use the approved TV dashboard composition.
+    // Phones keep the dedicated mobile layout.
+    if (isTelevision || isTablet) MasterDashboard(context) else MobileDashboard(context)
+}
+
+@Composable
+private fun MobileDashboard(context: Context) {
+    var ram by remember { mutableFloatStateOf(memoryUsedPercent(context)) }
+    var apps by remember { mutableIntStateOf(runningProcessCount(context)) }
+    var busy by remember { mutableStateOf(false) }
+    var rootAvailable by remember { mutableStateOf(false) }
+    var ramFreed by remember { mutableStateOf(0L) }
+    var storageFreed by remember { mutableStateOf(0L) }
+    var closedApps by remember { mutableIntStateOf(0) }
+    val optimizer = remember { ShadowFoxProEngine(context.applicationContext) }
+    val scope = rememberCoroutineScope()
+    fun optimize() {
+        if (busy) return
+        scope.launch {
+            busy = true
+            val result = withTimeoutOrNull(50_000L) { optimizer.optimize() }
+            if (result == null) { busy = false; return@launch }
+            delay(350)
+            ram = memoryUsedPercent(context)
+            apps = result.verifiedStopped
+            rootAvailable = result.rootUsed
+            ramFreed = result.ramFreedBytes
+            storageFreed = result.storageFreedBytes
+            closedApps = result.closedApps
+            busy = false
+        }
+    }
+    LaunchedEffect(Unit) { while (true) { ram = memoryUsedPercent(context); delay(2000) } }
+    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF0A2B42), BG, Color(0xFF01070C))))) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(start = 18.dp, end = 18.dp, top = 42.dp, bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Image(painterResource(R.drawable.shadowfox_logo), "ShadowFox TV", Modifier.size(76.dp), contentScale = ContentScale.Fit)
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("ShadowFox TV", color = WHITE, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                    Text("CACHE CLEANER • v${BuildConfig.VERSION_NAME}", color = CYAN, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("MOBILE PERFORMANCE CENTER", color = MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            GlowCard(Modifier.fillMaxWidth().height(265.dp), onClick = { optimize() }, hero = true) {
+                Column(Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    RamGauge(ram, Modifier.size(184.dp))
+                    Text("RAM BOOSTER", color = WHITE, fontSize = 19.sp, fontWeight = FontWeight.Black)
+                    Text(if (busy) "OPTIMIZING DEVICE..." else "Tap to free memory and process safe background apps", color = MUTED, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                MobileActionCard("SYSTEM SCAN", "$apps processes", Modifier.weight(1f), busy) { optimize() }
+                MobileActionCard("CACHE CLEANER", if (storageFreed > 0) formatBytes(storageFreed) else "Ready", Modifier.weight(1f), busy) { optimize() }
+            }
+            Spacer(Modifier.height(12.dp))
+            GlowCard(Modifier.fillMaxWidth().height(108.dp), onClick = { context.startActivity(Intent(context, UltimateCenterActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }) {
+                Row(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    NetworkIcon(Modifier.size(52.dp)); Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                        Text("ULTIMATE CENTER", color = WHITE, fontSize = 16.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                        Spacer(Modifier.height(3.dp))
+                        Text("Apps • Network • System • Advanced controls", color = MUTED, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Spacer(Modifier.height(5.dp))
+                        Text("TAP TO OPEN", color = CYAN, fontSize = 8.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MobileStat("RAM FREED", formatBytes(ramFreed), Modifier.weight(1f)); MobileStat("CACHE", formatBytes(storageFreed), Modifier.weight(1f)); MobileStat("APPS", closedApps.toString(), Modifier.weight(1f))
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MobileStat("ROOT", if (rootAvailable) "ACTIVE" else "READY", Modifier.weight(1f)); MobileStat("ANDROID", Build.VERSION.RELEASE, Modifier.weight(1f))
+            }
+            Spacer(Modifier.height(14.dp)); Text("www.shadowfoxtv.ca", color = MUTED, fontSize = 10.sp)
+        }
+    }
+}
+
+@Composable
+private fun MobileActionCard(title: String, subtitle: String, modifier: Modifier, busy: Boolean, action: () -> Unit) {
+    GlowCard(modifier.height(112.dp), onClick = action) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 12.dp), verticalArrangement = Arrangement.Center) {
+            Text(title, color = WHITE, fontSize = 12.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis); Spacer(Modifier.height(5.dp))
+            Text(if (busy) "WORKING..." else subtitle, color = if (busy) ORANGE else CYAN, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis); Spacer(Modifier.height(8.dp))
+            Text("TAP TO RUN", color = MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun MobileStat(label: String, value: String, modifier: Modifier) {
+    Column(modifier.background(Color(0xD90A1C29), RoundedCornerShape(10.dp)).padding(10.dp)) {
+        Text(label, color = MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+        Text(value, color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Black, maxLines = 1)
+    }
+}
 
 @Composable
 private fun MasterDashboard(context: Context) {
@@ -169,10 +286,11 @@ private fun MasterDashboard(context: Context) {
         if (busy) return
         scope.launch {
             busy = true
-            val result = optimizer.optimize()
+            val result = withTimeoutOrNull(50_000L) { optimizer.optimize() }
+            if (result == null) { busy = false; return@launch }
             delay(450)
             ram = memoryUsedPercent(context)
-            apps = withContext(Dispatchers.IO) { optimizer.runningThirdPartyCount() }
+            apps = result.verifiedStopped
             rootAvailable = result.rootUsed
             ramFreed = result.ramFreedBytes
             storageFreed = result.storageFreedBytes

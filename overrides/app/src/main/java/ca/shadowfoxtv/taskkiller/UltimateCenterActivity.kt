@@ -110,7 +110,9 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     val configuration = LocalConfiguration.current
     val landscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val hasTelevisionUi = configuration.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
-    val isPhone = !hasTelevisionUi && configuration.smallestScreenWidthDp < 600
+    val isTablet = !hasTelevisionUi && configuration.smallestScreenWidthDp >= 600
+    val useLargeScreenUi = hasTelevisionUi || isTablet
+    val isPhone = !useLargeScreenUi && configuration.smallestScreenWidthDp < 600
 
     fun refresh() { scope.launch { snapshot = manager.snapshot() } }
     LaunchedEffect(Unit) {
@@ -134,15 +136,15 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     BoxWithConstraints(
         Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0xFF0B3550), Color(0xFF052238), UBG)))
     ) {
-        val side = if (landscape && !isPhone) 18.dp else if (landscape) 18.dp else 20.dp
-        val top = if (landscape && !isPhone) 14.dp else if (landscape) 8.dp else 12.dp
+        val side = if (isPhone) 10.dp else 18.dp
+        val top = if (isPhone) 6.dp else 14.dp
         val contentMax = if (landscape && !isPhone) 920.dp else if (landscape) 1180.dp else 620.dp
         val contentWidth = minOf(maxWidth - (side * 2), contentMax)
 
         // Keep the entire command surface centered as one bounded canvas. Using
         // fillMaxSize after width() allowed the child to reclaim the parent width on TV.
         Column(
-            Modifier.width(contentWidth).align(Alignment.TopCenter).padding(top = top, bottom = 10.dp)
+            Modifier.width(contentWidth).align(Alignment.TopCenter).padding(top = if (isPhone && !landscape) 28.dp else top, bottom = 6.dp)
         ) {
             if (landscape) {
                 Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(10.dp)).padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -155,17 +157,26 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
                     UltimateButton("BACK") { onClose() }
                 }
             } else {
-                BrandHeader(snapshot, Modifier.fillMaxWidth(), compact = false, isPhone = isPhone)
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    UltimateButton("REFRESH") { refresh() }
-                    Spacer(Modifier.width(8.dp))
-                    UltimateButton("BACK") { onClose() }
+                if (isPhone) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        BrandHeader(snapshot, Modifier.weight(1f), compact = true, isPhone = true)
+                        UltimateButton("REFRESH") { refresh() }
+                        Spacer(Modifier.width(6.dp))
+                        UltimateButton("BACK") { onClose() }
+                    }
+                } else {
+                    BrandHeader(snapshot, Modifier.fillMaxWidth(), compact = false, isPhone = false)
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        UltimateButton("REFRESH") { refresh() }
+                        Spacer(Modifier.width(8.dp))
+                        UltimateButton("BACK") { onClose() }
+                    }
                 }
             }
 
-            Spacer(Modifier.height(if (landscape) 10.dp else 10.dp))
-            Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color(0xCC0B2A3D), Color(0xDD061722), Color(0xEE020B11))), RoundedCornerShape(10.dp)).padding(5.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Spacer(Modifier.height(if (isPhone) 4.dp else 10.dp))
+            Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color(0xCC0B2A3D), Color(0xDD061722), Color(0xEE020B11))), RoundedCornerShape(10.dp)).padding(if (isPhone) 4.dp else 5.dp), horizontalArrangement = Arrangement.spacedBy(if (isPhone) 4.dp else 8.dp)) {
                 UltimateTab.entries.forEachIndexed { index, item ->
                     UltimateTabButton(
                         item.name,
@@ -174,10 +185,10 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
                     ) { tab = item }
                 }
             }
-            Spacer(Modifier.height(if (landscape) 8.dp else 10.dp))
+            Spacer(Modifier.height(if (isPhone && !landscape) 6.dp else if (landscape) 8.dp else 10.dp))
 
             when (tab) {
-                UltimateTab.OPTIMIZE -> OptimizeScreen(manager, snapshot, ::refresh, landscape)
+                UltimateTab.OPTIMIZE -> OptimizeScreen(manager, snapshot, ::refresh, landscape, isPhone)
                 UltimateTab.APPS -> AppsScreen(manager, landscape, isPhone)
                 UltimateTab.NETWORK -> NetworkScreen(manager, landscape)
                 UltimateTab.SYSTEM -> SystemScreen(manager, snapshot, ::refresh, landscape)
@@ -234,14 +245,12 @@ private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact
             painter = painterResource(R.drawable.shadowfox_logo),
             contentDescription = "ShadowFox TV",
             contentScale = ContentScale.Fit,
-            modifier = Modifier.width(if (isPhone) { if (compact) 120.dp else 100.dp } else 190.dp).height(if (isPhone) { if (compact) 44.dp else 46.dp } else 60.dp)
+            modifier = Modifier.width(if (isPhone) 62.dp else 190.dp).height(if (isPhone) 46.dp else 60.dp)
         )
         Spacer(Modifier.width(12.dp))
         Column {
             Row(verticalAlignment = Alignment.Bottom) {
                 Text("ULTIMATE CENTER", color = Color(0xFFEAFBFF), fontSize = if (isPhone) { if (compact) 16.sp else 18.sp } else 24.sp, fontWeight = FontWeight.Black, maxLines = 1)
-                Spacer(Modifier.width(7.dp))
-                Text("v${BuildConfig.VERSION_NAME}", color = UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
             Text(if (isPhone) "ADVANCED CONTROL • MOBILE" else "SHADOWFOX PERFORMANCE COMMAND", color = Color(0xFFC6DCE8), fontSize = if (isPhone) 8.sp else 10.sp, fontWeight = FontWeight.Bold)
             Text(snapshot?.mode ?: "DETECTING DEVICE...", color = if (snapshot?.root == true) UCYAN else UMUTED, fontSize = if (isPhone) 9.sp else 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
@@ -250,7 +259,7 @@ private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact
 }
 
 @Composable
-private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, refresh: () -> Unit, landscape: Boolean) {
+private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, refresh: () -> Unit, landscape: Boolean, isPhone: Boolean) {
     val scope = rememberCoroutineScope()
     var status by remember { mutableStateOf("READY") }
     var busy by remember { mutableStateOf(false) }
@@ -263,9 +272,9 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
                 Triple("RAM USED", snapshot?.let { "${it.ramUsedPercent}%" } ?: "SCANNING", UCYAN),
                 Triple("ACTIVE APPS", snapshot?.let { "${it.runningApps}" } ?: "SCANNING", UCYAN),
                 Triple("NETWORK", snapshot?.network ?: "SCANNING", UCYAN)
-            ), landscape
+            ), landscape, compactPhone = isPhone && !landscape
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(if (isPhone && !landscape) 6.dp else 10.dp))
         if (landscape) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -277,6 +286,12 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
                     Box(Modifier.fillMaxWidth().height(112.dp)) { SystemStatusPanel(manager, snapshot) }
                 }
             }
+        } else if (isPhone) {
+            SmartOptimizePanelCompact(manager, snapshot?.root == true, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh)
+            Spacer(Modifier.height(6.dp))
+            StreamingPanelCompact()
+            Spacer(Modifier.height(6.dp))
+            ThermalPanelCompact(snapshot)
         } else {
             SmartOptimizePanel(manager, snapshot?.root == true, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh)
             Spacer(Modifier.height(10.dp))
@@ -284,6 +299,44 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
             Spacer(Modifier.height(10.dp))
             ThermalPanel(snapshot)
         }
+    }
+}
+
+@Composable
+private fun SmartOptimizePanelCompact(manager: UltimateManager, rootActive: Boolean, status: String, busy: Boolean, onBusy: (Boolean) -> Unit, onStatus: (String) -> Unit, refresh: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    UltimatePanelCompact("SMART OPTIMIZE", "Verified root-aware cleanup.", Modifier.height(112.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(if (rootActive) "ROOT ENGINE ACTIVE" else "STANDARD ENGINE", color = if (rootActive) UGREEN else UCYAN, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                Text(status, color = UMUTED, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            UltimateButton(if (busy) "WORKING..." else "OPTIMIZE") {
+                if (!busy) scope.launch {
+                    onBusy(true); onStatus("SCANNING • CLEANING...")
+                    val result = manager.smartOptimize()
+                    onStatus("${result.verifiedStopped}/${result.attemptedApps} STOPPED • ${formatUiBytes(result.ramFreedBytes)} RAM")
+                    onBusy(false)
+                    refresh()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StreamingPanelCompact() {
+    UltimatePanelCompact("STREAMING MODE", "IPTV, movies and high-bitrate playback.", Modifier.height(92.dp)) {
+        Text("APPS → STREAM prepares your selected player.", color = UCYAN, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+    }
+}
+
+@Composable
+private fun ThermalPanelCompact(snapshot: UltimateSnapshot?) {
+    UltimatePanelCompact("DEVICE PERFORMANCE", "Live device condition.", Modifier.height(112.dp)) {
+        Text("Thermal: ${snapshot?.temperatureStatus ?: "..."}", color = UWHITE, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text("Free RAM: ${formatUiBytes(snapshot?.freeRam ?: 0)}", color = UCYAN, fontSize = 8.sp, maxLines = 1)
+        Text("Free Storage: ${formatUiBytes(snapshot?.freeStorage ?: 0)}", color = UCYAN, fontSize = 8.sp, maxLines = 1)
     }
 }
 
@@ -304,6 +357,8 @@ private fun SmartOptimizePanel(manager: UltimateManager, rootActive: Boolean, st
                     val result = manager.smartOptimize()
                     onStatus("${result.verifiedStopped}/${result.attemptedApps} STOPPED • ${formatUiBytes(result.ramFreedBytes)} RAM • ${formatUiBytes(result.storageFreedBytes)} CACHE")
                     onBusy(false)
+                    // Telemetry refresh happens after the action is released so slow
+                    // H96 device queries never extend the visible optimization time.
                     refresh()
                 }
             }
@@ -530,32 +585,46 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
 }
 
 @Composable
-private fun MetricGrid(items: List<Triple<String, String, Color>>, landscape: Boolean) {
+private fun MetricGrid(items: List<Triple<String, String, Color>>, landscape: Boolean, compactPhone: Boolean = false) {
     if (landscape) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items.forEach { (a,b,c) -> MetricCard(a,b,c,Modifier.weight(1f)) }
         }
     } else {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items.take(2).forEach { (a,b,c) -> MetricCard(a,b,c,Modifier.weight(1f)) }
+            items.take(2).forEach { (a,b,c) -> MetricCard(a,b,c,Modifier.weight(1f), compactPhone) }
         }
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items.drop(2).forEach { (a,b,c) -> MetricCard(a,b,c,Modifier.weight(1f)) }
+            items.drop(2).forEach { (a,b,c) -> MetricCard(a,b,c,Modifier.weight(1f), compactPhone) }
         }
     }
 }
 
 @Composable
-private fun MetricCard(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
+private fun MetricCard(label: String, value: String, color: Color, modifier: Modifier = Modifier, compact: Boolean = false) {
     Column(
         modifier.shadow(3.dp, RoundedCornerShape(10.dp), ambientColor = UCYAN.copy(alpha = .14f), spotColor = UCYAN.copy(alpha = .14f))
-            .background(Brush.verticalGradient(listOf(Color(0xFF17435D), UMETAL_MID, Color(0xFF051723))), RoundedCornerShape(10.dp)).padding(vertical = 10.dp, horizontal = 8.dp),
+            .background(Brush.verticalGradient(listOf(Color(0xFF17435D), UMETAL_MID, Color(0xFF051723))), RoundedCornerShape(10.dp)).padding(vertical = if (compact) 6.dp else 10.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(label, color = UMUTED, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-        Spacer(Modifier.height(3.dp))
-        Text(value, color = color, fontSize = 16.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(label, color = UMUTED, fontSize = if (compact) 8.sp else 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Spacer(Modifier.height(if (compact) 1.dp else 3.dp))
+        Text(value, color = color, fontSize = if (compact) 14.sp else 16.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun UltimatePanelCompact(title: String, subtitle: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Column(
+        modifier.fillMaxWidth().shadow(5.dp, RoundedCornerShape(12.dp), ambientColor = UCYAN.copy(alpha = .20f), spotColor = UCYAN.copy(alpha = .20f))
+            .background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 14.dp, vertical = 7.dp)
+    ) {
+        Text(title, color = UWHITE, fontSize = 13.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(subtitle, color = UMUTED, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Spacer(Modifier.height(2.dp))
+        content()
     }
 }
 
