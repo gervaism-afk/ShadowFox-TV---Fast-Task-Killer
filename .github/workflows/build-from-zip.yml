@@ -80,34 +80,40 @@ jobs:
               raise SystemExit('HQ ShadowFox logo unexpectedly small')
           print('Using exact uploaded HQ ShadowFox logo:', len(data), 'bytes')
           PY
-      - name: Generate Cache Cleaner launcher identity
+      - name: Verify standalone Ultra Cleaner launcher identity
         run: |
           python3 -m pip install --quiet Pillow
           python3 - <<'PY'
           from pathlib import Path
-          from PIL import Image, ImageDraw, ImageFont
+          from PIL import Image
+          import xml.etree.ElementTree as ET
           res=Path('extracted/app/src/main/res')
-          master_path=res/'drawable-nodpi'/'file_000000009fd881f682bff9cb056d5ed8.png'
-          if not master_path.exists():
-              raise SystemExit('Missing exact Cache Cleaner master artwork: '+str(master_path))
-          master=Image.open(master_path).convert('RGBA')
-          # Preserve exact supplied 16:9 artwork for TV banner.
-          master.resize((320,180),Image.Resampling.LANCZOS).save(res/'drawable-nodpi'/'shadowfox_tv_banner.png',optimize=True)
-          # Crop left branded emblem for square launcher family; no recreation.
-          w,h=master.size
-          left=master.crop((0,0,int(w*0.43),h))
-          box=left.getbbox()
-          if box: left=left.crop(box)
-          sq=Image.new('RGBA',(1024,1024),(0,0,0,0))
-          s=min(930/left.width,930/left.height)
-          art=left.resize((int(left.width*s),int(left.height*s)),Image.Resampling.LANCZOS)
-          sq.alpha_composite(art,((1024-art.width)//2,(1024-art.height)//2))
-          for density,size in {'mdpi':48,'hdpi':72,'xhdpi':96,'xxhdpi':144,'xxxhdpi':192}.items():
-              q=res/f'mipmap-{density}'; q.mkdir(parents=True,exist_ok=True)
-              icon=sq.resize((size,size),Image.Resampling.LANCZOS)
-              icon.save(q/'ic_launcher.png',optimize=True)
-              icon.save(q/'ic_launcher_round.png',optimize=True)
-          print('Generated all app icon sizes from exact Cache Cleaner master')
+          for density,scale in [('mdpi',1),('hdpi',1.5),('xhdpi',2),('xxhdpi',3),('xxxhdpi',4)]:
+              for name in ('ic_launcher','ic_launcher_round'):
+                  image=Image.open(res/f'mipmap-{density}'/f'{name}.png')
+                  image.load()
+                  assert image.size==(int(80*scale),int(80*scale))
+                  assert image.mode=='RGBA' and image.getchannel('A').getextrema()==(0,255)
+              image=Image.open(res/f'drawable-{density}'/'tv_banner.png')
+              image.load()
+              assert image.size==(int(160*scale),int(90*scale))
+              assert image.mode=='RGBA' and image.getchannel('A').getextrema()==(0,255)
+              for layer in ('foreground','background'):
+                  image=Image.open(res/f'drawable-{density}'/f'ic_launcher_{layer}.png')
+                  image.load()
+                  assert image.size==(int(108*scale),int(108*scale))
+                  if layer=='foreground':
+                      assert image.mode=='RGBA' and image.getchannel('A').getextrema()==(0,255)
+                  else:
+                      assert image.convert('RGBA').getchannel('A').getextrema()==(255,255)
+          for name in ('ic_launcher','ic_launcher_round'):
+              root=ET.parse(res/'mipmap-anydpi-v26'/f'{name}.xml').getroot()
+              assert root.tag=='adaptive-icon'
+          name=ET.parse(res/'values/strings.xml').find("string[@name='app_name']")
+          assert name.text=='ShadowFox Ultra Cleaner'
+          app=ET.parse('extracted/app/src/main/AndroidManifest.xml').find('application')
+          assert app.get('{http://schemas.android.com/apk/res/android}banner')=='@drawable/tv_banner'
+          print('Verified standalone Ultra Cleaner icons, adaptive layers and borderless TV banners')
           PY
       - name: Read version
         run: |

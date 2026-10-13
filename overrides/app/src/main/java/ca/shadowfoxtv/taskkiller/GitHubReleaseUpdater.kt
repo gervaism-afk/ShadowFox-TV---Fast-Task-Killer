@@ -34,8 +34,9 @@ import java.util.Locale
  * Non-root fallback keeps the previous DownloadManager + Android package installer flow.
  */
 object GitHubReleaseUpdater {
-    private const val LATEST_RELEASE_API =
-        "https://api.github.com/repos/gervaism-afk/ShadowFox-TV---Fast-Task-Killer/releases/latest"
+    private const val RELEASES_API =
+        "https://api.github.com/repos/gervaism-afk/ShadowFox-TV---Fast-Task-Killer/releases?per_page=30"
+    private const val MOBILE_MAJOR = 7
     private const val PREFS = "shadowfox_update"
     private const val KEY_DOWNLOAD_ID = "download_id"
     private const val KEY_DOWNLOAD_VERSION = "download_version"
@@ -79,7 +80,7 @@ object GitHubReleaseUpdater {
     private suspend fun checkLatestRelease(context: Context, onStatus: ((String) -> Unit)?) = withContext(Dispatchers.IO) {
         var connection: HttpURLConnection? = null
         try {
-            connection = (URL(LATEST_RELEASE_API).openConnection() as HttpURLConnection).apply {
+            connection = (URL(RELEASES_API).openConnection() as HttpURLConnection).apply {
                 connectTimeout = 5_000
                 readTimeout = 8_000
                 requestMethod = "GET"
@@ -91,13 +92,25 @@ object GitHubReleaseUpdater {
             if (connection.responseCode != HttpURLConnection.HTTP_OK) { withContext(Dispatchers.Main) { onStatus?.invoke("Update check failed • HTTP ${connection.responseCode}") }; return@withContext }
 
             val payload = connection.inputStream.bufferedReader().use { it.readText() }
-            val release = JSONObject(payload)
-            val latestVersion = release.optString("tag_name", "").replaceFirst(Regex("^[vV]"), "")
-            if (latestVersion.isBlank()) { withContext(Dispatchers.Main) { onStatus?.invoke("Update check failed • invalid release") }; return@withContext }
+            val releases = org.json.JSONArray(payload)
+            var release: JSONObject? = null
+            var latestVersion = ""
+            for (index in 0 until releases.length()) {
+                val candidate = releases.optJSONObject(index) ?: continue
+                if (candidate.optBoolean("draft", false) || candidate.optBoolean("prerelease", false)) continue
+                val version = candidate.optString("tag_name", "").replaceFirst(Regex("^[vV]"), "")
+                val major = version.substringBefore('.').toIntOrNull() ?: continue
+                if (major != MOBILE_MAJOR) continue
+                if (release == null || compareVersions(version, latestVersion) > 0) {
+                    release = candidate
+                    latestVersion = version
+                }
+            }
+            if (release == null || latestVersion.isBlank()) { withContext(Dispatchers.Main) { onStatus?.invoke("Update check failed • no mobile release") }; return@withContext }
             if (compareVersions(latestVersion, BuildConfig.VERSION_NAME) <= 0) { withContext(Dispatchers.Main) { onStatus?.invoke("Up to date • v${BuildConfig.VERSION_NAME}") }; return@withContext }
 
             var apkUrl: String? = null
-            val assets = release.optJSONArray("assets")
+            val assets = release!!.optJSONArray("assets")
             if (assets != null) {
                 for (index in 0 until assets.length()) {
                     val asset = assets.optJSONObject(index) ?: continue

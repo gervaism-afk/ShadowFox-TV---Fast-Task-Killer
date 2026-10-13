@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ShadowFox TV Cache Cleaner</string>
+    <string name="app_name">ShadowFox Ultra Cleaner</string>
     <string name="title">ShadowFox TV</string>
     <string name="subtitle">CACHE CLEANER</string>
     <string name="clean_now">CLEAN NOW</string>
@@ -22,7 +22,8 @@
     <string name="ram_recovered">RAM RECOVERED</string>
     <string name="storage_status">STORAGE</string>
     <string name="storage_restricted">ANDROID PROTECTED</string>
-    <string name="footer_note">Optimized for Android TV • Fire TV • Tablets</string>
-    <string name="version_short">v4.1.1</string>
-    <string name="version_label">ShadowFox TV - Task Killer • v4.1.1</string>
+    <string name="footer_note">Optimized for Android phones • tablets</string>
+    <string name="version_short">v7.0.0</string>
+    <string name="version_label">ShadowFox TV Cache Cleaner • v7.0.0</string>
 </resources>
+
