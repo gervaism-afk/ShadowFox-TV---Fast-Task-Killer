@@ -104,7 +104,8 @@ class ShadowFoxProEngine(private val context: Context) {
         if (!rootAvailable()) return 0L
         val packages = rootThirdPartyPackages(protectedPackages() + additionalProtected)
         if (packages.isEmpty()) return 0L
-        val before = cacheBytes(packages)
+        // Measure actual reclaimed storage without an expensive rooted du traversal.
+        val before = freeStorageBytes()
         val command = buildString {
             for (pkg in packages) for (path in cachePaths(pkg)) {
                 append("d=").append(shellQuote(path)).append("; ")
@@ -112,7 +113,7 @@ class ShadowFoxProEngine(private val context: Context) {
             }
         }
         runRoot(command, 12)
-        return (before - cacheBytes(packages)).coerceAtLeast(0L)
+        return (freeStorageBytes() - before).coerceAtLeast(0L)
     }
 
     fun diagnosticsSummary(): String {
