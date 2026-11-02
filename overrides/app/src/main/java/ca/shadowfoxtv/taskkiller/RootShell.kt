@@ -1,6 +1,7 @@
 package ca.shadowfoxtv.taskkiller
 
 import java.util.concurrent.TimeUnit
+import android.os.Build
 
 /**
  * Shared root shell compatibility layer.
@@ -24,6 +25,9 @@ object RootShell {
     ).distinct()
 
     fun isRootAvailable(): Boolean {
+        // Google TV Streamer hardware is stock/non-rooted; skip costly su probing.
+        if (Build.MANUFACTURER.equals("Google", true) &&
+            Build.MODEL.contains("TV Streamer", true)) return false
         val r = exec("id", 10)
         return r.output.contains("uid=0")
     }
