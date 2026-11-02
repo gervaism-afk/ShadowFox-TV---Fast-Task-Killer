@@ -96,6 +96,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Test root policy and shell compatibility
+        working-directory: extracted
+        run: gradle :app:testDebugUnitTest --stacktrace
       - name: Build debug APK
         working-directory: extracted
         run: gradle :app:assembleDebug --stacktrace
@@ -108,6 +111,12 @@ jobs:
         if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
         working-directory: extracted
         run: gradle :app:assembleRelease --stacktrace
+      - name: Verify release signature and provenance
+        if: ${{ env.SHADOWFOX_SIGNING_PASSWORD != '' }}
+        run: |
+          APK=extracted/app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          sha256sum "$APK"
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
@@ -133,7 +142,17 @@ jobs:
           else
             NOTES="Locked Android TV / Fire TV production release."
           fi
-          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$ASSET" ShadowFox-Ultra-Cleaner-Official-Icon-Pack.zip --clobber; else gh release create "$TAG" "$ASSET" ShadowFox-Ultra-Cleaner-Official-Icon-Pack.zip --title "ShadowFox Ultra Cleaner v${APP_VERSION}" --notes "$NOTES"; fi
+          NOTES="$NOTES Built from commit ${GITHUB_SHA}."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            TAG_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/commits/$TAG" --jq .sha)
+            if [ "$TAG_SHA" != "$GITHUB_SHA" ]; then
+              echo "Release tag $TAG points at $TAG_SHA rather than $GITHUB_SHA; increment the app version."
+              exit 1
+            fi
+            gh release upload "$TAG" "$ASSET" ShadowFox-Ultra-Cleaner-Official-Icon-Pack.zip --clobber
+          else
+            gh release create "$TAG" "$ASSET" ShadowFox-Ultra-Cleaner-Official-Icon-Pack.zip --target "$GITHUB_SHA" --title "ShadowFox Ultra Cleaner v${APP_VERSION}" --notes "$NOTES"
+          fi
 
 
 # validate corrected v6.4.0 source

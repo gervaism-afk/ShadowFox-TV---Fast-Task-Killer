@@ -141,13 +141,7 @@ object GitHubReleaseUpdater {
         }
     }
 
-    private fun hasRoot(): Boolean = try {
-        val process = ProcessBuilder("su", "-c", "id").redirectErrorStream(true).start()
-        val output = process.inputStream.bufferedReader().use { it.readText() }
-        process.waitFor() == 0 && output.contains("uid=0")
-    } catch (_: Exception) {
-        false
-    }
+    private fun hasRoot(): Boolean = RootShell.isRootAvailable()
 
     private fun downloadAndInstallRooted(context: Context, apkUrl: String, version: String): Boolean {
         val target = File(context.cacheDir, "shadowfox-update-$version.apk")
@@ -172,10 +166,8 @@ object GitHubReleaseUpdater {
             // Root can read app-private cache, but 0644 avoids ROM-specific permission quirks.
             target.setReadable(true, false)
             val command = "pm install -r --user 0 '${target.absolutePath.replace("'", "'\\''")}'"
-            val process = ProcessBuilder("su", "-c", command).redirectErrorStream(true).start()
-            val output = process.inputStream.bufferedReader().use { it.readText() }
-            val exit = process.waitFor()
-            val success = exit == 0 && output.contains("Success", ignoreCase = true)
+            val result = RootShell.exec(command, 60)
+            val success = result.success && result.output.contains("Success", ignoreCase = true)
             if (success) target.delete()
             success
         } catch (_: Exception) {

@@ -1,6 +1,5 @@
 package ca.shadowfoxtv.taskkiller
 
-import java.util.concurrent.TimeUnit
 import android.os.Build
 
 /**
@@ -12,6 +11,13 @@ object RootShell {
     data class Result(val success: Boolean, val output: String)
 
     @Volatile private var preferredPath: String? = null
+
+    private val availability = RootAvailabilityCache {
+        val result = exec("id", 10)
+        result.success && Regex("\\buid=0\\b").containsMatchIn(result.output)
+    }
+
+    private fun skipRoot(): Boolean = isGoogleTvStreamer(Build.MANUFACTURER, Build.MODEL)
 
     private val candidates = listOf(
         "su",
@@ -26,13 +32,13 @@ object RootShell {
 
     fun isRootAvailable(): Boolean {
         // Google TV Streamer hardware is stock/non-rooted; skip costly su probing.
-        if (Build.MANUFACTURER.equals("Google", true) &&
-            Build.MODEL.contains("TV Streamer", true)) return false
-        val r = exec("id", 10)
-        return r.output.contains("uid=0")
+        if (skipRoot()) return false
+        return availability.isAvailable()
     }
 
     fun exec(command: String, timeoutSeconds: Long = 15): Result {
+        // Enforce the same policy for direct callers as for capability detection.
+        if (skipRoot()) return Result(false, "Root disabled on Google TV Streamer")
         var last = "su unavailable"
 
         // Once a working su binary is found, reuse it. This is critical on older TV-box
@@ -74,34 +80,9 @@ object RootShell {
         return Result(false, last)
     }
 
-    private fun runProcess(args: List<String>, timeoutSeconds: Long): Result = runCatching {
-        val p = ProcessBuilder(args).redirectErrorStream(true).start()
-        val done = p.waitFor(timeoutSeconds, TimeUnit.SECONDS)
-        if (!done) {
-            p.destroyForcibly()
-            Result(false, "timeout")
-        } else {
-            val out = p.inputStream.bufferedReader().use { it.readText() }
-            Result(p.exitValue() == 0, out)
-        }
-    }.getOrElse { Result(false, it.message.orEmpty()) }
+    private fun runProcess(args: List<String>, timeoutSeconds: Long): Result =
+        RootProcess.run(args, null, timeoutSeconds).let { Result(it.success, it.output) }
 
-    private fun runInteractive(path: String, command: String, timeoutSeconds: Long): Result = runCatching {
-        val p = ProcessBuilder(path).redirectErrorStream(true).start()
-        p.outputStream.bufferedWriter().use { w ->
-            w.write(command)
-            w.newLine()
-            w.write("exit")
-            w.newLine()
-            w.flush()
-        }
-        val done = p.waitFor(timeoutSeconds, TimeUnit.SECONDS)
-        if (!done) {
-            p.destroyForcibly()
-            Result(false, "timeout")
-        } else {
-            val out = p.inputStream.bufferedReader().use { it.readText() }
-            Result(p.exitValue() == 0, out)
-        }
-    }.getOrElse { Result(false, it.message.orEmpty()) }
+    private fun runInteractive(path: String, command: String, timeoutSeconds: Long): Result =
+        RootProcess.run(listOf(path), "$command\nexit\n", timeoutSeconds).let { Result(it.success, it.output) }
 }

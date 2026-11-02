@@ -223,6 +223,9 @@ class ShadowFoxProEngine(private val context: Context) {
 
         val prefs = appContext.getSharedPreferences("shadowfox_pro_engine", Context.MODE_PRIVATE)
         set.addAll(prefs.getStringSet("protected_packages", emptySet()) ?: emptySet())
+        // Ultimate Center's protected-app selections also apply to Smart Optimize.
+        val userPrefs = appContext.getSharedPreferences("shadowfox_v6", Context.MODE_PRIVATE)
+        set.addAll(userPrefs.getStringSet("protected", emptySet()) ?: emptySet())
         return set
     }
 
