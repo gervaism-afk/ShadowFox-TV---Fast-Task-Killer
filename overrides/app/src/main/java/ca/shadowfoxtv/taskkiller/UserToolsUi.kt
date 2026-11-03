@@ -13,11 +13,13 @@ import android.os.StatFs
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -39,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
@@ -48,6 +51,48 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+@Composable
+internal fun AppsHelpDialog(onDismiss: () -> Unit) {
+    val entries = listOf(
+        "APPS" to "Open your apps, pin favorites, and protect important apps from cleanup. The list contains launchable apps Android makes visible to ShadowFox.",
+        "LAUNCH" to "Opens the selected app normally. TV apps open their TV interface when one is available.",
+        "FAVORITE / UNFAVORITE" to "Pins or unpins an app at the top of the list. Favorites are saved between sessions. Favoriting does not protect an app from cleanup.",
+        "PROTECT / UNPROTECT" to "Protect keeps an app out of ShadowFox's app-stop and third-party cache-cleanup targets where these actions are supported. Unprotect removes your custom exemption; built-in safety rules still apply.",
+        "STREAM" to "Requests background cleanup while protecting the selected player, then opens it. Supported rooted devices can perform additional cleanup. Results appear above the app list when you return.",
+        "SETTINGS" to "Opens the selected app's Android settings. Available storage, permission, and force-stop controls depend on your device.",
+        "UNINSTALL" to "Opens Android's uninstall confirmation. System apps do not show this button.",
+        "RUNNING / IDLE" to "Running means Android reported an active process. Idle means ShadowFox did not detect one; it does not guarantee the app is completely closed.",
+        "GOOGLE TV STREAMER" to "Google TV Streamer uses standard, non-root mode. Stream can request background cleanup and open your player, but cannot force-stop other apps or silently clear their private caches."
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.widthIn(max = 760.dp).fillMaxWidth(.92f),
+        containerColor = Color(0xFF0A2030), titleContentColor = Color.White, textContentColor = Color.White,
+        title = { Text("APPS HELP", fontSize = 18.sp) },
+        text = {
+            Column(Modifier.fillMaxWidth().heightIn(max = (LocalConfiguration.current.screenHeightDp * .55f).dp)
+                .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                entries.forEach { (title, description) ->
+                    AppsHelpEntry(title, description)
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("CLOSE", color = Color(0xFF00E5FF)) } }
+    )
+}
+
+@Composable
+private fun AppsHelpEntry(title: String, description: String) {
+    var focused by remember { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.focusable()
+        .border(1.dp, if (focused) Color(0xFF00E5FF) else Color.Transparent, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+        .padding(8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(title, color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text(description, color = Color.White, fontSize = 12.sp)
+    }
+}
 
 @Composable
 internal fun UserToolsDialog(manager: UltimateManager, onDismiss: () -> Unit) {

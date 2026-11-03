@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.media.MediaDrm
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -99,6 +100,7 @@ class UltimateManager(private val context: Context) {
         val next = protectedPackages().toMutableSet()
         if (value) next += pkg else next -= pkg
         prefs.edit().putStringSet("protected", next).apply()
+        cachedApps = null
     }
 
     suspend fun snapshot(): UltimateSnapshot = withContext(Dispatchers.IO) {
@@ -188,11 +190,11 @@ class UltimateManager(private val context: Context) {
             cacheFreedBytes = 0,
             summary = if (caps.rooted) "STREAMING MODE • $stopped/$attempted verified stopped • +${formatBytes(freed)} measured RAM" else "STREAMING MODE • standard background clean requested • +${formatBytes(freed)} measured RAM • app stops unverified"
         )
-        appendHistory(result.summary)
-        if (!targetPackage.isNullOrBlank()) {
-            pm.getLaunchIntentForPackage(targetPackage)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)?.let(app::startActivity)
-        }
-        result
+        val finalResult = if (!targetPackage.isNullOrBlank() && !launch(targetPackage)) {
+            result.copy(summary = result.summary + " • player could not be opened")
+        } else result
+        appendHistory(finalResult.summary)
+        finalResult
     }
 
     suspend fun apps(forceRefresh: Boolean = false): List<ManagedApp> = withContext(Dispatchers.IO) {
@@ -236,9 +238,18 @@ class UltimateManager(private val context: Context) {
         result
     }
 
-    fun launch(pkg: String) {
-        pm.getLaunchIntentForPackage(pkg)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)?.let(app::startActivity)
-    }
+    fun launch(pkg: String): Boolean = runCatching {
+        val television = app.resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
+        val intent = if (television) {
+            pm.getLeanbackLaunchIntentForPackage(pkg) ?: pm.getLaunchIntentForPackage(pkg)
+        } else {
+            pm.getLaunchIntentForPackage(pkg) ?: pm.getLeanbackLaunchIntentForPackage(pkg)
+        }
+        if (intent == null) false else {
+            app.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            true
+        }
+    }.getOrDefault(false)
 
     fun openSettings(pkg: String) {
         app.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pkg")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

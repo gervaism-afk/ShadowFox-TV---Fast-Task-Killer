@@ -399,12 +399,14 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
     var apps by remember { mutableStateOf<List<ManagedApp>>(emptyList()) }
     var message by remember { mutableStateOf("Loading apps...") }
     var showSystem by remember { mutableStateOf(!isPhone) }
-    fun load() { scope.launch {
+    var showHelp by rememberSaveable { mutableStateOf(false) }
+    if (showHelp) AppsHelpDialog { showHelp = false }
+    fun load(status: String? = null) { scope.launch {
         val all = manager.apps()
         favorites = tools.favorites()
         apps = all.sortedWith(compareByDescending<ManagedApp> { it.packageName in favorites }.thenBy { it.system }.thenBy { it.label.lowercase(Locale.getDefault()) })
         val userCount = all.count { !it.system }
-        message = if (isPhone) "$userCount user apps • ${all.size - userCount} system apps" else "${all.size} launchable apps"
+        message = status ?: if (isPhone) "$userCount user apps • ${all.size - userCount} system apps" else "${all.size} launchable apps"
     } }
     LaunchedEffect(Unit) { load() }
 
@@ -412,6 +414,8 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
         Column(Modifier.fillMaxWidth()) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(message, color = UMUTED, fontSize = 10.sp, modifier = Modifier.weight(1f))
+                CompactAction("HELP", Modifier.width(64.dp)) { showHelp = true }
+                Spacer(Modifier.width(6.dp))
                 if (isPhone && apps.any { it.system }) CompactAction(if (showSystem) "HIDE SYSTEM" else "SHOW SYSTEM", Modifier.width(112.dp)) { showSystem = !showSystem }
             }
             Spacer(Modifier.height(6.dp))
@@ -423,15 +427,15 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
                 UltimatePanel(if (item.packageName in favorites) "★ ${item.label}" else item.label, "${if (item.system) "SYSTEM • " else ""}${if (item.running) "RUNNING" else "IDLE"} • ${item.packageName}") {
                     if (landscape) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            AppActions(manager, item, { load() }, { message = it }, scope, item.packageName in favorites) {
+                            AppActions(manager, item, { status -> load(status) }, { message = it }, scope, item.packageName in favorites) {
                                 tools.setFavorite(item.packageName, item.packageName !in favorites); load()
                             }
                         }
                     } else {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            CompactAction("LAUNCH", Modifier.weight(1f)) { manager.launch(item.packageName) }
+                            CompactAction("LAUNCH", Modifier.weight(1f)) { if (!manager.launch(item.packageName)) message = "Could not open ${item.label}. Try its Android settings." }
                             CompactAction(if (item.protected) "UNPROTECT" else "PROTECT", Modifier.weight(1f)) { manager.setProtected(item.packageName, !item.protected); load() }
-                            CompactAction("STREAM", Modifier.weight(1f)) { scope.launch { message = manager.streamingOptimize(item.packageName).summary; load() } }
+                            CompactAction("STREAM", Modifier.weight(1f)) { scope.launch { load(manager.streamingOptimize(item.packageName).summary) } }
                         }
                         Spacer(Modifier.height(6.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -451,10 +455,10 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
 }
 
 @Composable
-private fun AppActions(manager: UltimateManager, item: ManagedApp, load: () -> Unit, setMessage: (String) -> Unit, scope: kotlinx.coroutines.CoroutineScope, favorite: Boolean, toggleFavorite: () -> Unit) {
-    UltimateButton("LAUNCH") { manager.launch(item.packageName) }
-    UltimateButton(if (item.protected) "UNPROTECT" else "PROTECT") { manager.setProtected(item.packageName, !item.protected); load() }
-    UltimateButton("STREAM") { scope.launch { setMessage(manager.streamingOptimize(item.packageName).summary); load() } }
+private fun AppActions(manager: UltimateManager, item: ManagedApp, load: (String?) -> Unit, setMessage: (String) -> Unit, scope: kotlinx.coroutines.CoroutineScope, favorite: Boolean, toggleFavorite: () -> Unit) {
+    UltimateButton("LAUNCH") { if (!manager.launch(item.packageName)) setMessage("Could not open ${item.label}. Try its Android settings.") }
+    UltimateButton(if (item.protected) "UNPROTECT" else "PROTECT") { manager.setProtected(item.packageName, !item.protected); load(null) }
+    UltimateButton("STREAM") { scope.launch { load(manager.streamingOptimize(item.packageName).summary) } }
     UltimateButton("SETTINGS") { manager.openSettings(item.packageName) }
     UltimateButton(if (favorite) "UNFAVORITE" else "FAVORITE") { toggleFavorite() }
     if (!item.system) UltimateButton("UNINSTALL") { manager.uninstall(item.packageName) }
