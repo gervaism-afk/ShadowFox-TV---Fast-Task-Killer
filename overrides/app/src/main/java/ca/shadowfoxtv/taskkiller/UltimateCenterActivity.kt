@@ -36,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -103,7 +104,7 @@ private enum class UltimateTab { OPTIMIZE, APPS, NETWORK, SYSTEM }
 @Composable
 private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onClose: () -> Unit) {
     val initialTab = remember(requestedTab) { runCatching { UltimateTab.valueOf(requestedTab ?: "OPTIMIZE") }.getOrDefault(UltimateTab.OPTIMIZE) }
-    var tab by remember { mutableStateOf(initialTab) }
+    var tab by rememberSaveable { mutableStateOf(initialTab) }
     var snapshot by remember { mutableStateOf<UltimateSnapshot?>(null) }
     val scope = rememberCoroutineScope()
     val firstTabFocus = remember { FocusRequester() }
@@ -393,12 +394,15 @@ private fun SystemStatusPanel(manager: UltimateManager, snapshot: UltimateSnapsh
 @Composable
 private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Boolean) {
     val scope = rememberCoroutineScope()
+    val tools = remember { UserToolsManager(manager.appContext()) }
+    var favorites by remember { mutableStateOf(tools.favorites()) }
     var apps by remember { mutableStateOf<List<ManagedApp>>(emptyList()) }
     var message by remember { mutableStateOf("Loading apps...") }
     var showSystem by remember { mutableStateOf(!isPhone) }
     fun load() { scope.launch {
         val all = manager.apps()
-        apps = all.sortedWith(compareBy<ManagedApp> { it.system }.thenBy { it.label.lowercase(Locale.getDefault()) })
+        favorites = tools.favorites()
+        apps = all.sortedWith(compareByDescending<ManagedApp> { it.packageName in favorites }.thenBy { it.system }.thenBy { it.label.lowercase(Locale.getDefault()) })
         val userCount = all.count { !it.system }
         message = if (isPhone) "$userCount user apps • ${all.size - userCount} system apps" else "${all.size} launchable apps"
     } }
@@ -416,10 +420,12 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
         Column(Modifier.fillMaxSize().verticalScroll(appsScroll), horizontalAlignment = Alignment.CenterHorizontally) {
             apps.filter { showSystem || !it.system }.forEach { item ->
                 Column(Modifier.fillMaxWidth()) {
-                UltimatePanel(item.label, "${if (item.system) "SYSTEM • " else ""}${if (item.running) "RUNNING" else "IDLE"} • ${item.packageName}") {
+                UltimatePanel(if (item.packageName in favorites) "★ ${item.label}" else item.label, "${if (item.system) "SYSTEM • " else ""}${if (item.running) "RUNNING" else "IDLE"} • ${item.packageName}") {
                     if (landscape) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            AppActions(manager, item, { load() }, { message = it }, scope)
+                            AppActions(manager, item, { load() }, { message = it }, scope, item.packageName in favorites) {
+                                tools.setFavorite(item.packageName, item.packageName !in favorites); load()
+                            }
                         }
                     } else {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -430,6 +436,9 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
                         Spacer(Modifier.height(6.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             CompactAction("SETTINGS", Modifier.weight(1f)) { manager.openSettings(item.packageName) }
+                            CompactAction(if (item.packageName in favorites) "UNFAVORITE" else "FAVORITE", Modifier.weight(1f)) {
+                                tools.setFavorite(item.packageName, item.packageName !in favorites); load()
+                            }
                             if (!item.system) CompactAction("UNINSTALL", Modifier.weight(1f)) { manager.uninstall(item.packageName) }
                         }
                     }
@@ -442,11 +451,12 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
 }
 
 @Composable
-private fun AppActions(manager: UltimateManager, item: ManagedApp, load: () -> Unit, setMessage: (String) -> Unit, scope: kotlinx.coroutines.CoroutineScope) {
+private fun AppActions(manager: UltimateManager, item: ManagedApp, load: () -> Unit, setMessage: (String) -> Unit, scope: kotlinx.coroutines.CoroutineScope, favorite: Boolean, toggleFavorite: () -> Unit) {
     UltimateButton("LAUNCH") { manager.launch(item.packageName) }
     UltimateButton(if (item.protected) "UNPROTECT" else "PROTECT") { manager.setProtected(item.packageName, !item.protected); load() }
     UltimateButton("STREAM") { scope.launch { setMessage(manager.streamingOptimize(item.packageName).summary); load() } }
     UltimateButton("SETTINGS") { manager.openSettings(item.packageName) }
+    UltimateButton(if (favorite) "UNFAVORITE" else "FAVORITE") { toggleFavorite() }
     if (!item.system) UltimateButton("UNINSTALL") { manager.uninstall(item.packageName) }
 }
 
@@ -455,7 +465,12 @@ private fun NetworkScreen(manager: UltimateManager, landscape: Boolean) {
     val scope = rememberCoroutineScope()
     var report by remember { mutableStateOf<NetworkReport?>(null) }
     var testing by remember { mutableStateOf(false) }
-    fun test() { scope.launch { testing = true; report = manager.networkReport(); testing = false } }
+    val tools = remember { UserToolsManager(manager.appContext()) }
+    var stabilityTesting by remember { mutableStateOf(false) }
+    var stabilityProgress by remember { mutableStateOf(0) }
+    var stabilityText by remember { mutableStateOf(tools.lastStabilityReport()) }
+    var stabilityJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    fun test() { scope.launch { testing = true; try { report = manager.networkReport() } finally { testing = false } } }
     LaunchedEffect(Unit) { test() }
 
     val networkScroll = remember(landscape) { ScrollState(0) }
@@ -479,7 +494,30 @@ private fun NetworkScreen(manager: UltimateManager, landscape: Boolean) {
                 else -> "Run the test to diagnose the connection."
             }, color = UWHITE, fontSize = 11.sp)
             Spacer(Modifier.height(8.dp))
-            UltimateButton(if (testing) "TESTING..." else "RUN NETWORK TEST") { if (!testing) test() }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                UltimateButton(if (testing) "TESTING..." else "RUN NETWORK TEST", enabled = !testing && !stabilityTesting) { test() }
+                UltimateButton(if (stabilityTesting) "CANCEL TEST" else "STABILITY TEST", enabled = !testing) {
+                    if (stabilityTesting) stabilityJob?.cancel() else {
+                        stabilityTesting = true
+                        stabilityProgress = 0
+                        stabilityText = ""
+                        stabilityJob = scope.launch {
+                            try {
+                                val result = tools.testStability { done, _ -> stabilityProgress = done }
+                                stabilityText = UserToolsManager.stabilityText(result)
+                            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                                stabilityText = "Test cancelled."
+                                throw cancelled
+                            } catch (_: Exception) {
+                                stabilityText = "Test could not finish. Check the connection and try again."
+                            } finally { stabilityTesting = false }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(if (stabilityTesting) "Testing connection stability: $stabilityProgress / 12…" else stabilityText,
+                color = UCYAN, fontSize = 11.sp)
         }
     }
 }
@@ -491,6 +529,8 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
     var maintenance by remember { mutableStateOf(manager.maintenanceEnabled()) }
     var message by remember { mutableStateOf("SYSTEM READY") }
     val diagnostics = remember(message) { manager.optimizerDiagnostics() }
+    var showUserTools by rememberSaveable { mutableStateOf(false) }
+    if (showUserTools) UserToolsDialog(manager) { showUserTools = false }
 
     if (landscape) {
         // TV layout is intentionally non-scrollable. D-pad focus must never pan or clip a panel.
@@ -549,8 +589,10 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
                     val history = manager.history()
                     Text(history.firstOrNull() ?: "No maintenance history yet.", color = if (history.isEmpty()) UMUTED else UWHITE, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                UltimatePanel("ADVANCED APP CONTROL", "Root-aware safety controls.", Modifier.weight(1f).fillMaxHeight()) {
-                    Text("Unsupported actions are never reported as completed.", color = UMUTED, fontSize = 8.sp, maxLines = 1)
+                Row(Modifier.weight(1f).fillMaxHeight().background(Brush.verticalGradient(listOf(UMETAL_TOP, UMETAL_MID, UMETAL_BOTTOM)), RoundedCornerShape(14.dp)).padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("HEALTH & SUPPORT", color = UWHITE, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    UltimateButton("OPEN TOOLS") { showUserTools = true }
                 }
             }
         }
@@ -575,6 +617,8 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
                 CompactAction(if (maintenance) "AUTO MAINTENANCE: ON" else "AUTO MAINTENANCE: OFF", Modifier.fillMaxWidth()) { maintenance = !maintenance; manager.scheduleMaintenance(maintenance) }
                 Spacer(Modifier.height(6.dp))
                 CompactAction("CHECK FOR UPDATES", Modifier.fillMaxWidth()) { message = "CHECKING FOR UPDATE…"; GitHubReleaseUpdater.start(manager.appContext()) { status -> message = status.uppercase(Locale.getDefault()) } }
+                Spacer(Modifier.height(6.dp))
+                CompactAction("HEALTH ALERTS & SUPPORT", Modifier.fillMaxWidth()) { showUserTools = true }
             }
             Spacer(Modifier.height(10.dp))
             UltimatePanel("OPTIMIZER DIAGNOSTICS", "Latest verified Smart Optimize results.") {

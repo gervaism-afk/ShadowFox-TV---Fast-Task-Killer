@@ -12,12 +12,13 @@ public class ShadowFoxApp extends Application implements Application.ActivityLif
         registerActivityLifecycleCallbacks(this);
         // Scheduling only: no network or root work is performed on app startup.
         UpdateScheduler.schedule(this);
+        HealthAlerts.INSTANCE.schedule(this);
     }
     @Override public void onActivityCreated(Activity a, Bundle b) { StartupDiagnostics.INSTANCE.stage(this, "Activity created"); }
-    @Override public void onActivityStarted(Activity a) { StartupDiagnostics.INSTANCE.stage(this, "Activity started"); }
+    @Override public void onActivityStarted(Activity a) { StartupDiagnostics.INSTANCE.stage(this, "Activity started"); HealthAlerts.INSTANCE.foregroundStarted(this); }
     @Override public void onActivityResumed(Activity a) { StartupDiagnostics.INSTANCE.stage(this, "Activity resumed"); }
     @Override public void onActivityPaused(Activity a) { StartupDiagnostics.INSTANCE.stage(this, "Activity paused"); }
-    @Override public void onActivityStopped(Activity a) { StartupDiagnostics.INSTANCE.stage(this, "Activity stopped"); }
+    @Override public void onActivityStopped(Activity a) { StartupDiagnostics.INSTANCE.stage(this, "Activity stopped"); HealthAlerts.INSTANCE.foregroundStopped(this); }
     @Override public void onActivitySaveInstanceState(Activity a, Bundle b) { StartupDiagnostics.INSTANCE.stage(this, "Activity state saved"); }
     @Override public void onActivityDestroyed(Activity a) { StartupDiagnostics.INSTANCE.stage(this, "Activity destroyed"); }
 }

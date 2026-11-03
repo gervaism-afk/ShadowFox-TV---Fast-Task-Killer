@@ -96,9 +96,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Test root policy and shell compatibility
+      - name: Run optimizer and user-tool regression tests
         working-directory: extracted
-        run: gradle :app:testDebugUnitTest --stacktrace
+        run: gradle :app:testDebugUnitTest :app:lintDebug --stacktrace
       - name: Build debug APK
         working-directory: extracted
         run: gradle :app:assembleDebug --stacktrace
@@ -142,7 +142,12 @@ jobs:
           else
             NOTES="Locked Android TV / Fire TV production release."
           fi
-          NOTES="$NOTES Built from commit ${GITHUB_SHA}."
+          if [ -f "scripts/release_notes/${TAG}.md" ]; then
+            NOTES="$(cat "scripts/release_notes/${TAG}.md")"
+          fi
+          NOTES="$NOTES
+
+          Built from commit ${GITHUB_SHA}."
           if gh release view "$TAG" >/dev/null 2>&1; then
             TAG_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/commits/$TAG" --jq .sha)
             if [ "$TAG_SHA" != "$GITHUB_SHA" ]; then

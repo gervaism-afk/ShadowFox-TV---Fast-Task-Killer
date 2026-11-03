@@ -382,7 +382,8 @@ class UltimateManager(private val context: Context) {
         val widevineUuid = UUID.fromString("edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")
         if (!MediaDrm.isCryptoSchemeSupported(widevineUuid)) return "UNAVAILABLE"
         return runCatching {
-            MediaDrm(widevineUuid).use { drm ->
+            val drm = MediaDrm(widevineUuid)
+            try {
                 val raw = runCatching { drm.getPropertyString("securityLevel") }
                     .getOrElse { String(drm.getPropertyByteArray("securityLevel"), Charsets.UTF_8) }
                     .trim().uppercase(Locale.US)
@@ -393,6 +394,9 @@ class UltimateManager(private val context: Context) {
                     raw.isBlank() -> "UNAVAILABLE"
                     else -> raw.take(12)
                 }
+            } finally {
+                @Suppress("DEPRECATION")
+                drm.release()
             }
         }.getOrDefault("UNAVAILABLE")
     }
