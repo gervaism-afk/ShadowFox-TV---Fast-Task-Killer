@@ -2,6 +2,21 @@ package ca.shadowfoxtv.taskkiller
 
 import kotlin.math.abs
 
+internal enum class AppListFilter(val label: String) {
+    ALL("All apps"), FAVORITES("Favorites"), PROTECTED("Protected");
+
+    fun matches(app: ManagedApp, query: String, favorites: Set<String>, showSystem: Boolean): Boolean {
+        if (app.system && !showSystem) return false
+        val inScope = when (this) {
+            ALL -> true
+            FAVORITES -> app.packageName in favorites
+            PROTECTED -> app.protected
+        }
+        return inScope && (app.label.contains(query, ignoreCase = true) ||
+            app.packageName.contains(query, ignoreCase = true))
+    }
+}
+
 data class StabilityResult(
     val attempts: Int,
     val failed: Int,

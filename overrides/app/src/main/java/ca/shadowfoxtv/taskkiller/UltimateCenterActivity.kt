@@ -33,6 +33,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -400,13 +401,31 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
     var message by remember { mutableStateOf("Loading apps...") }
     var showSystem by remember { mutableStateOf(!isPhone) }
     var showHelp by rememberSaveable { mutableStateOf(false) }
+    var showFilters by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var filter by rememberSaveable { mutableStateOf(AppListFilter.ALL) }
+    var loaded by remember { mutableStateOf(false) }
+    val appsScroll = remember(landscape) { ScrollState(0) }
+    val isFiltered = query.isNotEmpty() || filter != AppListFilter.ALL
+    val visibleApps = remember(apps, favorites, showSystem, query, filter) {
+        apps.filter { filter.matches(it, query, favorites, showSystem) }
+    }
     if (showHelp) AppsHelpDialog { showHelp = false }
+    if (showFilters) {
+        AppFilterDialog(query, filter, onDismiss = { showFilters = false }) { nextQuery, nextFilter ->
+            query = nextQuery
+            filter = nextFilter
+            showFilters = false
+            scope.launch { appsScroll.scrollTo(0) }
+        }
+    }
     fun load(status: String? = null) { scope.launch {
         val all = manager.apps()
         favorites = tools.favorites()
         apps = all.sortedWith(compareByDescending<ManagedApp> { it.packageName in favorites }.thenBy { it.system }.thenBy { it.label.lowercase(Locale.getDefault()) })
         val userCount = all.count { !it.system }
         message = status ?: if (isPhone) "$userCount user apps • ${all.size - userCount} system apps" else "${all.size} launchable apps"
+        loaded = true
     } }
     LaunchedEffect(Unit) { load() }
 
@@ -414,41 +433,59 @@ private fun AppsScreen(manager: UltimateManager, landscape: Boolean, isPhone: Bo
         Column(Modifier.fillMaxWidth()) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(message, color = UMUTED, fontSize = 10.sp, modifier = Modifier.weight(1f))
-                CompactAction("HELP", Modifier.width(64.dp)) { showHelp = true }
                 Spacer(Modifier.width(6.dp))
-                if (isPhone && apps.any { it.system }) CompactAction(if (showSystem) "HIDE SYSTEM" else "SHOW SYSTEM", Modifier.width(112.dp)) { showSystem = !showSystem }
+                CompactAction("FILTER", Modifier.width(62.dp)) { showFilters = true }
+                Spacer(Modifier.width(6.dp))
+                CompactAction("HELP", Modifier.width(64.dp)) { showHelp = true }
+                if (isPhone && apps.any { it.system }) {
+                    Spacer(Modifier.width(6.dp))
+                    CompactAction(if (showSystem) "HIDE SYSTEM" else "SHOW SYSTEM", Modifier.width(94.dp)) {
+                        showSystem = !showSystem
+                        scope.launch { appsScroll.scrollTo(0) }
+                    }
+                }
+            }
+            if (loaded && isFiltered) {
+                val searchLabel = if (query.isEmpty()) "" else " • \"$query\""
+                Text("${visibleApps.size} matches • ${filter.label}$searchLabel", color = UCYAN, fontSize = 11.sp,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Spacer(Modifier.height(6.dp))
         }
-        val appsScroll = remember(landscape) { ScrollState(0) }
         Column(Modifier.fillMaxSize().verticalScroll(appsScroll), horizontalAlignment = Alignment.CenterHorizontally) {
-            apps.filter { showSystem || !it.system }.forEach { item ->
-                Column(Modifier.fillMaxWidth()) {
-                UltimatePanel(if (item.packageName in favorites) "★ ${item.label}" else item.label, "${if (item.system) "SYSTEM • " else ""}${if (item.running) "RUNNING" else "IDLE"} • ${item.packageName}") {
-                    if (landscape) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            AppActions(manager, item, { status -> load(status) }, { message = it }, scope, item.packageName in favorites) {
-                                tools.setFavorite(item.packageName, item.packageName !in favorites); load()
+            if (loaded && visibleApps.isEmpty()) {
+                Text(if (isFiltered) "No matching apps. Try another search or change the filter." else "No apps to show.",
+                    color = UMUTED, fontSize = 13.sp, modifier = Modifier.padding(16.dp))
+            }
+            visibleApps.forEach { item ->
+                key(item.packageName) {
+                    UltimatePanel(if (item.packageName in favorites) "★ ${item.label}" else item.label, "${if (item.system) "SYSTEM • " else ""}${if (item.running) "RUNNING" else "IDLE"} • ${item.packageName}") {
+                        if (landscape) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                AppActions(manager, item, { status -> load(status) }, { message = it }, scope, item.packageName in favorites) {
+                                    tools.setFavorite(item.packageName, item.packageName !in favorites)
+                                    load()
+                                }
                             }
-                        }
-                    } else {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            CompactAction("LAUNCH", Modifier.weight(1f)) { if (!manager.launch(item.packageName)) message = "Could not open ${item.label}. Try its Android settings." }
-                            CompactAction(if (item.protected) "UNPROTECT" else "PROTECT", Modifier.weight(1f)) { manager.setProtected(item.packageName, !item.protected); load() }
-                            CompactAction("STREAM", Modifier.weight(1f)) { scope.launch { load(manager.streamingOptimize(item.packageName).summary) } }
-                        }
-                        Spacer(Modifier.height(6.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            CompactAction("SETTINGS", Modifier.weight(1f)) { manager.openSettings(item.packageName) }
-                            CompactAction(if (item.packageName in favorites) "UNFAVORITE" else "FAVORITE", Modifier.weight(1f)) {
-                                tools.setFavorite(item.packageName, item.packageName !in favorites); load()
+                        } else {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                CompactAction("LAUNCH", Modifier.weight(1f)) { if (!manager.launch(item.packageName)) message = "Could not open ${item.label}. Try its Android settings." }
+                                CompactAction(if (item.protected) "UNPROTECT" else "PROTECT", Modifier.weight(1f)) { manager.setProtected(item.packageName, !item.protected); load() }
+                                CompactAction("STREAM", Modifier.weight(1f)) { scope.launch { load(manager.streamingOptimize(item.packageName).summary) } }
                             }
-                            if (!item.system) CompactAction("UNINSTALL", Modifier.weight(1f)) { manager.uninstall(item.packageName) }
+                            Spacer(Modifier.height(6.dp))
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                CompactAction("SETTINGS", Modifier.weight(1f)) { manager.openSettings(item.packageName) }
+                                CompactAction(if (item.packageName in favorites) "UNFAVORITE" else "FAVORITE", Modifier.weight(1f)) {
+                                    tools.setFavorite(item.packageName, item.packageName !in favorites)
+                                    load()
+                                }
+                                if (!item.system) CompactAction("UNINSTALL", Modifier.weight(1f)) { manager.uninstall(item.packageName) }
+                            }
                         }
                     }
+                    Spacer(Modifier.height(7.dp))
                 }
-                }
-                Spacer(Modifier.height(7.dp))
             }
         }
     }

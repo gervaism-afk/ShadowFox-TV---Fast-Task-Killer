@@ -22,11 +22,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,10 +41,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
@@ -53,9 +59,58 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
+internal fun AppFilterDialog(
+    query: String,
+    filter: AppListFilter,
+    onDismiss: () -> Unit,
+    onApply: (String, AppListFilter) -> Unit
+) {
+    var search by rememberSaveable { mutableStateOf(query) }
+    var selected by rememberSaveable { mutableStateOf(filter) }
+    val configuration = LocalConfiguration.current
+    val television = configuration.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
+    val initialFocus = remember { FocusRequester() }
+    fun apply() = onApply(search.trim(), selected)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.widthIn(max = 520.dp).fillMaxWidth(.92f),
+        containerColor = Color(0xFF0A2030), titleContentColor = Color.White, textContentColor = Color.White,
+        title = { Text("FILTER APPS", fontSize = 18.sp) },
+        text = {
+            Column(Modifier.fillMaxWidth().heightIn(max = (configuration.screenHeightDp * .55f).dp)
+                .verticalScroll(rememberScrollState())) {
+                AppListFilter.entries.forEach { option ->
+                    ToolAction(
+                        if (option == selected) "✓ ${option.label}" else option.label,
+                        if (option == filter) Modifier.focusRequester(initialFocus) else Modifier
+                    ) { selected = option }
+                }
+                OutlinedTextField(
+                    value = search,
+                    onValueChange = { search = it },
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                    label = { Text("App name or package") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { apply() })
+                )
+                if (television) LaunchedEffect(Unit) { initialFocus.requestFocus() }
+            }
+        },
+        confirmButton = { TextButton(onClick = { apply() }) { Text("APPLY", color = Color(0xFF00E5FF)) } },
+        dismissButton = {
+            TextButton(onClick = { onApply("", AppListFilter.ALL) }) { Text("CLEAR FILTERS", color = Color(0xFF00E5FF)) }
+        }
+    )
+}
+
+@Composable
 internal fun AppsHelpDialog(onDismiss: () -> Unit) {
     val entries = listOf(
         "APPS" to "Open your apps, pin favorites, and protect important apps from cleanup. The list contains launchable apps Android makes visible to ShadowFox.",
+        "FILTER" to "Search by app name or package name, or limit the list to Favorites or Protected apps. Select Apply to see the matches. Clear Filters restores the full list for your current system-app visibility setting.",
         "LAUNCH" to "Opens the selected app normally. TV apps open their TV interface when one is available.",
         "FAVORITE / UNFAVORITE" to "Pins or unpins an app at the top of the list. Favorites are saved between sessions. Favoriting does not protect an app from cleanup.",
         "PROTECT / UNPROTECT" to "Protect keeps an app out of ShadowFox's app-stop and third-party cache-cleanup targets where these actions are supported. Unprotect removes your custom exemption; built-in safety rules still apply.",

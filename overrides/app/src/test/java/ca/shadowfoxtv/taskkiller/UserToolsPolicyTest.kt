@@ -4,6 +4,32 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class UserToolsPolicyTest {
+    private val player = ManagedApp("example.stream.player", "Media Center", running = false, protected = false, system = false)
+    private val favorites = setOf(player.packageName)
+
+    @Test fun appSearchMatchesPartialNamesAndPackagesIgnoringCase() {
+        assertTrue(AppListFilter.ALL.matches(player, "MEDIA", emptySet(), true))
+        assertTrue(AppListFilter.ALL.matches(player, "Stream.Player", emptySet(), true))
+        assertFalse(AppListFilter.ALL.matches(player, "music", emptySet(), true))
+    }
+
+    @Test fun appFiltersCombineWithSearchAndKeepFavoritesSeparateFromProtection() {
+        assertTrue(AppListFilter.FAVORITES.matches(player, "center", favorites, true))
+        assertFalse(AppListFilter.FAVORITES.matches(player, "music", favorites, true))
+        assertFalse(AppListFilter.PROTECTED.matches(player, "", favorites, true))
+        val protectedPlayer = player.copy(protected = true)
+        assertTrue(AppListFilter.PROTECTED.matches(protectedPlayer, "", emptySet(), true))
+        assertFalse(AppListFilter.FAVORITES.matches(protectedPlayer, "", emptySet(), true))
+    }
+
+    @Test fun appFiltersRespectSystemVisibility() {
+        val systemPlayer = player.copy(system = true, protected = true)
+        AppListFilter.entries.forEach { filter ->
+            assertFalse(filter.matches(systemPlayer, "", favorites, false))
+            assertTrue(filter.matches(systemPlayer, "", favorites, true))
+        }
+    }
+
     @Test fun stableSamplesReportMedianAndVariation() {
         val result = StabilityAnalysis.summarize(listOf(10, 12, 11, 13), false)
         assertEquals(11, result.medianMs)
