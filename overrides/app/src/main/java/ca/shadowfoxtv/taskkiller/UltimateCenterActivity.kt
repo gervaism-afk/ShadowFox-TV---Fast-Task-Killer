@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.ScrollState
@@ -28,9 +29,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -50,8 +53,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -81,7 +87,18 @@ class UltimateCenterActivity : ComponentActivity() {
         hideBars()
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(background = UBG, surface = UPANEL)) {
-                UltimateCenter(UltimateManager(applicationContext), intent.getStringExtra("shadowfox_tab"), onClose = { finish() })
+                val density = LocalDensity.current
+                val television = LocalConfiguration.current.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
+                // Some TV firmware exposes a 720p desktop at mdpi. Keep controls and
+                // telemetry readable there while preserving the user's text-size setting.
+                val textDensity = Density(density.density, density.fontScale * if (television) 1.35f else 1f)
+                val textStyle = LocalTextStyle.current
+                CompositionLocalProvider(
+                    LocalDensity provides textDensity,
+                    LocalTextStyle provides if (television) textStyle.copy(lineHeight = TextUnit.Unspecified) else textStyle
+                ) {
+                    UltimateCenter(UltimateManager(applicationContext), intent.getStringExtra("shadowfox_tab"), onClose = { finish() })
+                }
             }
         }
     }
@@ -140,7 +157,7 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     ) {
         val side = if (isPhone) 10.dp else 18.dp
         val top = if (isPhone) 6.dp else 14.dp
-        val contentMax = if (landscape && !isPhone) 920.dp else if (landscape) 1180.dp else 620.dp
+        val contentMax = if (landscape && !isPhone) 1240.dp else if (landscape) 1180.dp else 620.dp
         val contentWidth = minOf(maxWidth - (side * 2), contentMax)
 
         // Keep the entire command surface centered as one bounded canvas. Using
@@ -247,7 +264,7 @@ private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact
             painter = painterResource(R.drawable.shadowfox_logo),
             contentDescription = "ShadowFox TV",
             contentScale = ContentScale.Fit,
-            modifier = Modifier.width(if (isPhone) 62.dp else 190.dp).height(if (isPhone) 46.dp else 60.dp)
+            modifier = Modifier.width(if (isPhone) 62.dp else 84.dp).height(if (isPhone) 46.dp else 60.dp)
         )
         Spacer(Modifier.width(12.dp))
         Column {
@@ -280,12 +297,13 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
         if (landscape) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.fillMaxWidth().height(146.dp)) { SmartOptimizePanel(manager, snapshot?.root == true, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh) }
-                    Box(Modifier.fillMaxWidth().height(112.dp)) { ThermalPanel(snapshot) }
+                    SmartOptimizePanel(manager, snapshot?.root == true, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh,
+                        modifier = Modifier.heightIn(min = if (isPhone) 146.dp else 190.dp))
+                    ThermalPanel(snapshot, Modifier.heightIn(min = if (isPhone) 112.dp else 152.dp))
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.fillMaxWidth().height(146.dp)) { StreamingPanel() }
-                    Box(Modifier.fillMaxWidth().height(112.dp)) { SystemStatusPanel(manager, snapshot) }
+                    StreamingPanel(Modifier.heightIn(min = if (isPhone) 146.dp else 190.dp))
+                    SystemStatusPanel(manager, snapshot, Modifier.heightIn(min = if (isPhone) 112.dp else 152.dp))
                 }
             }
         } else if (isPhone) {
@@ -343,9 +361,10 @@ private fun ThermalPanelCompact(snapshot: UltimateSnapshot?) {
 }
 
 @Composable
-private fun SmartOptimizePanel(manager: UltimateManager, rootActive: Boolean, status: String, busy: Boolean, onBusy: (Boolean) -> Unit, onStatus: (String) -> Unit, refresh: () -> Unit) {
+private fun SmartOptimizePanel(manager: UltimateManager, rootActive: Boolean, status: String, busy: Boolean, onBusy: (Boolean) -> Unit, onStatus: (String) -> Unit, refresh: () -> Unit,
+    modifier: Modifier = Modifier.heightIn(min = 146.dp)) {
     val scope = rememberCoroutineScope()
-    UltimatePanel("SMART OPTIMIZE", "Root-aware cleanup with verified results — never simulated.", Modifier.height(146.dp)) {
+    UltimatePanel("SMART OPTIMIZE", "Root-aware cleanup with verified results.", modifier) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(if (rootActive) "ROOT ENGINE ACTIVE" else "STANDARD ENGINE", color = if (rootActive) UGREEN else UCYAN, fontSize = 9.sp, fontWeight = FontWeight.Black)
@@ -369,23 +388,23 @@ private fun SmartOptimizePanel(manager: UltimateManager, rootActive: Boolean, st
 }
 
 @Composable
-private fun StreamingPanel() {
-    UltimatePanel("STREAMING MODE", "Prepare the device for IPTV, movies and high-bitrate playback.", Modifier.height(146.dp)) {
+private fun StreamingPanel(modifier: Modifier = Modifier.heightIn(min = 146.dp)) {
+    UltimatePanel("STREAMING MODE", "Prepare the device for IPTV, movies and high-bitrate playback.", modifier) {
         Text("Open APPS and press STREAM beside your IPTV, VLC, Kodi or movie player.", color = UMUTED, fontSize = 10.sp)
     }
 }
 
 @Composable
-private fun ThermalPanel(snapshot: UltimateSnapshot?) {
-    UltimatePanel("DEVICE PERFORMANCE", "Live memory, storage and thermal condition.") {
+private fun ThermalPanel(snapshot: UltimateSnapshot?, modifier: Modifier = Modifier) {
+    UltimatePanel("DEVICE PERFORMANCE", "Live memory, storage and thermal condition.", modifier) {
         Text("Thermal: ${snapshot?.temperatureStatus ?: "..."}  •  Free RAM: ${formatUiBytes(snapshot?.freeRam ?: 0)}  •  Free Storage: ${formatUiBytes(snapshot?.freeStorage ?: 0)}", color = UWHITE, fontSize = 10.sp)
     }
 }
 
 @Composable
-private fun SystemStatusPanel(manager: UltimateManager, snapshot: UltimateSnapshot?) {
+private fun SystemStatusPanel(manager: UltimateManager, snapshot: UltimateSnapshot?, modifier: Modifier = Modifier) {
     val device = remember { manager.deviceReport() }
-    UltimatePanel("SYSTEM STATUS", "Live device and optimizer environment.") {
+    UltimatePanel("SYSTEM STATUS", "Live device and optimizer environment.", modifier) {
         Text("Android ${device.android} • SDK ${device.sdk}  •  ${if (snapshot?.root == true) "ROOT ACTIVE" else snapshot?.mode ?: "DETECTING MODE"}", color = if (snapshot?.root == true) UGREEN else UWHITE, fontSize = 10.sp)
         Spacer(Modifier.height(4.dp))
         Text("${device.manufacturer} ${device.model} • ${device.abi}", color = UMUTED, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -625,7 +644,7 @@ private fun SystemScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, 
                     }
                 }
             }
-            Row(Modifier.fillMaxWidth().height(72.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth().height(112.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 UltimatePanel("MAINTENANCE HISTORY", message, Modifier.weight(1f).fillMaxHeight()) {
                     val history = manager.history()
                     Text(history.firstOrNull() ?: "No maintenance history yet.", color = if (history.isEmpty()) UMUTED else UWHITE, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
