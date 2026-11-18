@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.StatFs
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
@@ -79,10 +80,10 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URL
@@ -149,20 +150,28 @@ private fun MobileDashboard(context: Context) {
     var closedApps by remember { mutableIntStateOf(0) }
     val optimizer = remember { ShadowFoxProEngine(context.applicationContext) }
     val scope = rememberCoroutineScope()
-    fun optimize() {
+    fun optimize(action: CleanupAction) {
         if (busy) return
         scope.launch {
             busy = true
-            val result = withTimeoutOrNull(50_000L) { optimizer.optimize() }
-            if (result == null) { busy = false; return@launch }
-            delay(350)
-            ram = memoryUsedPercent(context)
-            apps = result.verifiedStopped
-            rootAvailable = result.rootUsed
-            ramFreed = result.ramFreedBytes
-            storageFreed = result.storageFreedBytes
-            closedApps = result.closedApps
-            busy = false
+            try {
+                val result = optimizer.perform(action)
+                ram = memoryUsedPercent(context)
+                if (action != CleanupAction.CACHE) apps = result.scannedApps - result.verifiedStopped
+                rootAvailable = result.rootUsed
+                if (action.stopsApps) {
+                    ramFreed = result.ramFreedBytes
+                    closedApps = result.closedApps
+                }
+                if (action.clearsCache) storageFreed = result.storageFreedBytes
+                Toast.makeText(context, result.summary, Toast.LENGTH_LONG).show()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                Toast.makeText(context, "Cleanup could not finish. Try again.", Toast.LENGTH_LONG).show()
+            } finally {
+                busy = false
+            }
         }
     }
     LaunchedEffect(Unit) { while (true) { ram = memoryUsedPercent(context); delay(2000) } }
@@ -178,7 +187,7 @@ private fun MobileDashboard(context: Context) {
                 }
             }
             Spacer(Modifier.height(16.dp))
-            GlowCard(Modifier.fillMaxWidth().height(265.dp), onClick = { optimize() }, hero = true) {
+            GlowCard(Modifier.fillMaxWidth().height(265.dp), onClick = { optimize(CleanupAction.RAM) }, hero = true) {
                 Column(Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     RamGauge(ram, Modifier.size(184.dp))
                     Text("RAM BOOSTER", color = WHITE, fontSize = 19.sp, fontWeight = FontWeight.Black)
@@ -187,8 +196,8 @@ private fun MobileDashboard(context: Context) {
             }
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MobileActionCard("SYSTEM SCAN", "$apps processes", Modifier.weight(1f), busy) { optimize() }
-                MobileActionCard("CACHE CLEANER", if (storageFreed > 0) formatBytes(storageFreed) else "Ready", Modifier.weight(1f), busy) { optimize() }
+                MobileActionCard("SYSTEM SCAN", "$apps processes", Modifier.weight(1f), busy) { optimize(CleanupAction.SCAN) }
+                MobileActionCard("CACHE CLEANER", if (storageFreed > 0) formatBytes(storageFreed) else "Ready", Modifier.weight(1f), busy) { optimize(CleanupAction.CACHE) }
             }
             Spacer(Modifier.height(12.dp))
             GlowCard(Modifier.fillMaxWidth().height(108.dp), onClick = { context.startActivity(Intent(context, UltimateCenterActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }) {
@@ -282,20 +291,28 @@ private fun MasterDashboard(context: Context) {
         }
     }
 
-    fun clean() {
+    fun clean(action: CleanupAction) {
         if (busy) return
         scope.launch {
             busy = true
-            val result = withTimeoutOrNull(50_000L) { optimizer.optimize() }
-            if (result == null) { busy = false; return@launch }
-            delay(450)
-            ram = memoryUsedPercent(context)
-            apps = result.verifiedStopped
-            rootAvailable = result.rootUsed
-            ramFreed = result.ramFreedBytes
-            storageFreed = result.storageFreedBytes
-            closedApps = result.closedApps
-            busy = false
+            try {
+                val result = optimizer.perform(action)
+                ram = memoryUsedPercent(context)
+                if (action != CleanupAction.CACHE) apps = result.scannedApps - result.verifiedStopped
+                rootAvailable = result.rootUsed
+                if (action.stopsApps) {
+                    ramFreed = result.ramFreedBytes
+                    closedApps = result.closedApps
+                }
+                if (action.clearsCache) storageFreed = result.storageFreedBytes
+                Toast.makeText(context, result.summary, Toast.LENGTH_LONG).show()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                Toast.makeText(context, "Cleanup could not finish. Try again.", Toast.LENGTH_LONG).show()
+            } finally {
+                busy = false
+            }
         }
     }
 
@@ -345,7 +362,7 @@ private fun MasterDashboard(context: Context) {
 
                 WeatherBadge(weather, Modifier.offset(458.dp, 38.dp))
 
-                GlowCard(Modifier.offset(45.dp, 145.dp).size(205.dp, 265.dp), onClick = { clean() }) {
+                GlowCard(Modifier.offset(45.dp, 145.dp).size(205.dp, 265.dp), onClick = { clean(CleanupAction.SCAN) }) {
                     Box(Modifier.fillMaxSize()) {
                         ScanDial(Modifier.align(Alignment.TopCenter).padding(top = 26.dp).size(135.dp))
                         Column(
@@ -355,14 +372,14 @@ private fun MasterDashboard(context: Context) {
                             Text("SYSTEM SCAN", color = WHITE, fontSize = 16.sp, fontWeight = FontWeight.Black)
                             Text("$apps ACTIVE PROCESSES", color = MUTED, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(10.dp))
-                            MasterButton(if (busy) "SCANNING..." else "SCAN NOW", 105.dp, !busy) { clean() }
+                            MasterButton(if (busy) "SCANNING..." else "SCAN NOW", 105.dp, !busy) { clean(CleanupAction.SCAN) }
                         }
                     }
                 }
 
                 GlowCard(
                     modifier = Modifier.offset(268.dp, 116.dp).size(300.dp, 323.dp),
-                    onClick = { clean() },
+                    onClick = { clean(CleanupAction.RAM) },
                     hero = true
                 ) {
                     Box(Modifier.fillMaxSize()) {
@@ -373,12 +390,12 @@ private fun MasterDashboard(context: Context) {
                         ) {
                             Text("RAM BOOSTER", color = WHITE, fontSize = 19.sp, fontWeight = FontWeight.Black)
                             Spacer(Modifier.height(10.dp))
-                            MasterButton(if (busy) "BOOSTING..." else "BOOST", 150.dp, !busy) { clean() }
+                            MasterButton(if (busy) "BOOSTING..." else "BOOST", 150.dp, !busy) { clean(CleanupAction.RAM) }
                         }
                     }
                 }
 
-                GlowCard(Modifier.offset(592.dp, 133.dp).size(320.dp, 133.dp), onClick = { clean() }) {
+                GlowCard(Modifier.offset(592.dp, 133.dp).size(320.dp, 133.dp), onClick = { clean(CleanupAction.CACHE) }) {
                     Row(Modifier.fillMaxSize().padding(17.dp), verticalAlignment = Alignment.CenterVertically) {
                         Broom(Modifier.size(64.dp))
                         Spacer(Modifier.width(14.dp))
@@ -386,7 +403,7 @@ private fun MasterDashboard(context: Context) {
                             Text("CACHE CLEANER", color = WHITE, fontSize = 17.sp, fontWeight = FontWeight.Black)
                             Text("Trim app cache without deleting data.", color = MUTED, fontSize = 8.sp)
                             Spacer(Modifier.height(9.dp))
-                            MasterButton(if (busy) "CLEANING..." else "CLEAN NOW", 105.dp, !busy) { clean() }
+                            MasterButton(if (busy) "CLEANING..." else "CLEAN NOW", 105.dp, !busy) { clean(CleanupAction.CACHE) }
                         }
                     }
                 }

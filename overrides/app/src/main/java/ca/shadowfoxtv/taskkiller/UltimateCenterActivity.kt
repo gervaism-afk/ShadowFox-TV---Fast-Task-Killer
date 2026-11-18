@@ -334,10 +334,16 @@ private fun SmartOptimizePanelCompact(manager: UltimateManager, rootActive: Bool
             UltimateButton(if (busy) "WORKING..." else "OPTIMIZE") {
                 if (!busy) scope.launch {
                     onBusy(true); onStatus("SCANNING • CLEANING...")
-                    val result = manager.smartOptimize()
-                    onStatus("${result.verifiedStopped}/${result.attemptedApps} STOPPED • ${formatUiBytes(result.ramFreedBytes)} RAM")
-                    onBusy(false)
-                    refresh()
+                    try {
+                        onStatus(manager.smartOptimize().summary)
+                        refresh()
+                    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        onStatus("Cleanup could not finish. Try again.")
+                    } finally {
+                        onBusy(false)
+                    }
                 }
             }
         }
@@ -375,12 +381,16 @@ private fun SmartOptimizePanel(manager: UltimateManager, rootActive: Boolean, st
                 scope.launch {
                     onBusy(true)
                     onStatus("SCANNING • VERIFYING APPS • CLEANING CACHE...")
-                    val result = manager.smartOptimize()
-                    onStatus("${result.verifiedStopped}/${result.attemptedApps} STOPPED • ${formatUiBytes(result.ramFreedBytes)} RAM • ${formatUiBytes(result.storageFreedBytes)} CACHE")
-                    onBusy(false)
-                    // Telemetry refresh happens after the action is released so slow
-                    // H96 device queries never extend the visible optimization time.
-                    refresh()
+                    try {
+                        onStatus(manager.smartOptimize().summary)
+                        refresh()
+                    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        onStatus("Cleanup could not finish. Try again.")
+                    } finally {
+                        onBusy(false)
+                    }
                 }
             }
         }

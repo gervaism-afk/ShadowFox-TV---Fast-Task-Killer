@@ -8,13 +8,16 @@ import android.content.pm.PackageManager
 import android.os.Environment
 import android.os.StatFs
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 /**
  * Root-first optimizer for ShadowFox TV.
@@ -28,10 +31,14 @@ data class ProCleanupResult(
     val attemptedApps: Int,
     val verifiedStopped: Int,
     val cacheFreedBytes: Long,
-    val summary: String
+    val summary: String,
+    val scannedApps: Int = 0
 )
 
 class ShadowFoxProEngine(private val context: Context) {
+    companion object {
+        private val actionMutex = Mutex()
+    }
     private val appContext = context.applicationContext
     private val activityManager = appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     private val packageManager = appContext.packageManager
@@ -40,88 +47,123 @@ class ShadowFoxProEngine(private val context: Context) {
         return RootShell.isRootAvailable()
     }
 
-    suspend fun optimize(): ProCleanupResult = withContext(Dispatchers.IO) {
-        resetDiagnostic()
-        val beforeRam = availableMemoryBytes()
-        val beforeStorage = freeStorageBytes()
-        val root = rootAvailable()
-        val protected = protectedPackages()
+    suspend fun optimize(): ProCleanupResult = perform(CleanupAction.SMART)
 
-        val allEligible = if (root) rootThirdPartyPackages(protected) else nonRootCandidates(protected)
-        val runningBefore = if (root) rootProcessSnapshot() else RootProcessSnapshot(emptySet(), "")
-        val runningCandidates = if (root) allEligible.filter { it.isRunningIn(runningBefore) } else allEligible
-
-        appendDiagnostic("START root=$root eligible=${allEligible.size} running=${runningCandidates.size}")
-        var verifiedStopped = 0
-        var cacheFreed = 0L
-
-        if (root) {
-            // Batch all force-stops into one root shell instead of one su invocation per app.
-            if (runningCandidates.isNotEmpty()) {
-                val stopCommand = runningCandidates.joinToString("; ") { pkg ->
-                    "am force-stop --user 0 ${shellQuote(pkg)}"
+    suspend fun perform(action: CleanupAction, additionalProtected: Set<String> = emptySet()): ProCleanupResult =
+        actionMutex.withLock {
+            withContext(Dispatchers.IO) {
+                val started = System.nanoTime()
+                resetDiagnostic()
+                val beforeRam = availableMemoryBytes()
+                val root = rootAvailable()
+                val deadline = System.nanoTime() + action.budgetMillis * 1_000_000
+                val protected = protectedPackages() + additionalProtected
+                currentCoroutineContext().ensureActive()
+                val listedApps = if (root) rootThirdPartyPackages(protected, deadline) else nonRootCandidates(protected)
+                val allEligible = listedApps.orEmpty()
+                val beforeProcesses = if (root && action != CleanupAction.CACHE) rootProcessSnapshot(deadline) else null
+                val runningCandidates = if (root) allEligible.filter { beforeProcesses?.isRunning(it) == true } else allEligible
+                appendDiagnostic("START action=$action root=$root eligible=${allEligible.size} running=${runningCandidates.size} discoveryMs=${(System.nanoTime() - started) / 1_000_000}")
+                var verifiedStopped = 0
+                var cacheFreed = 0L
+                var verified = beforeProcesses != null
+                var cacheComplete = true
+                currentCoroutineContext().ensureActive()
+                if (action.stopsApps && runningCandidates.isNotEmpty()) {
+                    if (root) {
+                        val stopCommand = runningCandidates.joinToString("; ") { pkg ->
+                            "am force-stop --user 0 ${shellQuote(pkg)}"
+                        }
+                        val stop = runRoot(stopCommand, deadline, 3500)
+                        appendDiagnostic("STOP_BATCH count=${runningCandidates.size} command=${if (stop.success) "ok" else "partial/failed"} output=${cleanOutput(stop.output)}")
+                        currentCoroutineContext().ensureActive()
+                        val afterProcesses = rootProcessSnapshot(deadline)
+                        verified = afterProcesses != null
+                        verifiedStopped = runningCandidates.count { afterProcesses?.isRunning(it) == false }
+                    } else {
+                        for (pkg in runningCandidates) {
+                            currentCoroutineContext().ensureActive()
+                            if (System.nanoTime() >= deadline) break
+                            runCatching { activityManager.killBackgroundProcesses(pkg) }
+                        }
+                    }
+                    delay(150)
                 }
-                val stop = runRoot(stopCommand, 8)
-                appendDiagnostic("STOP_BATCH count=${runningCandidates.size} command=${if (stop.success) "ok" else "partial/failed"} output=${cleanOutput(stop.output)}")
+                currentCoroutineContext().ensureActive()
+                if (action.clearsCache) {
+                    val cache = clearCache(root, allEligible, deadline)
+                    cacheFreed = cache.freedBytes
+                    cacheComplete = cache.complete
+                }
+                val afterRam = availableMemoryBytes()
+                val ramFreed = if (action.stopsApps) (afterRam - beforeRam).coerceAtLeast(0L) else 0L
+                val storageFreed = cacheFreed
+                val summary = if (action == CleanupAction.SCAN) {
+                    "SCAN COMPLETE • ${runningCandidates.size} detected eligible apps • ${if (root) "ROOT" else "STANDARD MODE"}"
+                } else if (action == CleanupAction.CACHE) {
+                    "CACHE CLEANER • ${formatBytes(storageFreed)} reclaimed • ${if (root) "ROOT" else "SHADOWFOX CACHE"}"
+                } else if (root) {
+                    "ROOT ✓ • $verifiedStopped/${runningCandidates.size} running apps stopped • +${formatBytes(ramFreed)} RAM • ${formatBytes(storageFreed)} cache"
+                } else {
+                    "STANDARD MODE • background clean requested • +${formatBytes(ramFreed)} measured RAM"
+                }
+                val verificationMissing = root && action != CleanupAction.CACHE && !verified
+                val finalSummary = summary +
+                    (if (listedApps == null) " • app discovery unavailable" else "") +
+                    (if (verificationMissing) " • process verification unavailable" else "") +
+                    (if (!cacheComplete) " • cache cleanup incomplete" else "") +
+                    (if (System.nanoTime() >= deadline) " • time limit reached; partial results" else "")
+                appendDiagnostic("RESULT action=$action stopped=$verifiedStopped/${runningCandidates.size} ram=$ramFreed storage=$storageFreed elapsedMs=${(System.nanoTime() - started) / 1_000_000}")
+
+                ProCleanupResult(
+                    closedApps = if (root) verifiedStopped else 0,
+                    ramFreedBytes = ramFreed,
+                    storageFreedBytes = storageFreed,
+                    rootUsed = root,
+                    attemptedApps = if (action.stopsApps) runningCandidates.size else 0,
+                    verifiedStopped = verifiedStopped,
+                    cacheFreedBytes = storageFreed,
+                    summary = finalSummary,
+                    scannedApps = runningCandidates.size
+                )
             }
-
-            // One verification snapshot after the batch; do not repeatedly scan /proc per package.
-            Thread.sleep(300)
-            val runningAfter = rootProcessSnapshot()
-            verifiedStopped = runningCandidates.count { !it.isRunningIn(runningAfter) }
-
-            cacheFreed = clearEligibleCache()
-        } else {
-            for (pkg in runningCandidates) runCatching { activityManager.killBackgroundProcesses(pkg) }
-            Thread.sleep(300)
         }
-
-        Thread.sleep(350)
-        val afterRam = availableMemoryBytes()
-        val afterStorage = freeStorageBytes()
-        val ramFreed = (afterRam - beforeRam).coerceAtLeast(0L)
-        val storageFreed = cacheFreed
-        val summary = if (root) {
-            "ROOT ✓ • $verifiedStopped/${runningCandidates.size} running apps stopped • +${formatBytes(ramFreed)} RAM • ${formatBytes(storageFreed)} cache"
-        } else {
-            "STANDARD MODE • background clean requested • +${formatBytes(ramFreed)} measured RAM"
-        }
-        appendDiagnostic("RESULT stopped=$verifiedStopped/${runningCandidates.size} ram=$ramFreed storage=$storageFreed")
-
-        ProCleanupResult(
-            closedApps = if (root) verifiedStopped else 0,
-            ramFreedBytes = ramFreed,
-            storageFreedBytes = storageFreed,
-            rootUsed = root,
-            attemptedApps = runningCandidates.size,
-            verifiedStopped = verifiedStopped,
-            cacheFreedBytes = storageFreed,
-            summary = summary
-        )
-    }
 
     fun clearEligibleCache(additionalProtected: Set<String> = emptySet()): Long {
         if (!rootAvailable()) return 0L
-        val packages = rootThirdPartyPackages(protectedPackages() + additionalProtected)
-        if (packages.isEmpty()) return 0L
-        // Measure actual reclaimed storage without an expensive rooted du traversal.
+        val deadline = System.nanoTime() + CleanupAction.CACHE.budgetMillis * 1_000_000
+        val packages = rootThirdPartyPackages(protectedPackages() + additionalProtected, deadline) ?: return 0L
+        return clearCache(true, packages, deadline).freedBytes
+    }
+
+    private data class CacheCleanup(val freedBytes: Long, val complete: Boolean)
+
+    private fun clearCache(root: Boolean, packages: List<String>, deadline: Long): CacheCleanup {
+        val paths = if (root) packages.flatMap(::cachePaths) else listOfNotNull(
+            appContext.cacheDir?.absolutePath, appContext.externalCacheDir?.absolutePath
+        )
+        if (System.nanoTime() >= deadline) return CacheCleanup(0, false)
+        if (paths.isEmpty()) return CacheCleanup(0, true)
         val before = freeStorageBytes()
-        val command = buildString {
-            for (pkg in packages) for (path in cachePaths(pkg)) {
-                append("d=").append(shellQuote(path)).append("; ")
-                append("if [ -d \"\$d\" ]; then rm -rf \"\$d\"/* \"\$d\"/.[!.]* \"\$d\"/..?* 2>/dev/null; fi; ")
-            }
+        // A single rm process handles all eligible cache contents, preserving cache directories.
+        val command = "exec rm -rf " + paths.joinToString(" ") { path ->
+            val quoted = shellQuote(path)
+            "$quoted/* $quoted/.[!.]* $quoted/..?*"
         }
-        runRoot(command, 12)
-        return (freeStorageBytes() - before).coerceAtLeast(0L)
+        val timeout = minOf(4000, ((deadline - System.nanoTime()) / 1_000_000).coerceAtLeast(0))
+        val result = if (root) RootShell.execMillis(command, timeout) else {
+            RootProcess.runMillis(listOf("sh", "-c", command), null, timeout).let { RootShell.Result(it.success, it.output) }
+        }
+        appendDiagnostic("CACHE command=${if (result.success) "ok" else "partial/failed"} output=${cleanOutput(result.output)}")
+        return CacheCleanup((freeStorageBytes() - before).coerceAtLeast(0L), result.success)
     }
 
     fun diagnosticsSummary(): String {
         val root = rootAvailable()
         if (!root) return "STANDARD MODE • ROOT NOT GRANTED"
-        val eligible = rootThirdPartyPackages(protectedPackages())
+        val eligible = rootThirdPartyPackages(protectedPackages()) ?: return "ROOT ACTIVE • app discovery unavailable"
         val processes = rootProcessSnapshot()
-        val running = eligible.count { it.isRunningIn(processes) }
+        val running = eligible.count { processes?.isRunning(it) == true }
         return "ROOT ACTIVE • UID 0 • $running running • ${eligible.size} eligible"
     }
 
@@ -131,13 +173,14 @@ class ShadowFoxProEngine(private val context: Context) {
         val protected = protectedPackages()
         if (!rootAvailable()) return nonRootCandidates(protected)
         val processes = rootProcessSnapshot()
-        return rootThirdPartyPackages(protected).filter { it.isRunningIn(processes) }
+        return rootThirdPartyPackages(protected).orEmpty().filter { processes?.isRunning(it) == true }
     }
 
     fun isThirdPartyPackageRunning(packageName: String): Boolean {
         if (packageName.isBlank()) return false
         if (!rootAvailable()) return packageName in nonRootCandidates(protectedPackages())
-        return packageName.isRunningIn(rootProcessSnapshot())
+        // Missing verification is treated as still running.
+        return rootProcessSnapshot()?.isRunning(packageName) ?: true
     }
 
     fun readRecentDiagnostics(maxLines: Int = 12): List<String> = runCatching {
@@ -156,37 +199,27 @@ class ShadowFoxProEngine(private val context: Context) {
         .take(100)
         .ifBlank { "none" }
 
-    private fun rootThirdPartyPackages(protected: Set<String>): List<String> {
-        val result = runRoot("pm list packages -3")
-        if (!result.success) return emptyList()
+    private fun rootThirdPartyPackages(protected: Set<String>, deadline: Long = System.nanoTime() + 2_000_000_000L): List<String>? {
+        val result = runRoot("pm list packages -3", deadline, 2000)
+        if (!result.success) return null
         return result.output.lineSequence()
-            .map { it.trim().removePrefix("package:") }
+            .map { it.trim() }
+            .filter { it.startsWith("package:") }
+            .map { it.removePrefix("package:") }
             .filter { it.isNotBlank() && it != appContext.packageName && it !in protected }
+            .filterNot { it.contains("launcher", ignoreCase = true) }
             .distinct()
             .sorted()
             .toList()
     }
 
-    /**
-     * Reads /proc directly because several rooted Android TV firmwares ship a
-     * pidof/ps variant that cannot resolve Android package process names.
-     */
-    private fun rootProcessSnapshot(): RootProcessSnapshot {
-        val proc = runRoot("for f in /proc/[0-9]*/cmdline; do cat \"\$f\" 2>/dev/null; echo; done")
-        val names = proc.output.lineSequence()
-            .map { it.substringBefore('\u0000').trim() }
-            .filter { it.isNotBlank() }
-            .toSet()
-        // Some H96 Android TV builds isolate /proc even from app-spawned root.
-        // ActivityManager's registry still lists active and cached app processes.
-        val activity = runRoot("dumpsys activity processes").output
-        return RootProcessSnapshot(names, activity)
-    }
-
-    private fun String.isRunningIn(snapshot: RootProcessSnapshot): Boolean {
-        if (snapshot.names.any { it == this || it.startsWith("${this}:") }) return true
-        val packageToken = Regex("(?<![A-Za-z0-9_.])${Regex.escape(this)}(?=[:/}\\s]|$)")
-        return packageToken.containsMatchIn(snapshot.activityProcesses)
+    private fun rootProcessSnapshot(deadline: Long = System.nanoTime() + 2_000_000_000L): RootProcessSnapshot? {
+        // The registry also works on TV firmware that isolates /proc from app-spawned root.
+        val activity = runRoot("dumpsys activity processes", deadline, 1500)
+        if (activity.success) RootProcessSnapshot.fromActivity(activity.output)?.let { return it }
+        // One wide ps process replaces a separate cat process for every /proc entry.
+        val processes = runRoot("ps -A -w -o NAME", deadline, 1000)
+        return if (processes.success) RootProcessSnapshot.fromPs(processes.output) else null
     }
 
     private fun nonRootCandidates(protected: Set<String>): List<String> =
@@ -194,6 +227,7 @@ class ShadowFoxProEngine(private val context: Context) {
             .flatMap { it.pkgList?.toList().orEmpty() }
             .distinct()
             .filter { it != appContext.packageName && it !in protected }
+            .filterNot { it.contains("launcher", ignoreCase = true) }
             .filterNot(::isSystemPackage)
 
     private fun protectedPackages(): Set<String> {
@@ -229,13 +263,6 @@ class ShadowFoxProEngine(private val context: Context) {
         return set
     }
 
-    private fun cacheBytes(packages: List<String>): Long {
-        if (packages.isEmpty()) return 0L
-        val paths = packages.flatMap(::cachePaths).joinToString(" ") { shellQuote(it) }
-        val result = runRoot("du -sk $paths 2>/dev/null | awk '{s+=\$1} END{print s+0}'", 8)
-        return (result.output.trim().lineSequence().lastOrNull()?.toLongOrNull() ?: 0L) * 1024L
-    }
-
     private fun cachePaths(pkg: String): List<String> = listOf(
         "/data/user/0/$pkg/cache",
         "/data/user/0/$pkg/code_cache"
@@ -245,7 +272,7 @@ class ShadowFoxProEngine(private val context: Context) {
         val appInfo = packageManager.getApplicationInfo(packageName, 0)
         (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
             (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
-    }.getOrDefault(false)
+    }.getOrDefault(true)
 
     private fun availableMemoryBytes(): Long {
         val info = ActivityManager.MemoryInfo()
@@ -270,8 +297,10 @@ class ShadowFoxProEngine(private val context: Context) {
 
     private fun shellQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
 
-    private fun runRoot(command: String, timeoutSeconds: Long = 3): RootExec {
-        val result = RootShell.exec(command, timeoutSeconds)
+    private fun runRoot(command: String, deadline: Long, maximumMillis: Long): RootExec {
+        val remaining = ((deadline - System.nanoTime()) / 1_000_000).coerceAtLeast(0)
+        if (remaining == 0L) return RootExec(false, "timeout")
+        val result = RootShell.execMillis(command, minOf(remaining, maximumMillis))
         return RootExec(result.success, result.output)
     }
 
@@ -283,5 +312,4 @@ class ShadowFoxProEngine(private val context: Context) {
     }
 
     private data class RootExec(val success: Boolean, val output: String)
-    private data class RootProcessSnapshot(val names: Set<String>, val activityProcesses: String)
 }

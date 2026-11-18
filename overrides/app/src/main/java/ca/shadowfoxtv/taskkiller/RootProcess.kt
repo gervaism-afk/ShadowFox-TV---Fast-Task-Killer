@@ -7,9 +7,13 @@ import java.util.concurrent.atomic.AtomicReference
 internal object RootProcess {
     data class Result(val success: Boolean, val output: String)
 
-    fun run(args: List<String>, input: String?, timeoutSeconds: Long): Result = runCatching {
+    fun run(args: List<String>, input: String?, timeoutSeconds: Long): Result =
+        runMillis(args, input, TimeUnit.SECONDS.toMillis(timeoutSeconds))
+
+    fun runMillis(args: List<String>, input: String?, timeoutMillis: Long): Result = runCatching {
+        if (timeoutMillis <= 0) return Result(false, "timeout")
+        val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
         val process = ProcessBuilder(args).redirectErrorStream(true).start()
-        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds.coerceAtLeast(0))
         val output = StringBuffer()
         // Drain while the process runs: dumpsys and /proc output can fill the pipe.
         val reader = Thread {
@@ -42,8 +46,11 @@ internal object RootProcess {
                 process.destroy()
                 Result(false, "timeout")
             } else {
-                reader.join(500)
-                writer.join(500)
+                // Thread.join(0) waits forever, so skip joining after the deadline.
+                val readerWait = minOf(500, (deadline - System.nanoTime()) / 1_000_000)
+                if (readerWait > 0) reader.join(readerWait)
+                val writerWait = minOf(500, (deadline - System.nanoTime()) / 1_000_000)
+                if (writerWait > 0) writer.join(writerWait)
                 // Incomplete process snapshots must not be treated as successful results.
                 Result(exit == 0 && !reader.isAlive && !writer.isAlive && writeError.get() == null, output.toString())
             }

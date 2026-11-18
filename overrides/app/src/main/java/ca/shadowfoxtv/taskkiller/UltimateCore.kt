@@ -148,48 +148,12 @@ class UltimateManager(private val context: Context) {
     fun optimizerDiagnostics(): List<String> = ShadowFoxProEngine(app).readRecentDiagnostics(20)
 
     suspend fun streamingOptimize(targetPackage: String?): ProCleanupResult = withContext(Dispatchers.IO) {
-        val caps = capabilities()
         val protected = protectedPackages().toMutableSet().apply {
             add(app.packageName)
             if (!targetPackage.isNullOrBlank()) add(targetPackage)
         }
-        val before = ActivityManager.MemoryInfo().also(am::getMemoryInfo).availMem
-        var stopped = 0
-        var attempted = 0
-
-        if (caps.rooted) {
-            val engine = ShadowFoxProEngine(app)
-            val running = engine.runningThirdPartyPackages().filter { it !in protected && !isCritical(it) }
-            attempted = running.size
-            for (pkg in running) {
-                val stop = runRoot("am force-stop --user 0 ${shellQuote(pkg)}")
-                if (stop.first) {
-                    Thread.sleep(35)
-                    if (!engine.isThirdPartyPackageRunning(pkg)) stopped++
-                }
-            }
-            ShadowFoxProEngine(app).clearEligibleCache(protected)
-            runRoot("sync")
-        } else {
-            for (pkg in runningPackages().filter { it !in protected && !isSystem(it) }) {
-                runCatching { am.killBackgroundProcesses(pkg) }
-            }
-            Thread.sleep(350)
-        }
-
-        Thread.sleep(300)
-        val after = ActivityManager.MemoryInfo().also(am::getMemoryInfo).availMem
-        val freed = (after - before).coerceAtLeast(0)
-        val result = ProCleanupResult(
-            closedApps = stopped,
-            ramFreedBytes = freed,
-            storageFreedBytes = 0,
-            rootUsed = caps.rooted,
-            attemptedApps = attempted,
-            verifiedStopped = stopped,
-            cacheFreedBytes = 0,
-            summary = if (caps.rooted) "STREAMING MODE • $stopped/$attempted verified stopped • +${formatBytes(freed)} measured RAM" else "STREAMING MODE • standard background clean requested • +${formatBytes(freed)} measured RAM • app stops unverified"
-        )
+        val cleanup = ShadowFoxProEngine(app).perform(CleanupAction.SMART, protected)
+        val result = cleanup.copy(summary = "STREAMING MODE • ${cleanup.summary}")
         val finalResult = if (!targetPackage.isNullOrBlank() && !launch(targetPackage)) {
             result.copy(summary = result.summary + " • player could not be opened")
         } else result

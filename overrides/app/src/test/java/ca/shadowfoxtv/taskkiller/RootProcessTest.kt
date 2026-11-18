@@ -25,6 +25,14 @@ class RootProcessTest {
         assertTrue((System.nanoTime() - start) / 1_000_000 < 5000)
     }
 
+    @Test fun millisecondTimeoutDoesNotRoundUpToSeveralSeconds() {
+        val start = System.nanoTime()
+        val result = RootProcess.runMillis(fixture("hang"), null, 150)
+        assertFalse(result.success)
+        assertEquals("timeout", result.output)
+        assertTrue((System.nanoTime() - start) / 1_000_000 < 3000)
+    }
+
     @Test fun blockedStdinAlsoTimesOut() {
         val start = System.nanoTime()
         val result = RootProcess.run(fixture("hang"), "x".repeat(262144), 1)
