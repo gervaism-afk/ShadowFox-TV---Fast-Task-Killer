@@ -32,10 +32,10 @@
     <application
         android:name=".ShadowFoxApp"
         android:allowBackup="false"
-        android:banner="@drawable/ultra_cleaner_tv_banner"
+        android:banner="@mipmap/shadowfoxtv_banner"
         android:hardwareAccelerated="true"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:icon="@mipmap/shadowfoxtv_icon"
+        android:roundIcon="@mipmap/shadowfoxtv_icon"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.ShadowFox"
