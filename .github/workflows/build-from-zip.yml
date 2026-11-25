@@ -7,7 +7,7 @@ on:
     paths: ["overrides/**", "scripts/**", "signing/**", ".github/workflows/build-from-zip.yml"]
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   SHADOWFOX_SIGNING_PASSWORD: ${{ secrets.SHADOWFOX_SIGNING_PASSWORD }}
