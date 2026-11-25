@@ -13,6 +13,7 @@ import android.os.StatFs
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -50,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -75,27 +77,30 @@ internal fun AppFilterDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
-        modifier = Modifier.widthIn(max = 520.dp).fillMaxWidth(.92f),
+        modifier = Modifier.widthIn(max = 520.dp).fillMaxWidth(.92f).border(1.dp, Color(0x6657CBE5), RoundedCornerShape(22.dp)),
         containerColor = Color(0xFF0A2030), titleContentColor = Color.White, textContentColor = Color.White,
-        title = { Text("FILTER APPS", fontSize = 18.sp) },
+        shape = RoundedCornerShape(22.dp), tonalElevation = 8.dp,
+        title = { Text("Filter apps", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
         text = {
             Column(Modifier.fillMaxWidth().heightIn(max = (configuration.screenHeightDp * .55f).dp)
-                .verticalScroll(rememberScrollState())) {
+                .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Find apps by name, then choose which group to show.", color = Color(0xFFAAC0CD), fontSize = 13.sp)
+                OutlinedTextField(
+                    value = search,
+                    onValueChange = { search = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("App name or package") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { apply() })
+                )
+                Text("SHOW", color = Color(0xFF67CDE3), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 AppListFilter.entries.forEach { option ->
                     ToolAction(
                         if (option == selected) "✓ ${option.label}" else option.label,
                         if (option == filter) Modifier.focusRequester(initialFocus) else Modifier
                     ) { selected = option }
                 }
-                OutlinedTextField(
-                    value = search,
-                    onValueChange = { search = it },
-                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                    label = { Text("App name or package") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { apply() })
-                )
                 if (television) LaunchedEffect(Unit) { initialFocus.requestFocus() }
             }
         },
@@ -123,12 +128,13 @@ internal fun AppsHelpDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
-        modifier = Modifier.widthIn(max = 760.dp).fillMaxWidth(.92f),
+        modifier = Modifier.widthIn(max = 760.dp).fillMaxWidth(.92f).border(1.dp, Color(0x6657CBE5), RoundedCornerShape(22.dp)),
         containerColor = Color(0xFF0A2030), titleContentColor = Color.White, textContentColor = Color.White,
-        title = { Text("APPS HELP", fontSize = 18.sp) },
+        shape = RoundedCornerShape(22.dp), tonalElevation = 8.dp,
+        title = { Text("Apps guide", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
         text = {
             Column(Modifier.fillMaxWidth().heightIn(max = (LocalConfiguration.current.screenHeightDp * .55f).dp)
-                .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 entries.forEach { (title, description) ->
                     AppsHelpEntry(title, description)
                 }
@@ -141,11 +147,13 @@ internal fun AppsHelpDialog(onDismiss: () -> Unit) {
 @Composable
 private fun AppsHelpEntry(title: String, description: String) {
     var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(12.dp)
     Column(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.focusable()
-        .border(1.dp, if (focused) Color(0xFF00E5FF) else Color.Transparent, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
-        .padding(8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(title, color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        Text(description, color = Color.White, fontSize = 12.sp)
+        .border(1.dp, if (focused) Color(0xFF00D9F5) else Color(0x3349B9D5), shape)
+        .background(if (focused) Color(0xFF123449) else Color(0xFF0C2636), shape)
+        .padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(title, color = Color(0xFF70D6E9), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Text(description, color = Color(0xFFE3EDF2), fontSize = 12.sp, lineHeight = 17.sp)
     }
 }
 
@@ -199,13 +207,15 @@ internal fun UserToolsDialog(manager: UltimateManager, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
-        modifier = Modifier.widthIn(max = 760.dp).fillMaxWidth(.92f),
+        modifier = Modifier.widthIn(max = 760.dp).fillMaxWidth(.92f).border(1.dp, Color(0x6657CBE5), RoundedCornerShape(22.dp)),
         containerColor = Color(0xFF0A2030), titleContentColor = Color.White, textContentColor = Color.White,
-        title = { Text(if (report == null) "HEALTH ALERTS & SUPPORT" else "REVIEW SUPPORT REPORT", fontSize = 18.sp) },
+        shape = RoundedCornerShape(22.dp), tonalElevation = 8.dp,
+        title = { Text(if (report == null) "Health & support" else "Support report", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
         text = {
             Column(Modifier.fillMaxWidth().heightIn(max = contentHeight).verticalScroll(dialogScroll), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (report == null) {
-                    Text(health, color = Color(0xFF00E5FF), fontSize = 13.sp)
+                    Text(health, color = Color(0xFFEAF8FC), fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.fillMaxWidth().background(Color(0xFF102E40), RoundedCornerShape(12.dp)).padding(12.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         ToolAction("LOW-STORAGE ALERTS: ${if (settings.lowStorage) "ON" else "OFF"}", Modifier.weight(1f)) { change(settings.copy(lowStorage = !settings.lowStorage)) }
                         ToolAction("WARN BELOW: ${settings.thresholdMb} MB", Modifier.weight(1f)) {
@@ -280,8 +290,14 @@ private fun ToolAction(label: String, modifier: Modifier = Modifier, enabled: Bo
     var focused by remember { mutableStateOf(false) }
     Button(onClick = onClick, enabled = enabled,
         modifier = modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }
-            .border(if (focused) 2.dp else 0.dp, if (focused) Color.White else Color.Transparent, androidx.compose.foundation.shape.RoundedCornerShape(8.dp)),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF12334A), contentColor = Color.White)) {
-        Text(label, fontSize = 11.sp)
+            .border(1.dp, if (focused) Color(0xFF00D9F5) else Color(0x335C879B), RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (focused) Color(0xFF1B536A) else Color(0xFF12334A),
+            contentColor = Color.White,
+            disabledContainerColor = Color(0xFF162630),
+            disabledContentColor = Color(0xFF82949E)
+        )) {
+        Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
 }
