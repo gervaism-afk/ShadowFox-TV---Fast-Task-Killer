@@ -15,8 +15,8 @@ android {
         applicationId "ca.shadowfoxtv.taskkiller"
         minSdk 23
         targetSdk 35
-        versionCode 195
-        versionName "7.2.7"
+        versionCode 196
+        versionName "7.2.8"
     }
 
     buildFeatures { compose true; buildConfig true }

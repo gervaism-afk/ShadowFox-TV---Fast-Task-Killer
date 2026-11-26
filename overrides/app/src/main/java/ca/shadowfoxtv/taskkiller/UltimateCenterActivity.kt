@@ -90,9 +90,10 @@ class UltimateCenterActivity : ComponentActivity() {
             MaterialTheme(colorScheme = darkColorScheme(background = UBG, surface = UPANEL)) {
                 val density = LocalDensity.current
                 val television = LocalConfiguration.current.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
-                // Some TV firmware exposes a 720p desktop at mdpi. Keep controls and
-                // telemetry readable there while preserving the user's text-size setting.
-                val textDensity = Density(density.density, density.fontScale * if (television) 1.35f else 1f)
+                // Retain the readability boost on low-density TVs. High-density
+                // configurations already render larger text and need no extra boost.
+                val tvTextScale = if (television) (1.35f / density.density).coerceIn(1f, 1.35f) else 1f
+                val textDensity = Density(density.density, density.fontScale * tvTextScale)
                 val textStyle = LocalTextStyle.current
                 CompositionLocalProvider(
                     LocalDensity provides textDensity,

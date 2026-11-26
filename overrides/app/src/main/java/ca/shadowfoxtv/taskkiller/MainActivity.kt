@@ -136,7 +136,7 @@ private fun AdaptiveDashboard(context: Context) {
     val isTablet = configuration.smallestScreenWidthDp >= 600
     // Large-screen Android tablets use the approved TV dashboard composition.
     // Phones keep the dedicated mobile layout.
-    if (isTelevision || isTablet) MasterDashboard(context) else MobileDashboard(context)
+    if (isTelevision || isTablet) MasterDashboard(context, isTelevision) else MobileDashboard(context)
 }
 
 @Composable
@@ -245,7 +245,7 @@ private fun MobileStat(label: String, value: String, modifier: Modifier) {
 }
 
 @Composable
-private fun MasterDashboard(context: Context) {
+private fun MasterDashboard(context: Context, isTelevision: Boolean) {
     var ram by remember { mutableFloatStateOf(memoryUsedPercent(context)) }
     var apps by remember { mutableIntStateOf(runningProcessCount(context)) }
     var mbps by remember { mutableFloatStateOf(0f) }
@@ -318,7 +318,13 @@ private fun MasterDashboard(context: Context) {
 
     BoxWithConstraints(Modifier.fillMaxSize().background(BG)) {
         val scale = minOf(maxWidth / 960.dp, maxHeight / 540.dp)
-        Box(Modifier.size(960.dp * scale, 540.dp * scale).align(Alignment.Center)) {
+        // Reduce the TV dashboard visually without shrinking its design constraints.
+        val displayScale = if (isTelevision) 0.86f else 1f
+        Box(
+            Modifier.size(960.dp * scale, 540.dp * scale)
+                .align(Alignment.Center)
+                .scale(displayScale)
+        ) {
             Box(
                 Modifier
                     .size(960.dp, 540.dp)
