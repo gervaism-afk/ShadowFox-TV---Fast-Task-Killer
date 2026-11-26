@@ -90,9 +90,10 @@ class UltimateCenterActivity : ComponentActivity() {
             MaterialTheme(colorScheme = darkColorScheme(background = UBG, surface = UPANEL)) {
                 val density = LocalDensity.current
                 val television = LocalConfiguration.current.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
-                // Some TV firmware exposes a 720p desktop at mdpi. Keep controls and
-                // telemetry readable there while preserving the user's text-size setting.
-                val textDensity = Density(density.density, density.fontScale * if (television) 1.35f else 1f)
+                // Retain the readability boost on low-density TVs. High-density
+                // configurations already render larger text and need no extra boost.
+                val tvTextScale = if (television) (1.35f / density.density).coerceIn(1f, 1.35f) else 1f
+                val textDensity = Density(density.density, density.fontScale * tvTextScale)
                 val textStyle = LocalTextStyle.current
                 CompositionLocalProvider(
                     LocalDensity provides textDensity,
@@ -164,9 +165,15 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
     BoxWithConstraints(
         Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0xFF0B3550), Color(0xFF052238), UBG)))
     ) {
+        val compactTelevision = hasTelevisionUi && landscape && maxHeight <= 600.dp
         val side = if (isPhone) 10.dp else 18.dp
         val top = if (isPhone) 6.dp else 14.dp
-        val contentMax = if (landscape && !isPhone) 1240.dp else if (landscape) 1180.dp else 620.dp
+        val contentMax = when {
+            compactTelevision -> 900.dp
+            landscape && !isPhone -> 1240.dp
+            landscape -> 1180.dp
+            else -> 620.dp
+        }
         val contentWidth = minOf(maxWidth - (side * 2), contentMax)
 
         // Keep the entire command surface centered as one bounded canvas. Using
@@ -216,7 +223,7 @@ private fun UltimateCenter(manager: UltimateManager, requestedTab: String?, onCl
             Spacer(Modifier.height(if (isPhone && !landscape) 6.dp else if (landscape) 8.dp else 10.dp))
 
             when (tab) {
-                UltimateTab.OPTIMIZE -> OptimizeScreen(manager, snapshot, ::refresh, landscape, isPhone)
+                UltimateTab.OPTIMIZE -> OptimizeScreen(manager, snapshot, ::refresh, landscape, isPhone, compactTelevision)
                 UltimateTab.APPS -> AppsScreen(manager, landscape, isPhone)
                 UltimateTab.NETWORK -> NetworkScreen(manager, landscape)
                 UltimateTab.SYSTEM -> SystemScreen(manager, snapshot, ::refresh, landscape)
@@ -287,7 +294,14 @@ private fun BrandHeader(snapshot: UltimateSnapshot?, modifier: Modifier, compact
 }
 
 @Composable
-private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?, refresh: () -> Unit, landscape: Boolean, isPhone: Boolean) {
+private fun OptimizeScreen(
+    manager: UltimateManager,
+    snapshot: UltimateSnapshot?,
+    refresh: () -> Unit,
+    landscape: Boolean,
+    isPhone: Boolean,
+    compactTelevision: Boolean
+) {
     val scope = rememberCoroutineScope()
     var status by remember { mutableStateOf("READY") }
     var busy by remember { mutableStateOf(false) }
@@ -304,15 +318,25 @@ private fun OptimizeScreen(manager: UltimateManager, snapshot: UltimateSnapshot?
         )
         Spacer(Modifier.height(if (isPhone && !landscape) 6.dp else 10.dp))
         if (landscape) {
+            val primaryHeight = when {
+                compactTelevision -> 126.dp
+                isPhone -> 146.dp
+                else -> 190.dp
+            }
+            val detailHeight = when {
+                compactTelevision -> 105.dp
+                isPhone -> 112.dp
+                else -> 152.dp
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     SmartOptimizePanel(manager, snapshot?.root == true, status, busy, onBusy = { busy = it }, onStatus = { status = it }, refresh = refresh,
-                        modifier = Modifier.heightIn(min = if (isPhone) 146.dp else 190.dp))
-                    ThermalPanel(snapshot, Modifier.heightIn(min = if (isPhone) 112.dp else 152.dp))
+                        modifier = Modifier.heightIn(min = primaryHeight))
+                    ThermalPanel(snapshot, Modifier.heightIn(min = detailHeight))
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StreamingPanel(Modifier.heightIn(min = if (isPhone) 146.dp else 190.dp))
-                    SystemStatusPanel(manager, snapshot, Modifier.heightIn(min = if (isPhone) 112.dp else 152.dp))
+                    StreamingPanel(Modifier.heightIn(min = primaryHeight))
+                    SystemStatusPanel(manager, snapshot, Modifier.heightIn(min = detailHeight))
                 }
             }
         } else if (isPhone) {
